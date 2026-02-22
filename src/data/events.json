@@ -1,0 +1,90 @@
+{
+  "events": [
+    {
+      "id": "spring-photo-walk",
+      "title": "Spring Photo Walk",
+      "description": "Join us for a sunrise photo walk through the botanical gardens. All skill levels welcome — bring any camera you have.",
+      "location": "Bridgeway Botanical Gardens",
+      "time": "07:00",
+      "endTime": "10:00",
+      "date": "2026-03-15",
+      "recurrence": null
+    },
+    {
+      "id": "portrait-workshop",
+      "title": "Portrait Workshop",
+      "description": "Learn the fundamentals of portrait photography including lighting, posing, and post-processing techniques.",
+      "location": "Bridgeway Community Center, Room 204",
+      "time": "13:00",
+      "endTime": "16:00",
+      "date": "2026-04-05",
+      "recurrence": null
+    },
+    {
+      "id": "annual-exhibition",
+      "title": "Annual Exhibition",
+      "description": "Our yearly showcase at the Downtown Gallery. Submit your best work and celebrate our community's talent.",
+      "location": "Downtown Gallery",
+      "time": "18:00",
+      "endTime": "21:00",
+      "date": "2026-05-20",
+      "recurrence": null
+    },
+    {
+      "id": "weekly-meetup",
+      "title": "Weekly Photo Meetup",
+      "description": "Casual weekly gathering to share recent work, discuss techniques, and plan upcoming shoots. Open to all members.",
+      "location": "Bridgeway Coffee House",
+      "time": "18:30",
+      "endTime": "20:00",
+      "date": "2026-01-07",
+      "recurrence": {
+        "frequency": "weekly",
+        "interval": 1,
+        "dayOfWeek": [3]
+      }
+    },
+    {
+      "id": "biweekly-critique",
+      "title": "Photo Critique Circle",
+      "description": "Biweekly portfolio review and constructive critique session. Bring 3-5 of your best recent shots for group feedback.",
+      "location": "Bridgeway Library, Meeting Room B",
+      "time": "14:00",
+      "endTime": "16:00",
+      "date": "2026-01-10",
+      "recurrence": {
+        "frequency": "weekly",
+        "interval": 2,
+        "dayOfWeek": [6]
+      }
+    },
+    {
+      "id": "monthly-exhibition",
+      "title": "Monthly Member Exhibition",
+      "description": "Rotating exhibition featuring work from our members. Each month highlights a different theme chosen by the community.",
+      "location": "Downtown Gallery",
+      "time": "17:00",
+      "endTime": "20:00",
+      "date": "2026-01-01",
+      "recurrence": {
+        "frequency": "monthly",
+        "dayOfWeek": [5],
+        "weekOfMonth": [1]
+      }
+    },
+    {
+      "id": "advanced-workshop",
+      "title": "Advanced Techniques Workshop",
+      "description": "In-depth workshop covering advanced composition, long exposure, and experimental photography techniques. Led by guest instructors.",
+      "location": "Bridgeway Community Center, Studio A",
+      "time": "10:00",
+      "endTime": "15:00",
+      "date": "2026-01-01",
+      "recurrence": {
+        "frequency": "monthly",
+        "dayOfWeek": [4],
+        "weekOfMonth": [2, 4]
+      }
+    }
+  ]
+}
