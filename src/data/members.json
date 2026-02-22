@@ -1,0 +1,341 @@
+{
+  "members": [
+    {
+      "name": "Alex Rivera",
+      "specialty": "Landscape Photography",
+      "avatar": "https://picsum.photos/id/1005/300/300",
+      "photographyType": "Landscape & Nature",
+      "website": "https://example.com/alexrivera",
+      "socialLinks": {
+        "instagram": "https://instagram.com/alexrivera",
+        "flickr": "https://flickr.com/alexrivera",
+        "youtube": "https://youtube.com/@alexrivera"
+      },
+      "bio": "Alex has been capturing the beauty of natural landscapes for over 10 years. From sweeping mountain vistas to intimate forest details, Alex's work celebrates the wonder of the outdoors. A founding member of the club, Alex also leads our seasonal photo walks.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/10/800/600",
+          "caption": "Morning mist over the valley"
+        },
+        {
+          "src": "https://picsum.photos/id/15/800/600",
+          "caption": "Golden hour at the ridge"
+        },
+        {
+          "src": "https://picsum.photos/id/29/800/600",
+          "caption": "Autumn reflections"
+        }
+      ]
+    },
+    {
+      "name": "Jordan Lee",
+      "specialty": "Street Photography",
+      "avatar": "https://picsum.photos/id/1011/300/300",
+      "photographyType": "Street & Documentary",
+      "socialLinks": {
+        "instagram": "https://instagram.com/jordanlee",
+        "twitter": "https://twitter.com/jordanlee"
+      },
+      "bio": "Jordan finds stories in everyday moments on the street. With a keen eye for light and composition, Jordan documents urban life and the fleeting interactions that make cities feel alive.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/122/800/600",
+          "caption": "Rush hour shadows"
+        },
+        {
+          "src": "https://picsum.photos/id/174/800/600",
+          "caption": "Rainy evening downtown"
+        }
+      ]
+    },
+    {
+      "name": "Sam Patel",
+      "specialty": "Portrait Photography",
+      "avatar": "https://picsum.photos/id/1012/300/300",
+      "photographyType": "Portrait & Studio",
+      "website": "https://example.com/sampatel",
+      "socialLinks": {
+        "instagram": "https://instagram.com/sampatel",
+        "linkedin": "https://linkedin.com/in/sampatel"
+      },
+      "bio": "Sam specializes in natural-light portraiture that brings out the authentic personality of every subject. Whether in the studio or on location, Sam's portraits are warm, candid, and full of life.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/177/800/600",
+          "caption": "Natural light portrait session"
+        }
+      ]
+    },
+    {
+      "name": "Casey Kim",
+      "specialty": "Macro Photography",
+      "avatar": "https://picsum.photos/id/1027/300/300",
+      "photographyType": "Macro & Close-up",
+      "socialLinks": {
+        "flickr": "https://flickr.com/caseykim"
+      },
+      "bio": "Casey reveals the hidden worlds that exist just beyond ordinary sight. Using specialized macro lenses, Casey captures the intricate details of insects, flowers, and textures that most people overlook."
+    },
+    {
+      "name": "Morgan Chen",
+      "specialty": "Astrophotography",
+      "avatar": "https://picsum.photos/id/1025/300/300",
+      "photographyType": "Astro & Night Sky",
+      "website": "https://example.com/morganchen",
+      "socialLinks": {
+        "instagram": "https://instagram.com/morganchen",
+        "youtube": "https://youtube.com/@morganchen"
+      },
+      "bio": "Morgan chases clear skies and dark locations to photograph the Milky Way, star trails, and celestial events. A patient and technical photographer, Morgan combines long exposures with precise tracking to capture the cosmos.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/110/800/600",
+          "caption": "Milky Way over the desert"
+        },
+        {
+          "src": "https://picsum.photos/id/160/800/600",
+          "caption": "Star trails at the coast"
+        }
+      ]
+    },
+    {
+      "name": "Taylor Brooks",
+      "specialty": "Wildlife Photography",
+      "avatar": "https://picsum.photos/id/1074/300/300"
+    },
+    {
+      "name": "Priya Sharma",
+      "specialty": "Architecture Photography",
+      "avatar": "https://picsum.photos/id/1040/300/300",
+      "photographyType": "Architecture & Interiors",
+      "website": "https://example.com/priyasharma",
+      "socialLinks": {
+        "instagram": "https://instagram.com/priyasharma",
+        "linkedin": "https://linkedin.com/in/priyasharma"
+      },
+      "bio": "Priya finds beauty in the geometry and rhythm of built environments. From soaring skyscrapers to quiet residential details, her images explore how architecture shapes the way we experience space and light.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/164/800/600",
+          "caption": "Converging lines at the atrium"
+        },
+        {
+          "src": "https://picsum.photos/id/188/800/600",
+          "caption": "Brutalist facade at golden hour"
+        },
+        {
+          "src": "https://picsum.photos/id/260/800/600",
+          "caption": "Reflected symmetry"
+        }
+      ]
+    },
+    {
+      "name": "Derek Hoffman",
+      "specialty": "Wedding Photography",
+      "avatar": "https://picsum.photos/id/1035/300/300",
+      "photographyType": "Wedding & Events",
+      "socialLinks": {
+        "instagram": "https://instagram.com/derekhoffman",
+        "twitter": "https://twitter.com/derekhoffman"
+      },
+      "bio": "Derek has documented over 200 weddings, blending photojournalistic candor with cinematic flair. He believes every couple's story is unique and strives to capture the authentic emotion of each celebration."
+    },
+    {
+      "name": "Nina Okoro",
+      "specialty": "Sports Photography",
+      "avatar": "https://picsum.photos/id/1015/300/300",
+      "photographyType": "Sports & Action",
+      "website": "https://example.com/ninaokoro",
+      "socialLinks": {
+        "instagram": "https://instagram.com/ninaokoro",
+        "twitter": "https://twitter.com/ninaokoro",
+        "flickr": "https://flickr.com/ninaokoro"
+      },
+      "bio": "Nina freezes the decisive moment in competitive sports. Her fast-shutter, high-energy images have appeared in regional sports magazines and she covers events from track meets to championship finals.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/157/800/600",
+          "caption": "Sprint finish at the invitational"
+        },
+        {
+          "src": "https://picsum.photos/id/136/800/600",
+          "caption": "Victory leap"
+        }
+      ]
+    },
+    {
+      "name": "Marco Bellini",
+      "specialty": "Drone/Aerial Photography",
+      "avatar": "https://picsum.photos/id/1039/300/300",
+      "photographyType": "Aerial & Drone",
+      "socialLinks": {
+        "instagram": "https://instagram.com/marcobellini",
+        "youtube": "https://youtube.com/@marcobellini"
+      },
+      "bio": "Marco takes photography to new heights — literally. A licensed drone pilot, he captures sweeping aerial perspectives of coastlines, cityscapes, and rural landscapes that reveal patterns invisible from the ground.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/137/800/600",
+          "caption": "Coastline from 400 feet"
+        },
+        {
+          "src": "https://picsum.photos/id/165/800/600",
+          "caption": "Farm patchwork at sunrise"
+        },
+        {
+          "src": "https://picsum.photos/id/184/800/600",
+          "caption": "Urban grid from above"
+        }
+      ]
+    },
+    {
+      "name": "Lena Vasquez",
+      "specialty": "Food Photography",
+      "avatar": "https://picsum.photos/id/1080/300/300",
+      "photographyType": "Food & Beverage",
+      "website": "https://example.com/lenavasquez",
+      "socialLinks": {
+        "instagram": "https://instagram.com/lenavasquez"
+      },
+      "bio": "Lena makes food look irresistible. Working with local restaurants and food brands, she combines careful styling with natural light to create images that are as appetizing as the dishes themselves."
+    },
+    {
+      "name": "Ravi Anand",
+      "specialty": "Travel Photography",
+      "avatar": "https://picsum.photos/id/1018/300/300",
+      "photographyType": "Travel & Culture",
+      "website": "https://example.com/ravianand",
+      "socialLinks": {
+        "instagram": "https://instagram.com/ravianand",
+        "flickr": "https://flickr.com/ravianand",
+        "youtube": "https://youtube.com/@ravianand"
+      },
+      "bio": "Ravi has visited over 40 countries with camera in hand. His travel photography weaves together landscapes, street scenes, and portraits to tell immersive visual stories of the places and people he encounters.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/142/800/600",
+          "caption": "Temple at dawn, Bagan"
+        },
+        {
+          "src": "https://picsum.photos/id/167/800/600",
+          "caption": "Market colors, Marrakech"
+        }
+      ]
+    },
+    {
+      "name": "Yuki Tanaka",
+      "specialty": "Fine Art Photography",
+      "avatar": "https://picsum.photos/id/1062/300/300",
+      "photographyType": "Fine Art & Conceptual",
+      "socialLinks": {
+        "instagram": "https://instagram.com/yukitanaka",
+        "linkedin": "https://linkedin.com/in/yukitanaka"
+      },
+      "bio": "Yuki blurs the line between photography and painting. Using long exposures, intentional camera movement, and post-processing techniques, Yuki creates ethereal, abstract images that evoke mood over documentation.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/169/800/600",
+          "caption": "Intentional blur — forest study"
+        },
+        {
+          "src": "https://picsum.photos/id/197/800/600",
+          "caption": "Abstract light painting"
+        },
+        {
+          "src": "https://picsum.photos/id/240/800/600",
+          "caption": "Monochrome minimalism"
+        }
+      ]
+    },
+    {
+      "name": "Olivia Harper",
+      "specialty": "Event Photography",
+      "avatar": "https://picsum.photos/id/1064/300/300",
+      "photographyType": "Event & Conference",
+      "socialLinks": {
+        "instagram": "https://instagram.com/oliviaharper",
+        "twitter": "https://twitter.com/oliviaharper"
+      },
+      "bio": "Olivia thrives in the fast-paced environment of live events. From music festivals to corporate conferences, she captures the energy, emotion, and candid moments that make each event memorable."
+    },
+    {
+      "name": "Hassan El-Amin",
+      "specialty": "Landscape Photography",
+      "avatar": "https://picsum.photos/id/1043/300/300"
+    },
+    {
+      "name": "Claire Dubois",
+      "specialty": "Portrait Photography",
+      "avatar": "https://picsum.photos/id/1048/300/300",
+      "photographyType": "Portrait & Fashion",
+      "website": "https://example.com/clairedubois",
+      "socialLinks": {
+        "instagram": "https://instagram.com/clairedubois",
+        "linkedin": "https://linkedin.com/in/clairedubois"
+      },
+      "bio": "Claire's portrait work spans editorial fashion and personal branding. With a background in fine art, she brings a painterly eye to every session, crafting images that feel both polished and deeply personal.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/203/800/600",
+          "caption": "Editorial portrait — golden hour"
+        },
+        {
+          "src": "https://picsum.photos/id/219/800/600",
+          "caption": "Studio branding session"
+        }
+      ]
+    },
+    {
+      "name": "Jamal Washington",
+      "specialty": "Street Photography",
+      "avatar": "https://picsum.photos/id/1069/300/300",
+      "photographyType": "Street & Urban",
+      "socialLinks": {
+        "instagram": "https://instagram.com/jamalwashington"
+      },
+      "bio": "Jamal documents the rhythm of city life through bold compositions and dramatic contrast. His black-and-white street work has been exhibited in local galleries and community art shows."
+    },
+    {
+      "name": "Emily Sato",
+      "specialty": "Macro Photography",
+      "avatar": "https://picsum.photos/id/1029/300/300"
+    },
+    {
+      "name": "Carlos Mendez",
+      "specialty": "Drone/Aerial Photography",
+      "avatar": "https://picsum.photos/id/1053/300/300",
+      "photographyType": "Aerial & Landscape",
+      "socialLinks": {
+        "instagram": "https://instagram.com/carlosmendez",
+        "youtube": "https://youtube.com/@carlosmendez"
+      },
+      "bio": "Carlos pairs his love of hiking with aerial photography, launching his drone at remote summits and coastlines. His top-down compositions emphasize texture and scale in ways that surprise and delight."
+    },
+    {
+      "name": "Sofia Nguyen",
+      "specialty": "Wildlife Photography",
+      "avatar": "https://picsum.photos/id/1024/300/300",
+      "photographyType": "Wildlife & Conservation",
+      "website": "https://example.com/sofianguyen",
+      "socialLinks": {
+        "instagram": "https://instagram.com/sofianguyen",
+        "flickr": "https://flickr.com/sofianguyen"
+      },
+      "bio": "Sofia spends weeks in the field waiting for the perfect wildlife encounter. Her patient, respectful approach yields intimate images of birds, mammals, and marine life that highlight the importance of conservation.",
+      "samplePhotos": [
+        {
+          "src": "https://picsum.photos/id/237/800/600",
+          "caption": "Fox kit at the den"
+        },
+        {
+          "src": "https://picsum.photos/id/244/800/600",
+          "caption": "Heron in morning fog"
+        },
+        {
+          "src": "https://picsum.photos/id/249/800/600",
+          "caption": "Seal pup on the rocks"
+        }
+      ]
+    }
+  ]
+}
