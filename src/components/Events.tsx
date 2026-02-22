@@ -1,30 +1,79 @@
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { CalendarEvent, ResolvedEvent, EventsConfig } from '../types/events';
+import { getEventsForMonth, getUpcomingEvents, parseDate, formatTime } from '../utils/recurrence';
+import Calendar from './Calendar';
+import EventModal from './EventModal';
 import './Events.css';
 
-const events = [
-  {
-    month: 'MAR',
-    day: '15',
-    title: 'Spring Photo Walk',
-    description:
-      'Join us for a sunrise photo walk through the botanical gardens. All skill levels welcome — bring any camera you have.',
-  },
-  {
-    month: 'APR',
-    day: '05',
-    title: 'Portrait Workshop',
-    description:
-      'Learn the fundamentals of portrait photography including lighting, posing, and post-processing techniques.',
-  },
-  {
-    month: 'MAY',
-    day: '20',
-    title: 'Annual Exhibition',
-    description:
-      'Our yearly showcase at the Downtown Gallery. Submit your best work and celebrate our community\'s talent.',
-  },
+const MONTH_ABBR = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
 ];
 
 export default function Events() {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [selectedEvent, setSelectedEvent] = useState<ResolvedEvent | null>(null);
+
+  useEffect(() => {
+    import('../data/events.json').then((mod) => {
+      const config = (mod.default ?? mod) as EventsConfig;
+      setEvents(config.events);
+    });
+  }, []);
+
+  const resolvedEvents = useMemo(
+    () => getEventsForMonth(events, currentYear, currentMonth),
+    [events, currentYear, currentMonth]
+  );
+
+  const upcomingEvents = useMemo(
+    () => getUpcomingEvents(events, 3),
+    [events]
+  );
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, ResolvedEvent[]>();
+    for (const ev of resolvedEvents) {
+      const list = map.get(ev.date) ?? [];
+      list.push(ev);
+      map.set(ev.date, list);
+    }
+    return map;
+  }, [resolvedEvents]);
+
+  const handlePrevMonth = useCallback(() => {
+    setCurrentMonth((m) => {
+      if (m === 0) {
+        setCurrentYear((y) => y - 1);
+        return 11;
+      }
+      return m - 1;
+    });
+  }, []);
+
+  const handleNextMonth = useCallback(() => {
+    setCurrentMonth((m) => {
+      if (m === 11) {
+        setCurrentYear((y) => y + 1);
+        return 0;
+      }
+      return m + 1;
+    });
+  }, []);
+
+  const handleToday = useCallback(() => {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedEvent(null);
+  }, []);
+
   return (
     <section id="events" className="events section">
       <div className="container">
@@ -32,20 +81,55 @@ export default function Events() {
           <h2>Upcoming Events</h2>
           <p>Join us at our next gathering and connect with fellow photographers</p>
         </div>
-        <div className="events__grid fade-in-up">
-          {events.map((event) => (
-            <div className="events__card" key={event.title}>
-              <div className="events__date">
-                <span className="events__month">{event.month}</span>
-                <span className="events__day">{event.day}</span>
+        <div className="events__layout fade-in-up">
+          {upcomingEvents.length > 0 && (
+            <aside className="events__sidebar">
+              <div className="events__grid">
+                {upcomingEvents.map((resolved) => {
+                  const d = parseDate(resolved.date);
+                  const monthStr = MONTH_ABBR[d.getMonth()];
+                  const dayStr = String(d.getDate());
+                  return (
+                    <div
+                      className="events__card events__card--clickable"
+                      key={`${resolved.eventId}-${resolved.date}`}
+                      onClick={() => setSelectedEvent(resolved)}
+                    >
+                      <div className="events__date">
+                        <span className="events__month">{monthStr}</span>
+                        <span className="events__day">{dayStr}</span>
+                      </div>
+                      <div className="events__info">
+                        <div className="events__card-front">
+                          <h3>{resolved.event.title}</h3>
+                          <p className="events__card-meta">
+                            {formatTime(resolved.event.time)}
+                            {resolved.event.location && ` · ${resolved.event.location}`}
+                          </p>
+                        </div>
+                        <div className="events__card-back">
+                          <p>{resolved.event.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="events__info">
-                <h3>{event.title}</h3>
-                <p>{event.description}</p>
-              </div>
-            </div>
-          ))}
+            </aside>
+          )}
+          <div className="events__calendar-wrap">
+            <Calendar
+              year={currentYear}
+              month={currentMonth}
+              eventsByDate={eventsByDate}
+              onEventClick={setSelectedEvent}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+              onToday={handleToday}
+            />
+          </div>
         </div>
+        <EventModal resolvedEvent={selectedEvent} onClose={handleCloseModal} />
       </div>
     </section>
   );
