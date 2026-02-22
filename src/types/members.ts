@@ -18,6 +18,7 @@ export interface Member {
   specialty: string;
   avatar: string;
   photographyType?: string;
+  leadershipRole?: string;
   website?: string;
   socialLinks?: SocialLinks;
   bio?: string;

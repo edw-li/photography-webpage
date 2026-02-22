@@ -2,11 +2,75 @@
   background: var(--color-light-100);
 }
 
+/* Tab bar — centered with border contained to tabs */
+.about__tabs {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  border-bottom: 2px solid var(--color-light-300);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 2.5rem;
+}
+
+.about__tab {
+  background: none;
+  border: none;
+  padding: 0.85rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.25s ease;
+  white-space: nowrap;
+}
+
+.about__tab:hover {
+  color: var(--color-accent-light);
+}
+
+.about__tab--active {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.about__tab-indicator {
+  position: absolute;
+  bottom: -2px;
+  height: 3px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+/* Content animation */
+@keyframes aboutFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.about__content {
+  animation: aboutFadeIn 0.35s ease;
+}
+
+/* Grid layout (Mission & Story) */
 .about__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3rem;
   align-items: center;
+}
+
+/* Reversed grid — image left, text/cards right */
+.about__grid--reversed .about__image {
+  order: -1;
 }
 
 .about__text h3 {
@@ -28,7 +92,149 @@
   max-height: 500px;
 }
 
+/* Benefits cards (2x2 sub-grid inside about__grid) */
+.about__benefits-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.about__benefit-card {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  background: var(--color-light-200);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  min-height: 140px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.about__benefit-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.about__benefit-front,
+.about__benefit-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.about__benefit-front {
+  opacity: 1;
+}
+
+.about__benefit-back {
+  position: absolute;
+  inset: 0;
+  padding: 2rem 1.5rem;
+  opacity: 0;
+}
+
+.about__benefit-card:hover .about__benefit-front {
+  opacity: 0;
+}
+
+.about__benefit-card:hover .about__benefit-back {
+  opacity: 1;
+}
+
+.about__benefit-icon {
+  color: var(--color-accent);
+  margin-bottom: 1rem;
+}
+
+.about__benefit-card h4 {
+  color: var(--color-dark);
+}
+
+.about__benefit-card p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Leadership cards (2x2 sub-grid inside about__grid) */
+.about__leadership-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.about__leader-card {
+  text-align: center;
+  background: var(--color-light-200);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.about__leader-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.about__leader-card--clickable {
+  cursor: pointer;
+}
+
+.about__leader-avatar {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1rem;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--color-accent);
+  overflow: hidden;
+}
+
+.about__leader-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about__leader-card h4 {
+  margin-bottom: 0.25rem;
+}
+
+.about__leader-role {
+  display: block;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.about__leader-card p {
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
+  .about__tabs {
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .about__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .about__tab {
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+  }
+
   .about__grid {
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -36,5 +242,17 @@
 
   .about__image {
     order: -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .about__tab {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .about__benefits-cards,
+  .about__leadership-cards {
+    grid-template-columns: 1fr;
   }
 }
