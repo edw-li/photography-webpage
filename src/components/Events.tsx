@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { CalendarEvent, ResolvedEvent, EventsConfig } from '../types/events';
 import { getEventsForMonth, getUpcomingEvents, parseDate, formatTime } from '../utils/recurrence';
 import Calendar from './Calendar';
@@ -9,6 +9,34 @@ const MONTH_ABBR = [
   'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
 ];
+
+function ClampedDescription({ description }: { description: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const p = pRef.current;
+    if (!container || !p) return;
+
+    const update = () => {
+      const style = getComputedStyle(p);
+      const lineHeight = parseFloat(style.lineHeight);
+      const maxLines = Math.max(1, Math.floor(container.clientHeight / lineHeight));
+      p.style.webkitLineClamp = String(maxLines);
+    };
+
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div className="events__card-back" ref={containerRef}>
+      <p ref={pRef}>{description}</p>
+    </div>
+  );
+}
 
 export default function Events() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -107,9 +135,7 @@ export default function Events() {
                             {resolved.event.location && ` · ${resolved.event.location}`}
                           </p>
                         </div>
-                        <div className="events__card-back">
-                          <p>{resolved.event.description}</p>
-                        </div>
+                        <ClampedDescription description={resolved.event.description} />
                       </div>
                     </div>
                   );
