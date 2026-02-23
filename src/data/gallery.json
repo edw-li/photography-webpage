@@ -1,0 +1,175 @@
+{
+  "gallery": [
+    {
+      "id": 1015,
+      "url": "https://picsum.photos/id/1015",
+      "title": "Misty River",
+      "photographer": "Alex Rivera",
+      "exif": {
+        "camera": "Canon EOS R5",
+        "focalLength": "24mm",
+        "iso": 100,
+        "aperture": "f/8",
+        "shutterSpeed": "1/125s"
+      }
+    },
+    {
+      "id": 1016,
+      "url": "https://picsum.photos/id/1016",
+      "title": "Golden Hour",
+      "photographer": "Jordan Lee"
+    },
+    {
+      "id": 1019,
+      "url": "https://picsum.photos/id/1019",
+      "title": "Mountain Dawn",
+      "photographer": "Sam Patel",
+      "exif": {
+        "camera": "Nikon Z7 II",
+        "focalLength": "70mm",
+        "iso": 200,
+        "aperture": "f/5.6",
+        "shutterSpeed": "1/250s"
+      }
+    },
+    {
+      "id": 1022,
+      "url": "https://picsum.photos/id/1022",
+      "title": "Urban Geometry",
+      "photographer": "Casey Kim"
+    },
+    {
+      "id": 1029,
+      "url": "https://picsum.photos/id/1029",
+      "title": "Autumn Path",
+      "photographer": "Morgan Chen",
+      "exif": {
+        "camera": "Sony A7R IV",
+        "focalLength": "35mm",
+        "iso": 400,
+        "aperture": "f/2.8",
+        "shutterSpeed": "1/500s"
+      }
+    },
+    {
+      "id": 1035,
+      "url": "https://picsum.photos/id/1035",
+      "title": "Desert Light",
+      "photographer": "Taylor Brooks"
+    },
+    {
+      "id": 1039,
+      "url": "https://picsum.photos/id/1039",
+      "title": "Ocean Calm",
+      "photographer": "Riley Quinn",
+      "exif": {
+        "camera": "Fujifilm X-T5",
+        "focalLength": "16mm",
+        "iso": 160,
+        "aperture": "f/11",
+        "shutterSpeed": "1/60s"
+      }
+    },
+    {
+      "id": 1042,
+      "url": "https://picsum.photos/id/1042",
+      "title": "City Nights",
+      "photographer": "Jamie Santos"
+    },
+    {
+      "id": 1043,
+      "url": "https://picsum.photos/id/1043",
+      "title": "Forest Canopy",
+      "photographer": "Drew Nakamura",
+      "exif": {
+        "camera": "Canon EOS R5",
+        "focalLength": "50mm",
+        "iso": 800,
+        "aperture": "f/4",
+        "shutterSpeed": "1/30s"
+      }
+    },
+    {
+      "id": 1044,
+      "url": "https://picsum.photos/id/1044",
+      "title": "Meadow Bloom",
+      "photographer": "Avery Walsh"
+    },
+    {
+      "id": 1047,
+      "url": "https://picsum.photos/id/1047",
+      "title": "Coastal Rocks",
+      "photographer": "Skyler Dunn",
+      "exif": {
+        "camera": "Nikon Z7 II",
+        "focalLength": "14mm",
+        "iso": 100,
+        "aperture": "f/16",
+        "shutterSpeed": "1/4s"
+      }
+    },
+    {
+      "id": 1050,
+      "url": "https://picsum.photos/id/1050",
+      "title": "Still Waters",
+      "photographer": "Reese Harper"
+    },
+    {
+      "id": 1051,
+      "url": "https://picsum.photos/id/1051",
+      "title": "Winter Frost",
+      "photographer": "Jordan Lee",
+      "exif": {
+        "camera": "Sony A7R IV",
+        "focalLength": "85mm",
+        "iso": 320,
+        "aperture": "f/1.8",
+        "shutterSpeed": "1/1000s"
+      }
+    },
+    {
+      "id": 1052,
+      "url": "https://picsum.photos/id/1052",
+      "title": "Harbor View",
+      "photographer": "Alex Rivera"
+    },
+    {
+      "id": 1053,
+      "url": "https://picsum.photos/id/1053",
+      "title": "Sunlit Trail",
+      "photographer": "Sam Patel",
+      "exif": {
+        "camera": "Fujifilm X-T5",
+        "focalLength": "23mm",
+        "iso": 200,
+        "aperture": "f/5.6",
+        "shutterSpeed": "1/320s"
+      }
+    },
+    {
+      "id": 1055,
+      "url": "https://picsum.photos/id/1055",
+      "title": "Twilight Peak",
+      "photographer": "Casey Kim"
+    },
+    {
+      "id": 1056,
+      "url": "https://picsum.photos/id/1056",
+      "title": "Wildflower Field",
+      "photographer": "Morgan Chen",
+      "exif": {
+        "camera": "Canon EOS R5",
+        "focalLength": "100mm",
+        "iso": 250,
+        "aperture": "f/2.8",
+        "shutterSpeed": "1/800s"
+      }
+    },
+    {
+      "id": 1057,
+      "url": "https://picsum.photos/id/1057",
+      "title": "Cliffside Dawn",
+      "photographer": "Taylor Brooks"
+    }
+  ]
+}

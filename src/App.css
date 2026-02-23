@@ -1,1 +1,41 @@
 /* App-level styles — minimal, most styling lives in component CSS files */
+
+/* =============================================
+   Back-to-Top Button
+   ============================================= */
+
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 900;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-light-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base), background var(--transition-fast);
+}
+
+.back-to-top--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.back-to-top:hover {
+  background: var(--color-accent-light);
+  box-shadow: 0 4px 20px rgba(247, 148, 29, 0.4);
+}
+
+.back-to-top:active {
+  background: var(--color-accent-dark);
+  transform: translateY(0) scale(0.95);
+}

@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type { Member } from '../types/members';
+import { useImageLoaded } from '../hooks/useImageLoaded';
 
 const SOCIAL_ICONS: Record<string, ReactNode> = {
   instagram: (
@@ -55,6 +56,22 @@ const GENERIC_LINK_ICON = (
   </svg>
 );
 
+function CarouselSlide({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
+  const { loaded, handleLoad, handleError } = useImageLoaded(src);
+  return (
+    <div className={`members__carousel-slide${!loaded ? ' shimmer-bg' : ''}`}>
+      <img
+        src={src}
+        alt={alt}
+        className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+      {caption && <span className="members__carousel-caption">{caption}</span>}
+    </div>
+  );
+}
+
 interface MemberModalProps {
   member: Member | null;
   onClose: () => void;
@@ -62,6 +79,9 @@ interface MemberModalProps {
 
 export default function MemberModal({ member, onClose }: MemberModalProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const { loaded: avatarLoaded, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(member?.avatar);
 
   const photos = member?.samplePhotos ?? [];
   const hasPhotos = photos.length > 0;
@@ -79,6 +99,21 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
     setPhotoIndex(0);
   }, [member]);
 
+  // Focus the close button on open
+  useEffect(() => {
+    if (member) closeRef.current?.focus();
+  }, [member]);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (!member) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [member]);
+
+  // Keyboard: Escape, ArrowLeft, ArrowRight
   useEffect(() => {
     if (!member) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -92,6 +127,31 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [member, onClose, hasMultiplePhotos, goToPrev, goToNext]);
 
+  // Focus trap
+  useEffect(() => {
+    if (!member) return;
+    const backdrop = modalRef.current;
+    if (!backdrop) return;
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = backdrop.querySelectorAll<HTMLElement>(
+        'button, [tabindex]:not([tabindex="-1"]), a[href], input, textarea, select'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, [member]);
+
   if (!member) return null;
 
   const socialEntries = member.socialLinks
@@ -102,15 +162,21 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
   const hasLinks = socialEntries.length > 0 || member.website;
 
   return (
-    <div className="members__modal-backdrop" onClick={onClose}>
+    <div className="members__modal-backdrop" onClick={onClose} ref={modalRef} role="dialog" aria-modal="true" aria-label={member.name}>
       <div className="members__modal" onClick={(e) => e.stopPropagation()}>
-        <button className="members__modal-close" onClick={onClose} aria-label="Close">
+        <button className="members__modal-close" onClick={onClose} aria-label="Close" ref={closeRef}>
           &times;
         </button>
 
         <div className="members__modal-header">
-          <div className="members__modal-avatar">
-            <img src={member.avatar} alt={member.name} />
+          <div className={`members__modal-avatar${!avatarLoaded ? ' shimmer-bg' : ''}`}>
+            <img
+              src={member.avatar}
+              alt={member.name}
+              className={`img-fade${avatarLoaded ? ' img-fade--loaded' : ''}`}
+              onLoad={onAvatarLoad}
+              onError={onAvatarError}
+            />
           </div>
           <div className="members__modal-info">
             <h3>{member.name}</h3>
@@ -163,12 +229,12 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
                 style={{ transform: `translateX(-${photoIndex * 100}%)` }}
               >
                 {photos.map((photo, i) => (
-                  <div className="members__carousel-slide" key={i}>
-                    <img src={photo.src} alt={photo.caption ?? `${member.name} photo ${i + 1}`} />
-                    {photo.caption && (
-                      <span className="members__carousel-caption">{photo.caption}</span>
-                    )}
-                  </div>
+                  <CarouselSlide
+                    key={i}
+                    src={photo.src}
+                    alt={photo.caption ?? `${member.name} photo ${i + 1}`}
+                    caption={photo.caption}
+                  />
                 ))}
               </div>
               {hasMultiplePhotos && (

@@ -40,17 +40,31 @@ function ClampedDescription({ description }: { description: string }) {
 
 export default function Events() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedEvent, setSelectedEvent] = useState<ResolvedEvent | null>(null);
 
-  useEffect(() => {
-    import('../data/events.json').then((mod) => {
-      const config = (mod.default ?? mod) as EventsConfig;
-      setEvents(config.events);
-    });
+  const loadData = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    import('../data/events.json')
+      .then((mod) => {
+        const config = (mod.default ?? mod) as EventsConfig;
+        setEvents(config.events);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const resolvedEvents = useMemo(
     () => getEventsForMonth(events, currentYear, currentMonth),
@@ -109,52 +123,71 @@ export default function Events() {
           <h2>Upcoming Events</h2>
           <p>Join us at our next gathering and connect with fellow photographers</p>
         </div>
-        <div className="events__layout fade-in-up">
-          {upcomingEvents.length > 0 && (
-            <aside className="events__sidebar">
-              <div className="events__grid">
-                {upcomingEvents.map((resolved) => {
-                  const d = parseDate(resolved.date);
-                  const monthStr = MONTH_ABBR[d.getMonth()];
-                  const dayStr = String(d.getDate());
-                  return (
-                    <div
-                      className="events__card events__card--clickable"
-                      key={`${resolved.eventId}-${resolved.date}`}
-                      onClick={() => setSelectedEvent(resolved)}
-                    >
-                      <div className="events__date">
-                        <span className="events__month">{monthStr}</span>
-                        <span className="events__day">{dayStr}</span>
-                      </div>
-                      <div className="events__info">
-                        <div className="events__card-front">
-                          <h3>{resolved.event.title}</h3>
-                          <p className="events__card-meta">
-                            {formatTime(resolved.event.time)}
-                            {resolved.event.location && ` · ${resolved.event.location}`}
-                          </p>
-                        </div>
-                        <ClampedDescription description={resolved.event.description} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </aside>
-          )}
-          <div className="events__calendar-wrap">
-            <Calendar
-              year={currentYear}
-              month={currentMonth}
-              eventsByDate={eventsByDate}
-              onEventClick={setSelectedEvent}
-              onPrevMonth={handlePrevMonth}
-              onNextMonth={handleNextMonth}
-              onToday={handleToday}
-            />
+
+        {loading && (
+          <div className="section-spinner">
+            <div className="section-spinner__ring" />
           </div>
-        </div>
+        )}
+
+        {error && (
+          <div className="section-error">
+            <p>Something went wrong loading events.</p>
+            <button className="section-error__btn" onClick={loadData}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <div className="events__layout fade-in-up">
+            {upcomingEvents.length > 0 && (
+              <aside className="events__sidebar">
+                <div className="events__grid">
+                  {upcomingEvents.map((resolved) => {
+                    const d = parseDate(resolved.date);
+                    const monthStr = MONTH_ABBR[d.getMonth()];
+                    const dayStr = String(d.getDate());
+                    return (
+                      <div
+                        className="events__card events__card--clickable"
+                        key={`${resolved.eventId}-${resolved.date}`}
+                        onClick={() => setSelectedEvent(resolved)}
+                      >
+                        <div className="events__date">
+                          <span className="events__month">{monthStr}</span>
+                          <span className="events__day">{dayStr}</span>
+                        </div>
+                        <div className="events__info">
+                          <div className="events__card-front">
+                            <h3>{resolved.event.title}</h3>
+                            <p className="events__card-meta">
+                              {formatTime(resolved.event.time)}
+                              {resolved.event.location && ` · ${resolved.event.location}`}
+                            </p>
+                          </div>
+                          <ClampedDescription description={resolved.event.description} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
+            <div className="events__calendar-wrap">
+              <Calendar
+                year={currentYear}
+                month={currentMonth}
+                eventsByDate={eventsByDate}
+                onEventClick={setSelectedEvent}
+                onPrevMonth={handlePrevMonth}
+                onNextMonth={handleNextMonth}
+                onToday={handleToday}
+              />
+            </div>
+          </div>
+        )}
+
         <EventModal resolvedEvent={selectedEvent} onClose={handleCloseModal} />
       </div>
     </section>

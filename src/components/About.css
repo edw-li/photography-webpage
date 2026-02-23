@@ -83,6 +83,12 @@
   color: #555;
 }
 
+.about__image.shimmer-bg {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-height: 500px;
+}
+
 .about__image img {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);

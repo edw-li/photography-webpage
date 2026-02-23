@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, GraduationCap, Handshake, Image, Trophy, Users } from 'lucide-react';
 import type { Member, MembersConfig } from '../types/members';
+import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
 import './About.css';
 
@@ -14,6 +15,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function MissionContent() {
+  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1025/600/700');
   return (
     <div className="about__grid">
       <div className="about__text">
@@ -30,11 +32,14 @@ function MissionContent() {
           been shooting for decades, there's a place for you here.
         </p>
       </div>
-      <div className="about__image">
+      <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
         <img
           src="https://picsum.photos/id/1025/600/700"
           alt="Photography club members on a photo walk"
           loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
         />
       </div>
     </div>
@@ -42,6 +47,7 @@ function MissionContent() {
 }
 
 function StoryContent() {
+  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1067/600/700');
   return (
     <div className="about__grid about__grid--reversed">
       <div className="about__text">
@@ -60,11 +66,14 @@ function StoryContent() {
           stories of the people who live in them.
         </p>
       </div>
-      <div className="about__image">
+      <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
         <img
           src="https://picsum.photos/id/1067/600/700"
           alt="Club members at a gallery exhibition"
           loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
         />
       </div>
     </div>
@@ -81,13 +90,17 @@ const BENEFITS = [
 ];
 
 function BenefitsContent() {
+  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1073/600/700');
   return (
     <div className="about__grid about__grid--reversed">
-      <div className="about__image">
+      <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
         <img
           src="https://picsum.photos/id/1073/600/700"
           alt="Members collaborating during a workshop"
           loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
         />
       </div>
       <div className="about__benefits-cards">
@@ -107,6 +120,29 @@ function BenefitsContent() {
   );
 }
 
+function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
+  const { loaded, handleLoad, handleError } = useImageLoaded(member.avatar);
+  return (
+    <div
+      className="about__leader-card about__leader-card--clickable"
+      onClick={onClick}
+    >
+      <div className={`about__leader-avatar${!loaded ? ' shimmer-bg' : ''}`}>
+        <img
+          src={member.avatar}
+          alt={member.name}
+          loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      </div>
+      <h4>{member.name}</h4>
+      <span className="about__leader-role">{member.leadershipRole}</span>
+    </div>
+  );
+}
+
 function LeadershipContent({
   members,
   onMemberClick,
@@ -114,28 +150,26 @@ function LeadershipContent({
   members: Member[];
   onMemberClick: (member: Member) => void;
 }) {
+  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1060/600/700');
   return (
     <div className="about__grid">
       <div className="about__leadership-cards">
         {members.map((member) => (
-          <div
-            className="about__leader-card about__leader-card--clickable"
+          <LeaderCard
             key={member.name}
+            member={member}
             onClick={() => onMemberClick(member)}
-          >
-            <div className="about__leader-avatar">
-              <img src={member.avatar} alt={member.name} loading="lazy" />
-            </div>
-            <h4>{member.name}</h4>
-            <span className="about__leader-role">{member.leadershipRole}</span>
-          </div>
+          />
         ))}
       </div>
-      <div className="about__image">
+      <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
         <img
           src="https://picsum.photos/id/1060/600/700"
           alt="Leadership team at a club event"
           loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
         />
       </div>
     </div>
@@ -168,14 +202,28 @@ export default function About() {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-  useEffect(() => {
-    import('../data/members.json').then((mod) => {
-      const config = (mod.default ?? mod) as MembersConfig;
-      setMembers(config.members);
-    });
+  const loadData = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    import('../data/members.json')
+      .then((mod) => {
+        const config = (mod.default ?? mod) as MembersConfig;
+        setMembers(config.members);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const leaders = members.filter(m => m.leadershipRole);
 
@@ -208,38 +256,57 @@ export default function About() {
           <p>Learn more about our passionate community of photographers</p>
         </div>
 
-        <div className="about__tabs fade-in-up" ref={tabsRef} role="tablist">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`about__tab${activeTab === tab.id ? ' about__tab--active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-          <span
-            className="about__tab-indicator"
-            style={{ left: indicator.left, width: indicator.width }}
-          />
-        </div>
-
-        <div className="about__content-wrapper fade-in-up">
-          <div
-            className="about__content"
-            key={activeTab}
-            role="tabpanel"
-            aria-labelledby={activeTab}
-          >
-            <TabContent
-              activeTab={activeTab}
-              leaders={leaders}
-              onMemberClick={setSelectedMember}
-            />
+        {loading && (
+          <div className="section-spinner">
+            <div className="section-spinner__ring" />
           </div>
-        </div>
+        )}
+
+        {error && (
+          <div className="section-error">
+            <p>Something went wrong loading content.</p>
+            <button className="section-error__btn" onClick={loadData}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
+            <div className="about__tabs fade-in-up" ref={tabsRef} role="tablist">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`about__tab${activeTab === tab.id ? ' about__tab--active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+              <span
+                className="about__tab-indicator"
+                style={{ left: indicator.left, width: indicator.width }}
+              />
+            </div>
+
+            <div className="about__content-wrapper fade-in-up">
+              <div
+                className="about__content"
+                key={activeTab}
+                role="tabpanel"
+                aria-labelledby={activeTab}
+              >
+                <TabContent
+                  activeTab={activeTab}
+                  leaders={leaders}
+                  onMemberClick={setSelectedMember}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <MemberModal
