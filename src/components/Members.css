@@ -60,6 +60,34 @@
   color: var(--color-light-100);
 }
 
+.members__filter-pill--toggle {
+  border-style: dashed;
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.members__filter-pill--toggle:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+@keyframes filterPillFadeIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.members__filters--expanded .members__filter-pill:nth-child(n+7) {
+  animation: filterPillFadeIn 0.2s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members__filters--expanded .members__filter-pill {
+    animation: none;
+  }
+}
+
 /* ── Grid ── */
 
 .members__grid {

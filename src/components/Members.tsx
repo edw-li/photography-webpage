@@ -6,6 +6,12 @@ import './Members.css';
 
 const INITIAL_COUNT = 8;
 const LOAD_INCREMENT = 8;
+const VISIBLE_FILTER_COUNT = 5;
+
+function shortenSpecialty(s: string): string {
+  if (s === 'Astrophotography') return 'Astro';
+  return s.replace(/ Photography$/, '');
+}
 
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const { loaded, handleLoad, handleError } = useImageLoaded(member.avatar);
@@ -35,6 +41,7 @@ export default function Members() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -59,6 +66,23 @@ export default function Members() {
     () => [...new Set(members.map((m) => m.specialty))],
     [members]
   );
+
+  const { visibleSpecialties, hiddenCount } = useMemo(() => {
+    if (filtersExpanded) {
+      return { visibleSpecialties: specialties, hiddenCount: 0 };
+    }
+    const initial = specialties.slice(0, VISIBLE_FILTER_COUNT);
+    const rest = specialties.slice(VISIBLE_FILTER_COUNT);
+
+    // If active filter is hidden, swap it into the last visible slot
+    if (activeFilter && rest.includes(activeFilter)) {
+      const swapped = [...initial];
+      swapped[swapped.length - 1] = activeFilter;
+      return { visibleSpecialties: swapped, hiddenCount: rest.length };
+    }
+
+    return { visibleSpecialties: initial, hiddenCount: rest.length };
+  }, [specialties, filtersExpanded, activeFilter]);
 
   const filteredMembers = useMemo(() => {
     let result = members;
@@ -122,22 +146,47 @@ export default function Members() {
                     setVisibleCount(INITIAL_COUNT);
                   }}
                 />
-                <div className="members__filters">
+                <div
+                  className={`members__filters${filtersExpanded ? ' members__filters--expanded' : ''}`}
+                  role="group"
+                  aria-label="Filter by specialty"
+                >
                   <button
                     className={`members__filter-pill${activeFilter === null ? ' members__filter-pill--active' : ''}`}
                     onClick={() => handleFilterChange(null)}
                   >
                     All
                   </button>
-                  {specialties.map((s) => (
+                  {visibleSpecialties.map((s) => (
                     <button
                       key={s}
                       className={`members__filter-pill${activeFilter === s ? ' members__filter-pill--active' : ''}`}
                       onClick={() => handleFilterChange(s)}
+                      title={s}
                     >
-                      {s}
+                      {shortenSpecialty(s)}
                     </button>
                   ))}
+                  {hiddenCount > 0 && (
+                    <button
+                      className="members__filter-pill members__filter-pill--toggle"
+                      onClick={() => setFiltersExpanded(true)}
+                      aria-expanded={false}
+                      aria-label={`Show ${hiddenCount} more filter options`}
+                    >
+                      +{hiddenCount} more
+                    </button>
+                  )}
+                  {filtersExpanded && specialties.length > VISIBLE_FILTER_COUNT && (
+                    <button
+                      className="members__filter-pill members__filter-pill--toggle"
+                      onClick={() => setFiltersExpanded(false)}
+                      aria-expanded={true}
+                      aria-label="Show fewer filter options"
+                    >
+                      Show less
+                    </button>
+                  )}
                 </div>
               </div>
             )}
