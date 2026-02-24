@@ -8,6 +8,7 @@
 
 .gallery__carousel {
   position: relative;
+  overflow: hidden;
 }
 
 /* =============================================
@@ -26,6 +27,10 @@
   overflow: hidden;
   cursor: pointer;
   aspect-ratio: 3 / 2;
+}
+
+.gallery__item--placeholder {
+  visibility: hidden;
 }
 
 .gallery__item:focus-visible {

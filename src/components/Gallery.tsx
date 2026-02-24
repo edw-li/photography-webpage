@@ -376,6 +376,10 @@ export default function Gallery() {
                   ariaLabel={`View ${photo.title} by ${photo.photographer}`}
                 />
               ))}
+              {totalPages > 1 &&
+                Array.from({ length: PAGE_SIZE - displayedPhotos.length }, (_, i) => (
+                  <div key={`placeholder-${i}`} className="gallery__item gallery__item--placeholder" aria-hidden="true" />
+                ))}
             </div>
 
             {hasNext && (
