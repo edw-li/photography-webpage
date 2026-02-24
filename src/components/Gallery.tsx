@@ -53,6 +53,8 @@ function GalleryItem({
   );
 }
 
+const CROSSFADE_MS = 300;
+
 function GalleryLightbox({
   photos,
   index,
@@ -69,8 +71,53 @@ function GalleryLightbox({
   const photo = photos[index];
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const exifText = formatExif(photo);
   const { loaded, handleLoad, handleError } = useImageLoaded(`${photo.url}/1200/800`);
+
+  const [prevPhoto, setPrevPhoto] = useState<GalleryPhoto | null>(null);
+  const prevIndexRef = useRef(index);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [fadeIn, setFadeIn] = useState(false);
+  const fadeUrlRef = useRef('');
+
+  // Synchronous reset — ensures opacity: 0 start state before paint
+  const currentUrl = `${photo.url}/1200/800`;
+  if (fadeUrlRef.current !== currentUrl) {
+    fadeUrlRef.current = currentUrl;
+    if (fadeIn) setFadeIn(false);
+  }
+
+  // Detect navigation — capture outgoing photo
+  useEffect(() => {
+    if (prevIndexRef.current !== index) {
+      if (!prevPhoto) {
+        setPrevPhoto(photos[prevIndexRef.current]);
+      }
+      prevIndexRef.current = index;
+    }
+  }, [index, photos, prevPhoto]);
+
+  // Cleanup after cross-fade completes
+  useEffect(() => {
+    if (fadeIn && prevPhoto) {
+      fadeTimerRef.current = setTimeout(() => setPrevPhoto(null), CROSSFADE_MS);
+    }
+    return () => {
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    };
+  }, [fadeIn, prevPhoto]);
+
+  const handleLightboxLoad = useCallback(() => {
+    handleLoad();
+    requestAnimationFrame(() => setFadeIn(true));
+  }, [handleLoad]);
+
+  const handleLightboxError = useCallback(() => {
+    handleError();
+    requestAnimationFrame(() => setFadeIn(true));
+  }, [handleError]);
+
+  const displayPhoto = (prevPhoto && !loaded) ? prevPhoto : photo;
+  const exifText = formatExif(displayPhoto);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -138,27 +185,39 @@ function GalleryLightbox({
         <span className="gallery__lightbox-counter">
           {index + 1} / {photos.length}
         </span>
-        <div className="gallery__lightbox-header">
-          <strong>{photo.title}</strong>
-          <span>{photo.photographer}</span>
+        <div className={`gallery__lightbox-header${fadeIn ? ' gallery__lightbox-header--loaded' : ''}`}>
+          <strong>{displayPhoto.title}</strong>
+          <span>{displayPhoto.photographer}</span>
         </div>
 
         <div className="gallery__lightbox-body">
-          {!loaded && (
+          {!loaded && !prevPhoto && (
             <div className="gallery__lightbox-loading">
               <div className="section-spinner__ring" />
             </div>
           )}
+
+          {prevPhoto && (
+            <img
+              className={`gallery__lightbox-img gallery__lightbox-img--prev${
+                fadeIn ? ' gallery__lightbox-img--fade-out' : ''
+              }`}
+              src={`${prevPhoto.url}/1200/800`}
+              alt=""
+            />
+          )}
+
           <img
-            className={`gallery__lightbox-img img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            key={photo.url}
+            className={`gallery__lightbox-img${fadeIn ? ' gallery__lightbox-img--loaded' : ''}`}
             src={`${photo.url}/1200/800`}
             alt={photo.title}
-            onLoad={handleLoad}
-            onError={handleError}
+            onLoad={handleLightboxLoad}
+            onError={handleLightboxError}
           />
         </div>
 
-        <span className={`gallery__lightbox-exif${exifText ? '' : ' gallery__lightbox-exif--empty'}`}>
+        <span className={`gallery__lightbox-exif${fadeIn ? ' gallery__lightbox-exif--loaded' : ''}${exifText ? '' : ' gallery__lightbox-exif--empty'}`}>
           {exifText || '\u00a0'}
         </span>
 
