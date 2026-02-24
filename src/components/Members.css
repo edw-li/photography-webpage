@@ -115,6 +115,10 @@
   cursor: pointer;
 }
 
+.members__card--placeholder {
+  visibility: hidden;
+}
+
 .members__avatar {
   width: 88px;
   height: 88px;
@@ -141,31 +145,81 @@
   font-weight: 500;
 }
 
-/* ── Show More / Show Less ── */
+/* ── Grid Wrapper & Pagination ── */
 
-.members__actions {
+.members__grid-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes membersSlideFromBelow {
+  from { transform: translateY(10%); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes membersSlideFromAbove {
+  from { transform: translateY(-10%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.members__grid--slide-from-below {
+  animation: membersSlideFromBelow 0.25s ease-out;
+}
+
+.members__grid--slide-from-above {
+  animation: membersSlideFromAbove 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members__grid--slide-from-below,
+  .members__grid--slide-from-above {
+    animation: none;
+  }
+}
+
+.members__page-nav {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.members__show-btn {
-  padding: 0.6rem 1.6rem;
-  border: 2px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-accent);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 600;
+  width: 100%;
+  height: 48px;
+  border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  font-size: 1.4rem;
+  color: var(--color-dark-100);
+  z-index: 5;
+  transition: opacity var(--transition-base);
 }
 
-.members__show-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-light-100);
+.members__page-nav--up {
+  background: linear-gradient(to bottom, var(--color-bg-alt) 30%, transparent);
+}
+
+.members__page-nav--down {
+  background: linear-gradient(to top, var(--color-bg-alt) 30%, transparent);
+}
+
+.members__page-nav:hover {
+  opacity: 0.8;
+}
+
+.members__page-nav--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.members__page-indicator {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--color-dark-300);
+}
+
+.members__empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
 }
 
 /* ── Modal Backdrop ── */
@@ -440,6 +494,11 @@
   .members__carousel-arrow {
     width: 28px;
     height: 28px;
+    font-size: 1.1rem;
+  }
+
+  .members__page-nav {
+    height: 36px;
     font-size: 1.1rem;
   }
 

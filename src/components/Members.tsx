@@ -4,9 +4,34 @@ import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
 import './Members.css';
 
-const INITIAL_COUNT = 8;
-const LOAD_INCREMENT = 8;
+const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 3 } as const;
+const BREAKPOINTS = { tablet: 1024, mobile: 480 } as const;
 const VISIBLE_FILTER_COUNT = 5;
+
+function usePageSize(): number {
+  const getSize = () => {
+    if (typeof window === 'undefined') return PAGE_SIZES.desktop;
+    if (window.innerWidth <= BREAKPOINTS.mobile) return PAGE_SIZES.mobile;
+    if (window.innerWidth <= BREAKPOINTS.tablet) return PAGE_SIZES.tablet;
+    return PAGE_SIZES.desktop;
+  };
+
+  const [pageSize, setPageSize] = useState(getSize);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`);
+    const tabletQuery = window.matchMedia(`(max-width: ${BREAKPOINTS.tablet}px)`);
+    const update = () => setPageSize(getSize());
+    mobileQuery.addEventListener('change', update);
+    tabletQuery.addEventListener('change', update);
+    return () => {
+      mobileQuery.removeEventListener('change', update);
+      tabletQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  return pageSize;
+}
 
 function shortenSpecialty(s: string): string {
   if (s === 'Astrophotography') return 'Astro';
@@ -38,7 +63,9 @@ export default function Members() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [slideDir, setSlideDir] = useState<'up' | 'down' | null>(null);
+  const pageSize = usePageSize();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -100,13 +127,38 @@ export default function Members() {
     return result;
   }, [members, activeFilter, searchQuery]);
 
-  const displayedMembers = filteredMembers.slice(0, visibleCount);
-  const remaining = filteredMembers.length - visibleCount;
-  const showControls = members.length > INITIAL_COUNT;
+  const totalPages = Math.ceil(filteredMembers.length / pageSize);
+  const hasPrev = currentPage > 0;
+  const hasNext = currentPage < totalPages - 1;
+  const displayedMembers = filteredMembers.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  );
+  const showControls = members.length > PAGE_SIZES.mobile;
+
+  const goToNextPage = useCallback(() => {
+    if (!hasNext) return;
+    setSlideDir('up');
+    setCurrentPage((p) => p + 1);
+  }, [hasNext]);
+
+  const goToPrevPage = useCallback(() => {
+    if (!hasPrev) return;
+    setSlideDir('down');
+    setCurrentPage((p) => p - 1);
+  }, [hasPrev]);
+
+  // Clamp currentPage when pageSize or filtered results change
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(0, Math.ceil(filteredMembers.length / pageSize) - 1);
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [pageSize, filteredMembers.length]);
 
   const handleFilterChange = (specialty: string | null) => {
     setActiveFilter(specialty);
-    setVisibleCount(INITIAL_COUNT);
+    setCurrentPage(0);
   };
 
   return (
@@ -143,7 +195,7 @@ export default function Members() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setVisibleCount(INITIAL_COUNT);
+                    setCurrentPage(0);
                   }}
                 />
                 <div
@@ -191,36 +243,65 @@ export default function Members() {
               </div>
             )}
 
-            <div className="members__grid">
-              {displayedMembers.map((member) => (
-                <MemberCard
-                  key={member.name}
-                  member={member}
-                  onClick={() => setSelectedMember(member)}
-                />
-              ))}
-            </div>
+            <div className="members__grid-wrapper">
+              <button
+                className={`members__page-nav members__page-nav--up${!hasPrev ? ' members__page-nav--hidden' : ''}`}
+                onClick={goToPrevPage}
+                aria-label="Previous page"
+                aria-hidden={!hasPrev}
+                tabIndex={hasPrev ? 0 : -1}
+              >
+                &#x25B2;
+              </button>
 
-            {(remaining > 0 || visibleCount > INITIAL_COUNT) && (
-              <div className="members__actions">
-                {remaining > 0 && (
-                  <button
-                    className="members__show-btn"
-                    onClick={() => setVisibleCount((c) => c + LOAD_INCREMENT)}
-                  >
-                    Show More ({remaining} remaining)
-                  </button>
-                )}
-                {visibleCount > INITIAL_COUNT && (
-                  <button
-                    className="members__show-btn members__show-btn--less"
-                    onClick={() => setVisibleCount(INITIAL_COUNT)}
-                  >
-                    Show Less
-                  </button>
-                )}
+              <div
+                className={[
+                  'members__grid',
+                  slideDir === 'up' && 'members__grid--slide-from-below',
+                  slideDir === 'down' && 'members__grid--slide-from-above',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                key={currentPage}
+                onAnimationEnd={() => setSlideDir(null)}
+              >
+                {displayedMembers.map((member) => (
+                  <MemberCard
+                    key={member.name}
+                    member={member}
+                    onClick={() => setSelectedMember(member)}
+                  />
+                ))}
+                {totalPages > 1 &&
+                  Array.from({ length: pageSize - displayedMembers.length }, (_, i) => (
+                    <div key={`placeholder-${i}`} className="members__card members__card--placeholder" aria-hidden="true">
+                      <div className="members__avatar" />
+                      <h3>&nbsp;</h3>
+                      <p>&nbsp;</p>
+                    </div>
+                  ))}
               </div>
-            )}
+
+              {filteredMembers.length === 0 && (
+                <p className="members__empty">No members match your search.</p>
+              )}
+
+              <button
+                className={`members__page-nav members__page-nav--down${!hasNext ? ' members__page-nav--hidden' : ''}`}
+                onClick={goToNextPage}
+                aria-label="Next page"
+                aria-hidden={!hasNext}
+                tabIndex={hasNext ? 0 : -1}
+              >
+                &#x25BC;
+              </button>
+
+              {totalPages > 1 && (
+                <p className="members__page-indicator">
+                  Page {currentPage + 1} of {totalPages}
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>
