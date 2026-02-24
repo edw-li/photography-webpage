@@ -1,5 +1,5 @@
 .members {
-  background: var(--color-light-200);
+  background: var(--color-bg-alt);
 }
 
 /* ── Search & Filter Controls ── */
@@ -16,12 +16,12 @@
 .members__search {
   flex: 1 1 240px;
   padding: 0.6rem 1rem;
-  border: 1px solid var(--color-dark-800);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-light-100);
+  background: var(--color-surface);
   font-family: var(--font-body);
   font-size: 0.9rem;
-  color: var(--color-dark-900);
+  color: var(--color-text);
   transition: border-color var(--transition-fast);
 }
 
@@ -72,7 +72,7 @@
 
 .members__card {
   text-align: center;
-  background: var(--color-light-100);
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: 1.5rem 1rem;
   transition: all var(--transition-base);
@@ -104,7 +104,7 @@
 
 .members__card h3 {
   margin-bottom: 0.2rem;
-  color: var(--color-dark-900);
+  color: var(--color-text);
 }
 
 .members__card p {
@@ -162,7 +162,7 @@
 
 .members__modal {
   position: relative;
-  background: var(--color-light-100);
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   max-width: 600px;
   width: 92%;
@@ -193,7 +193,7 @@
   font-size: 1.75rem;
   line-height: 1;
   cursor: pointer;
-  color: var(--color-dark-800);
+  color: var(--color-text-muted);
   transition: color var(--transition-fast);
 }
 
@@ -227,7 +227,7 @@
 
 .members__modal-info h3 {
   margin: 0 0 0.25rem;
-  color: var(--color-dark-900);
+  color: var(--color-text);
 }
 
 .members__modal-type {
@@ -241,7 +241,7 @@
 .members__modal-specialty {
   display: block;
   font-size: 0.8rem;
-  color: var(--color-dark-800);
+  color: var(--color-text-secondary);
 }
 
 /* ── Bio ── */
@@ -253,7 +253,7 @@
 .members__modal-bio p {
   font-size: 0.9rem;
   line-height: 1.6;
-  color: var(--color-dark-800);
+  color: var(--color-text-secondary);
 }
 
 /* ── Social Links ── */
@@ -370,7 +370,7 @@
   height: 8px;
   border: none;
   border-radius: var(--radius-full);
-  background: var(--color-light-300);
+  background: var(--color-border);
   cursor: pointer;
   padding: 0;
   transition: all var(--transition-fast);

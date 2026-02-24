@@ -37,6 +37,44 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.15);
+
+  /* Semantic colors — light mode defaults */
+  --color-bg: #FFFFFF;
+  --color-bg-alt: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F5F5F5;
+  --color-text: #1A1A1A;
+  --color-text-secondary: #555;
+  --color-text-muted: #888;
+  --color-border: #E8E8E8;
+
+  /* Dark accent sections (Contact, Footer, Calendar header) */
+  --color-dark-bg: #1A1A1A;
+  --color-dark-surface: #2D2D2D;
+  --color-dark-text: #ccc;
+  --color-dark-text-muted: #aaa;
+  --color-dark-border: #444;
+}
+
+[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-bg-alt: #1A1A1A;
+  --color-surface: #1E1E1E;
+  --color-surface-alt: #2A2A2A;
+  --color-text: #E8E8E8;
+  --color-text-secondary: #AAAAAA;
+  --color-text-muted: #777;
+  --color-border: #333;
+
+  --color-dark-bg: #0D0D0D;
+  --color-dark-surface: #161616;
+  --color-dark-text: #bbb;
+  --color-dark-text-muted: #888;
+  --color-dark-border: #333;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Reset */
@@ -58,8 +96,8 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.6;
-  color: var(--color-dark-900);
-  background-color: var(--color-light-100);
+  color: var(--color-text);
+  background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -148,7 +186,7 @@ p {
 }
 
 .section-title p {
-  color: #555;
+  color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto;
   font-size: 1.05rem;
@@ -216,7 +254,7 @@ p {
 .section-spinner__ring {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-light-300);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: var(--radius-full);
   animation: sectionSpin 0.8s linear infinite;
@@ -236,7 +274,7 @@ p {
 }
 
 .section-error p {
-  color: #555;
+  color: var(--color-text-secondary);
   font-size: 1rem;
 }
 
@@ -268,9 +306,9 @@ p {
 .shimmer-bg {
   background: linear-gradient(
     90deg,
-    var(--color-light-300) 25%,
-    var(--color-light-200) 50%,
-    var(--color-light-300) 75%
+    var(--color-border) 25%,
+    var(--color-bg-alt) 50%,
+    var(--color-border) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
@@ -283,6 +321,12 @@ p {
 
 .img-fade--loaded {
   opacity: 1;
+}
+
+/* Theme transition */
+body, .navbar, .about, .gallery, .events, .members, .contact, .footer,
+.events__modal, .members__modal, .events__card, .members__card {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

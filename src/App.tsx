@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
+import useTheme from './hooks/useTheme';
 import './App.css';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -11,6 +13,7 @@ import Footer from './components/Footer';
 
 function App() {
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -75,6 +78,13 @@ function App() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="18 15 12 9 6 15" />
         </svg>
+      </button>
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
       </button>
     </>
   );

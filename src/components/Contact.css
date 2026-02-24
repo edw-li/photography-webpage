@@ -1,10 +1,10 @@
 .contact {
-  background: var(--color-dark-900);
+  background: var(--color-dark-bg);
   color: var(--color-light-100);
 }
 
 .section-title--light p {
-  color: #aaa;
+  color: var(--color-dark-text-muted);
 }
 
 .section-title--light h2 {
@@ -28,16 +28,16 @@
   margin-bottom: 0.4rem;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #ccc;
+  color: var(--color-dark-text);
 }
 
 .contact__field input,
 .contact__field textarea {
   width: 100%;
   padding: 0.85rem 1rem;
-  background: var(--color-dark-800);
+  background: var(--color-dark-surface);
   color: var(--color-light-100);
-  border: 1px solid #444;
+  border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
   font-size: 1rem;
   transition: border-color var(--transition-fast);
@@ -45,7 +45,7 @@
 
 .contact__field input::placeholder,
 .contact__field textarea::placeholder {
-  color: #777;
+  color: var(--color-dark-text-muted);
 }
 
 .contact__field input:focus,
@@ -62,7 +62,7 @@
   flex-direction: column;
   gap: 2rem;
   padding-left: 2rem;
-  border-left: 1px solid #444;
+  border-left: 1px solid var(--color-dark-border);
 }
 
 .contact__info-item h3 {
@@ -76,7 +76,7 @@
 }
 
 .contact__info-item p {
-  color: #ccc;
+  color: var(--color-dark-text);
   font-size: 0.95rem;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .contact__socials a {
-  color: #ccc;
+  color: var(--color-dark-text);
   font-size: 0.95rem;
   font-weight: 500;
   transition: color var(--transition-fast);
@@ -104,7 +104,7 @@
   .contact__info {
     padding-left: 0;
     border-left: none;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--color-dark-border);
     padding-top: 2rem;
   }
 }

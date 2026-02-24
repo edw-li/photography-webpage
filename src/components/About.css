@@ -1,5 +1,5 @@
 .about {
-  background: var(--color-light-100);
+  background: var(--color-bg);
 }
 
 /* Tab bar — centered with border contained to tabs */
@@ -7,7 +7,7 @@
   display: flex;
   justify-content: center;
   position: relative;
-  border-bottom: 2px solid var(--color-light-300);
+  border-bottom: 2px solid var(--color-border);
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
@@ -20,7 +20,7 @@
   padding: 0.85rem 1.5rem;
   font-size: 1rem;
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: color 0.25s ease;
   white-space: nowrap;
@@ -80,7 +80,7 @@
 
 .about__text p {
   margin-bottom: 1.5rem;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .about__image.shimmer-bg {
@@ -109,7 +109,7 @@
   position: relative;
   overflow: hidden;
   text-align: center;
-  background: var(--color-light-200);
+  background: var(--color-surface-alt);
   border-radius: var(--radius-lg);
   padding: 2rem 1.5rem;
   min-height: 140px;
@@ -159,7 +159,7 @@
 }
 
 .about__benefit-card p {
-  color: #555;
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -173,7 +173,7 @@
 
 .about__leader-card {
   text-align: center;
-  background: var(--color-light-200);
+  background: var(--color-surface-alt);
   border-radius: var(--radius-lg);
   padding: 2rem 1.5rem;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -216,7 +216,7 @@
 }
 
 .about__leader-card p {
-  color: #555;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   line-height: 1.5;
 }
