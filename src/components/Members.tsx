@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Member, MembersConfig } from '../types/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
@@ -64,11 +64,19 @@ export default function Members() {
   const [error, setError] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [slideDir, setSlideDir] = useState<'up' | 'down' | null>(null);
+  const [slideDir, setSlideDir] = useState<'exit-up' | 'exit-down' | 'up' | 'down' | null>(null);
   const pageSize = usePageSize();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [expandPhase, setExpandPhase] = useState<'expand-squeeze' | 'expand-enter' | 'collapse-exit' | 'collapse-grow' | null>(null);
+  const [filterAnimPhase, setFilterAnimPhase] = useState<'exit' | 'enter' | null>(null);
+  const [pendingFilter, setPendingFilter] = useState<string | null>(null);
+  const [filterVersion, setFilterVersion] = useState(0);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const controlsExpanded = filtersExpanded || expandPhase === 'expand-squeeze' || expandPhase === 'collapse-exit';
+  const isSqueezing = expandPhase === 'expand-squeeze' || expandPhase === 'collapse-grow';
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -137,16 +145,18 @@ export default function Members() {
   const showControls = members.length > PAGE_SIZES.mobile;
 
   const goToNextPage = useCallback(() => {
-    if (!hasNext) return;
-    setSlideDir('up');
-    setCurrentPage((p) => p + 1);
-  }, [hasNext]);
+    if (!hasNext || filterAnimPhase || expandPhase || slideDir) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) { setCurrentPage((p) => p + 1); return; }
+    setSlideDir('exit-up');
+  }, [hasNext, filterAnimPhase, expandPhase, slideDir]);
 
   const goToPrevPage = useCallback(() => {
-    if (!hasPrev) return;
-    setSlideDir('down');
-    setCurrentPage((p) => p - 1);
-  }, [hasPrev]);
+    if (!hasPrev || filterAnimPhase || expandPhase || slideDir) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) { setCurrentPage((p) => p - 1); return; }
+    setSlideDir('exit-down');
+  }, [hasPrev, filterAnimPhase, expandPhase, slideDir]);
 
   // Clamp currentPage when pageSize or filtered results change
   useEffect(() => {
@@ -156,9 +166,51 @@ export default function Members() {
     });
   }, [pageSize, filteredMembers.length]);
 
+  useEffect(() => {
+    if (expandPhase !== 'expand-squeeze') return;
+    const el = searchRef.current;
+    if (!el) { setFiltersExpanded(true); setExpandPhase('expand-enter'); return; }
+
+    let done = false;
+    const advance = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(fallbackTimer);
+      el.removeEventListener('transitionend', onEnd);
+      setFiltersExpanded(true);
+      setExpandPhase('expand-enter');
+    };
+    const onEnd = (e: TransitionEvent) => {
+      if (e.target === el && e.propertyName === 'flex-basis') advance();
+    };
+    el.addEventListener('transitionend', onEnd);
+    const fallbackTimer = setTimeout(advance, 500);
+
+    return () => { done = true; clearTimeout(fallbackTimer); el.removeEventListener('transitionend', onEnd); };
+  }, [expandPhase]);
+
+  // Catch-all fallback: force-complete if any phase lingers
+  useEffect(() => {
+    if (!expandPhase) return;
+    const timer = setTimeout(() => {
+      if (expandPhase === 'expand-squeeze') setFiltersExpanded(true);
+      if (expandPhase === 'collapse-exit') setFiltersExpanded(false);
+      setExpandPhase(null);
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [expandPhase]);
+
   const handleFilterChange = (specialty: string | null) => {
-    setActiveFilter(specialty);
-    setCurrentPage(0);
+    if (specialty === activeFilter || filterAnimPhase || expandPhase) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setActiveFilter(specialty);
+      setCurrentPage(0);
+      setFilterVersion((v) => v + 1);
+      return;
+    }
+    setPendingFilter(specialty);
+    setFilterAnimPhase('exit');
   };
 
   return (
@@ -187,8 +239,10 @@ export default function Members() {
         {!loading && !error && (
           <>
             {showControls && (
-              <div className="members__controls">
+              <div className="fade-in-up">
+              <div className={`members__controls${controlsExpanded ? ' members__controls--expanded' : ''}${isSqueezing ? ' members__controls--squeezing' : ''}`}>
                 <input
+                  ref={searchRef}
                   type="text"
                   className="members__search"
                   placeholder="Search by name or specialty..."
@@ -199,9 +253,33 @@ export default function Members() {
                   }}
                 />
                 <div
-                  className={`members__filters${filtersExpanded ? ' members__filters--expanded' : ''}`}
+                  ref={filtersRef}
+                  className={[
+                    'members__filters',
+                    isSqueezing && 'members__filters--squeezing',
+                    expandPhase === 'expand-squeeze' && 'members__filters--pill-exit-reverse',
+                    expandPhase === 'expand-enter' && 'members__filters--pill-enter',
+                    expandPhase === 'collapse-exit' && 'members__filters--pill-exit-reverse',
+                    expandPhase === 'collapse-grow' && 'members__filters--pill-enter-reverse',
+                  ].filter(Boolean).join(' ')}
                   role="group"
                   aria-label="Filter by specialty"
+                  onAnimationEnd={(e) => {
+                    if (expandPhase === 'expand-enter' && e.animationName === 'filterPillFadeIn') {
+                      if (e.target === filtersRef.current?.lastElementChild) {
+                        setExpandPhase(null);
+                      }
+                    } else if (expandPhase === 'collapse-exit' && e.animationName === 'filterPillFadeOut') {
+                      if (e.target === filtersRef.current?.firstElementChild) {
+                        setFiltersExpanded(false);
+                        setExpandPhase('collapse-grow');
+                      }
+                    } else if (expandPhase === 'collapse-grow' && e.animationName === 'filterPillFadeIn') {
+                      if (e.target === filtersRef.current?.firstElementChild) {
+                        setExpandPhase(null);
+                      }
+                    }
+                  }}
                 >
                   <button
                     className={`members__filter-pill${activeFilter === null ? ' members__filter-pill--active' : ''}`}
@@ -222,7 +300,17 @@ export default function Members() {
                   {hiddenCount > 0 && (
                     <button
                       className="members__filter-pill members__filter-pill--toggle"
-                      onClick={() => setFiltersExpanded(true)}
+                      onClick={() => {
+                        if (expandPhase || filterAnimPhase) return;
+                        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        if (prefersReduced) {
+                          setFiltersExpanded(true);
+                          return;
+                        }
+                        const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
+                        if (isMobile) { setFiltersExpanded(true); return; }
+                        setExpandPhase('expand-squeeze');
+                      }}
                       aria-expanded={false}
                       aria-label={`Show ${hiddenCount} more filter options`}
                     >
@@ -232,7 +320,17 @@ export default function Members() {
                   {filtersExpanded && specialties.length > VISIBLE_FILTER_COUNT && (
                     <button
                       className="members__filter-pill members__filter-pill--toggle"
-                      onClick={() => setFiltersExpanded(false)}
+                      onClick={() => {
+                        if (expandPhase || filterAnimPhase) return;
+                        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        if (prefersReduced) {
+                          setFiltersExpanded(false);
+                          return;
+                        }
+                        const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
+                        if (isMobile) { setFiltersExpanded(false); return; }
+                        setExpandPhase('collapse-exit');
+                      }}
                       aria-expanded={true}
                       aria-label="Show fewer filter options"
                     >
@@ -241,9 +339,10 @@ export default function Members() {
                   )}
                 </div>
               </div>
+              </div>
             )}
 
-            <div className="members__grid-wrapper">
+            <div className="members__grid-wrapper fade-in-up">
               <button
                 className={`members__page-nav members__page-nav--up${!hasPrev ? ' members__page-nav--hidden' : ''}`}
                 onClick={goToPrevPage}
@@ -259,11 +358,33 @@ export default function Members() {
                   'members__grid',
                   slideDir === 'up' && 'members__grid--slide-from-below',
                   slideDir === 'down' && 'members__grid--slide-from-above',
+                  slideDir === 'exit-up' && 'members__grid--exit-up',
+                  slideDir === 'exit-down' && 'members__grid--exit-down',
+                  filterAnimPhase === 'exit' && 'members__grid--filter-exit',
+                  filterAnimPhase === 'enter' && 'members__grid--filter-enter',
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                key={currentPage}
-                onAnimationEnd={() => setSlideDir(null)}
+                key={`${currentPage}-${filterVersion}`}
+                onAnimationEnd={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (filterAnimPhase === 'exit') {
+                    setActiveFilter(pendingFilter);
+                    setCurrentPage(0);
+                    setFilterVersion((v) => v + 1);
+                    setFilterAnimPhase('enter');
+                  } else if (filterAnimPhase === 'enter') {
+                    setFilterAnimPhase(null);
+                  } else if (slideDir === 'exit-up') {
+                    setCurrentPage((p) => p + 1);
+                    setSlideDir('up');
+                  } else if (slideDir === 'exit-down') {
+                    setCurrentPage((p) => p - 1);
+                    setSlideDir('down');
+                  } else {
+                    setSlideDir(null);
+                  }
+                }}
               >
                 {displayedMembers.map((member) => (
                   <MemberCard
@@ -272,7 +393,7 @@ export default function Members() {
                     onClick={() => setSelectedMember(member)}
                   />
                 ))}
-                {totalPages > 1 &&
+                {displayedMembers.length > 0 && displayedMembers.length < pageSize &&
                   Array.from({ length: pageSize - displayedMembers.length }, (_, i) => (
                     <div key={`placeholder-${i}`} className="members__card members__card--placeholder" aria-hidden="true">
                       <div className="members__avatar" />
@@ -296,11 +417,9 @@ export default function Members() {
                 &#x25BC;
               </button>
 
-              {totalPages > 1 && (
-                <p className="members__page-indicator">
-                  Page {currentPage + 1} of {totalPages}
-                </p>
-              )}
+              <p className={`members__page-indicator${filteredMembers.length === 0 ? ' members__page-indicator--hidden' : ''}`}>
+                {filteredMembers.length > 0 ? `Page ${currentPage + 1} of ${totalPages}` : '\u00a0'}
+              </p>
             </div>
           </>
         )}

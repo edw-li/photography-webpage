@@ -27,7 +27,7 @@ function GalleryItem({
   onKeyDown: (e: React.KeyboardEvent) => void;
   ariaLabel: string;
 }) {
-  const { loaded, handleLoad, handleError } = useImageLoaded(`${photo.url}/600/400`);
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(`${photo.url}/600/400`);
   return (
     <div
       className={`gallery__item${!loaded ? ' shimmer-bg' : ''}`}
@@ -37,14 +37,25 @@ function GalleryItem({
       role="button"
       aria-label={ariaLabel}
     >
-      <img
-        src={`${photo.url}/600/400`}
-        alt={photo.title}
-        loading="lazy"
-        className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      {errored ? (
+        <div className="img-error-fallback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="2" y1="2" x2="22" y2="22" />
+            <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
+            <path d="M21 15V6a2 2 0 0 0-2-2H9" />
+            <path d="M3 8.7V19a2 2 0 0 0 2 2h12.3" />
+          </svg>
+        </div>
+      ) : (
+        <img
+          src={`${photo.url}/600/400`}
+          alt={photo.title}
+          loading="lazy"
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
       <div className="gallery__overlay">
         <h3>{photo.title}</h3>
         <p>{photo.photographer}</p>
@@ -71,7 +82,16 @@ function GalleryLightbox({
   const photo = photos[index];
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const { loaded, handleLoad, handleError } = useImageLoaded(`${photo.url}/1200/800`);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const startClose = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onClose();
+    } else {
+      setIsClosing(true);
+    }
+  };
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(`${photo.url}/1200/800`);
 
   const [prevPhoto, setPrevPhoto] = useState<GalleryPhoto | null>(null);
   const prevIndexRef = useRef(index);
@@ -132,7 +152,7 @@ function GalleryLightbox({
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') startClose();
       if (e.key === 'ArrowLeft') onPrev();
       if (e.key === 'ArrowRight') onNext();
     };
@@ -166,8 +186,9 @@ function GalleryLightbox({
 
   return (
     <div
-      className="gallery__lightbox-backdrop"
-      onClick={onClose}
+      className={`gallery__lightbox-backdrop${isClosing ? ' gallery__lightbox-backdrop--closing' : ''}`}
+      onClick={startClose}
+      onAnimationEnd={() => { if (isClosing) { setIsClosing(false); onClose(); } }}
       ref={modalRef}
       role="dialog"
       aria-modal="true"
@@ -176,7 +197,7 @@ function GalleryLightbox({
       <div className="gallery__lightbox" onClick={(e) => e.stopPropagation()}>
         <button
           className="gallery__lightbox-close"
-          onClick={onClose}
+          onClick={startClose}
           aria-label="Close lightbox"
           ref={closeRef}
         >
@@ -207,14 +228,25 @@ function GalleryLightbox({
             />
           )}
 
-          <img
-            key={photo.url}
-            className={`gallery__lightbox-img${fadeIn ? ' gallery__lightbox-img--loaded' : ''}`}
-            src={`${photo.url}/1200/800`}
-            alt={photo.title}
-            onLoad={handleLightboxLoad}
-            onError={handleLightboxError}
-          />
+          {errored && !prevPhoto ? (
+            <div className="img-error-fallback gallery__lightbox-img gallery__lightbox-img--loaded" style={{ minHeight: 200, minWidth: 300 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 48, height: 48 }}>
+                <line x1="2" y1="2" x2="22" y2="22" />
+                <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
+                <path d="M21 15V6a2 2 0 0 0-2-2H9" />
+                <path d="M3 8.7V19a2 2 0 0 0 2 2h12.3" />
+              </svg>
+            </div>
+          ) : (
+            <img
+              key={photo.url}
+              className={`gallery__lightbox-img${fadeIn ? ' gallery__lightbox-img--loaded' : ''}`}
+              src={`${photo.url}/1200/800`}
+              alt={photo.title}
+              onLoad={handleLightboxLoad}
+              onError={handleLightboxError}
+            />
+          )}
         </div>
 
         <span className={`gallery__lightbox-exif${fadeIn ? ' gallery__lightbox-exif--loaded' : ''}${exifText ? '' : ' gallery__lightbox-exif--empty'}`}>
@@ -247,6 +279,8 @@ export default function Gallery() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
+  const [isPageTransitioning, setIsPageTransitioning] = useState(false);
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -276,16 +310,28 @@ export default function Gallery() {
   );
 
   const goToNextPage = useCallback(() => {
-    if (!hasNext) return;
-    setSlideDir('left');
-    setCurrentPage((p) => p + 1);
-  }, [hasNext]);
+    if (!hasNext || isPageTransitioning) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSlideDir('left');
+      setCurrentPage((p) => p + 1);
+    } else {
+      setSlideDir('left');
+      setPendingPage(currentPage + 1);
+      setIsPageTransitioning(true);
+    }
+  }, [hasNext, isPageTransitioning, currentPage]);
 
   const goToPrevPage = useCallback(() => {
-    if (!hasPrev) return;
-    setSlideDir('right');
-    setCurrentPage((p) => p - 1);
-  }, [hasPrev]);
+    if (!hasPrev || isPageTransitioning) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSlideDir('right');
+      setCurrentPage((p) => p - 1);
+    } else {
+      setSlideDir('right');
+      setPendingPage(currentPage - 1);
+      setIsPageTransitioning(true);
+    }
+  }, [hasPrev, isPageTransitioning, currentPage]);
 
   const goToPrevPhoto = useCallback(() => {
     setSelectedIndex((i) =>
@@ -321,8 +367,10 @@ export default function Gallery() {
 
   const gridClassName = [
     'gallery__grid',
-    slideDir === 'left' && 'gallery__grid--slide-from-right',
-    slideDir === 'right' && 'gallery__grid--slide-from-left',
+    isPageTransitioning && slideDir === 'left' && 'gallery__grid--exit-left',
+    isPageTransitioning && slideDir === 'right' && 'gallery__grid--exit-right',
+    !isPageTransitioning && slideDir === 'left' && 'gallery__grid--slide-from-right',
+    !isPageTransitioning && slideDir === 'right' && 'gallery__grid--slide-from-left',
   ]
     .filter(Boolean)
     .join(' ');
@@ -365,7 +413,15 @@ export default function Gallery() {
             <div
               className={gridClassName}
               key={currentPage}
-              onAnimationEnd={() => setSlideDir(null)}
+              onAnimationEnd={() => {
+                if (isPageTransitioning && pendingPage !== null) {
+                  setCurrentPage(pendingPage);
+                  setIsPageTransitioning(false);
+                  setPendingPage(null);
+                } else {
+                  setSlideDir(null);
+                }
+              }}
             >
               {displayedPhotos.map((photo, i) => (
                 <GalleryItem

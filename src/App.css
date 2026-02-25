@@ -72,3 +72,10 @@
 .theme-toggle:hover {
   box-shadow: var(--shadow-lg);
 }
+
+@media (max-width: 768px) {
+  .back-to-top--visible {
+    right: 2rem;
+    bottom: calc(2rem + 44px + 0.75rem);
+  }
+}

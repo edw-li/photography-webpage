@@ -133,6 +133,31 @@
   animation: gallerySlideFromLeft 0.35s ease-out;
 }
 
+@keyframes gallerySlideOutLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-30%); opacity: 0; }
+}
+
+@keyframes gallerySlideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(30%); opacity: 0; }
+}
+
+.gallery__grid--exit-left {
+  animation: gallerySlideOutLeft 0.25s ease-in forwards;
+}
+
+.gallery__grid--exit-right {
+  animation: gallerySlideOutRight 0.25s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__grid--exit-left,
+  .gallery__grid--exit-right {
+    animation: none;
+  }
+}
+
 /* =============================================
    Page indicator
    ============================================= */
@@ -319,6 +344,19 @@
 @keyframes galleryLightboxFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.gallery__lightbox-backdrop--closing {
+  animation: galleryLightboxFadeOut 0.2s ease forwards;
+}
+@keyframes galleryLightboxFadeOut {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__lightbox-backdrop--closing {
+    animation: none;
+  }
 }
 
 /* =============================================

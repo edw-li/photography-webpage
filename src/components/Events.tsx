@@ -46,6 +46,8 @@ export default function Events() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedEvent, setSelectedEvent] = useState<ResolvedEvent | null>(null);
+  const [calAnimPhase, setCalAnimPhase] = useState<'exit' | 'enter' | null>(null);
+  const pendingNavRef = useRef<{ month: number; year: number } | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -87,30 +89,63 @@ export default function Events() {
   }, [resolvedEvents]);
 
   const handlePrevMonth = useCallback(() => {
-    setCurrentMonth((m) => {
-      if (m === 0) {
-        setCurrentYear((y) => y - 1);
-        return 11;
-      }
-      return m - 1;
-    });
-  }, []);
+    if (calAnimPhase) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setCurrentMonth((m) => {
+        if (m === 0) { setCurrentYear((y) => y - 1); return 11; }
+        return m - 1;
+      });
+      return;
+    }
+    const newMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const newYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    pendingNavRef.current = { month: newMonth, year: newYear };
+    setCalAnimPhase('exit');
+  }, [calAnimPhase, currentMonth, currentYear]);
 
   const handleNextMonth = useCallback(() => {
-    setCurrentMonth((m) => {
-      if (m === 11) {
-        setCurrentYear((y) => y + 1);
-        return 0;
-      }
-      return m + 1;
-    });
-  }, []);
+    if (calAnimPhase) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setCurrentMonth((m) => {
+        if (m === 11) { setCurrentYear((y) => y + 1); return 0; }
+        return m + 1;
+      });
+      return;
+    }
+    const newMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+    const newYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+    pendingNavRef.current = { month: newMonth, year: newYear };
+    setCalAnimPhase('exit');
+  }, [calAnimPhase, currentMonth, currentYear]);
 
   const handleToday = useCallback(() => {
     const now = new Date();
-    setCurrentMonth(now.getMonth());
-    setCurrentYear(now.getFullYear());
-  }, []);
+    const todayMonth = now.getMonth();
+    const todayYear = now.getFullYear();
+    if (todayMonth === currentMonth && todayYear === currentYear) return;
+    if (calAnimPhase) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setCurrentMonth(todayMonth);
+      setCurrentYear(todayYear);
+      return;
+    }
+    pendingNavRef.current = { month: todayMonth, year: todayYear };
+    setCalAnimPhase('exit');
+  }, [calAnimPhase, currentMonth, currentYear]);
+
+  const onCalAnimEnd = useCallback(() => {
+    if (calAnimPhase === 'exit' && pendingNavRef.current) {
+      setCurrentMonth(pendingNavRef.current.month);
+      setCurrentYear(pendingNavRef.current.year);
+      pendingNavRef.current = null;
+      setCalAnimPhase('enter');
+    } else if (calAnimPhase === 'enter') {
+      setCalAnimPhase(null);
+    }
+  }, [calAnimPhase]);
 
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
@@ -183,6 +218,8 @@ export default function Events() {
                 onPrevMonth={handlePrevMonth}
                 onNextMonth={handleNextMonth}
                 onToday={handleToday}
+                calAnimPhase={calAnimPhase}
+                onCalAnimEnd={onCalAnimEnd}
               />
             </div>
           </div>

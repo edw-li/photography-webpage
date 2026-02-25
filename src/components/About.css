@@ -56,8 +56,23 @@
   }
 }
 
+@keyframes aboutFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
 .about__content {
   animation: aboutFadeIn 0.35s ease;
+}
+
+.about__content--exiting {
+  animation: aboutFadeOut 0.2s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about__content--exiting {
+    animation: none;
+  }
 }
 
 /* Grid layout (Mission & Story) */
