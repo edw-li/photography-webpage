@@ -14,8 +14,17 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'benefits', label: 'Membership Benefits' },
 ];
 
+const IMAGE_OFF_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="2" y1="2" x2="22" y2="22" />
+    <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
+    <path d="M21 15V6a2 2 0 0 0-2-2H9" />
+    <path d="M3 8.7V19a2 2 0 0 0 2 2h12.3" />
+  </svg>
+);
+
 function MissionContent() {
-  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1025/600/700');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1025/600/700');
   return (
     <div className="about__grid">
       <div className="about__text">
@@ -33,21 +42,25 @@ function MissionContent() {
         </p>
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src="https://picsum.photos/id/1025/600/700"
-          alt="Photography club members on a photo walk"
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+        {errored ? (
+          <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
+        ) : (
+          <img
+            src="https://picsum.photos/id/1025/600/700"
+            alt="Photography club members on a photo walk"
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
     </div>
   );
 }
 
 function StoryContent() {
-  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1067/600/700');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1067/600/700');
   return (
     <div className="about__grid about__grid--reversed">
       <div className="about__text">
@@ -67,14 +80,18 @@ function StoryContent() {
         </p>
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src="https://picsum.photos/id/1067/600/700"
-          alt="Club members at a gallery exhibition"
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+        {errored ? (
+          <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
+        ) : (
+          <img
+            src="https://picsum.photos/id/1067/600/700"
+            alt="Club members at a gallery exhibition"
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
     </div>
   );
@@ -90,18 +107,22 @@ const BENEFITS = [
 ];
 
 function BenefitsContent() {
-  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1073/600/700');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1073/600/700');
   return (
     <div className="about__grid about__grid--reversed">
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src="https://picsum.photos/id/1073/600/700"
-          alt="Members collaborating during a workshop"
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+        {errored ? (
+          <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
+        ) : (
+          <img
+            src="https://picsum.photos/id/1073/600/700"
+            alt="Members collaborating during a workshop"
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
       <div className="about__benefits-cards">
         {BENEFITS.map((benefit) => (
@@ -121,21 +142,25 @@ function BenefitsContent() {
 }
 
 function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
-  const { loaded, handleLoad, handleError } = useImageLoaded(member.avatar);
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(member.avatar);
   return (
     <div
       className="about__leader-card about__leader-card--clickable"
       onClick={onClick}
     >
       <div className={`about__leader-avatar${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src={member.avatar}
-          alt={member.name}
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+        {errored ? (
+          <div className="img-error-fallback">{IMAGE_OFF_ICON}</div>
+        ) : (
+          <img
+            src={member.avatar}
+            alt={member.name}
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
       <h4>{member.name}</h4>
       <span className="about__leader-role">{member.leadershipRole}</span>
@@ -150,7 +175,7 @@ function LeadershipContent({
   members: Member[];
   onMemberClick: (member: Member) => void;
 }) {
-  const { loaded, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1060/600/700');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1060/600/700');
   return (
     <div className="about__grid">
       <div className="about__leadership-cards">
@@ -163,14 +188,18 @@ function LeadershipContent({
         ))}
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src="https://picsum.photos/id/1060/600/700"
-          alt="Leadership team at a club event"
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+        {errored ? (
+          <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
+        ) : (
+          <img
+            src="https://picsum.photos/id/1060/600/700"
+            alt="Leadership team at a club event"
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
     </div>
   );
@@ -199,6 +228,8 @@ function TabContent({
 
 export default function About() {
   const [activeTab, setActiveTab] = useState<TabId>('mission');
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TabId | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const [members, setMembers] = useState<Member[]>([]);
@@ -280,7 +311,16 @@ export default function About() {
                   role="tab"
                   aria-selected={activeTab === tab.id}
                   className={`about__tab${activeTab === tab.id ? ' about__tab--active' : ''}`}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (tab.id !== activeTab && !isTabTransitioning) {
+                      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        setActiveTab(tab.id);
+                      } else {
+                        setPendingTab(tab.id);
+                        setIsTabTransitioning(true);
+                      }
+                    }
+                  }}
                 >
                   {tab.label}
                 </button>
@@ -293,10 +333,17 @@ export default function About() {
 
             <div className="about__content-wrapper fade-in-up">
               <div
-                className="about__content"
+                className={`about__content${isTabTransitioning ? ' about__content--exiting' : ''}`}
                 key={activeTab}
                 role="tabpanel"
                 aria-labelledby={activeTab}
+                onAnimationEnd={(e) => {
+                  if (isTabTransitioning && e.animationName === 'aboutFadeOut') {
+                    setActiveTab(pendingTab!);
+                    setIsTabTransitioning(false);
+                    setPendingTab(null);
+                  }
+                }}
               >
                 <TabContent
                   activeTab={activeTab}

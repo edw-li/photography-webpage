@@ -214,6 +214,26 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+@keyframes calendarDaysFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes calendarDaysFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.events__calendar-days--exit {
+  animation: calendarDaysFadeOut 0.15s ease forwards;
+  overflow: hidden;
+}
+.events__calendar-days--enter {
+  animation: calendarDaysFadeIn 0.2s ease-out;
+  transition: height 0.2s ease-out;
+  overflow: hidden;
+}
+.events__calendar-title--exit  { animation: calendarDaysFadeOut 0.15s ease forwards; }
+.events__calendar-title--enter { animation: calendarDaysFadeIn 0.2s ease-out; }
+
 .events__day-cell {
   min-height: 110px;
   padding: 0.4rem;
@@ -412,6 +432,35 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.events__modal-backdrop--closing {
+  animation: eventsModalFadeOut 0.2s ease forwards;
+}
+.events__modal-backdrop--closing .events__modal {
+  animation: eventsModalSlideDown 0.2s ease forwards;
+}
+@keyframes eventsModalFadeOut {
+  to { opacity: 0; }
+}
+@keyframes eventsModalSlideDown {
+  to { opacity: 0; transform: translateY(20px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .events__modal-backdrop--closing {
+    animation: none;
+  }
+  .events__modal-backdrop--closing .events__modal {
+    animation: none;
+  }
+  .events__calendar-days--exit,
+  .events__calendar-days--enter,
+  .events__calendar-title--exit,
+  .events__calendar-title--enter {
+    animation: none;
+    transition: none;
   }
 }
 

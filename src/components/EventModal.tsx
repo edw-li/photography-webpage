@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ResolvedEvent } from '../types/events';
 import { parseDate, formatTime } from '../utils/recurrence';
 
@@ -15,6 +15,15 @@ interface EventModalProps {
 export default function EventModal({ resolvedEvent, onClose }: EventModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const startClose = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onClose();
+    } else {
+      setIsClosing(true);
+    }
+  };
 
   // Focus close button on open
   useEffect(() => {
@@ -34,7 +43,7 @@ export default function EventModal({ resolvedEvent, onClose }: EventModalProps) 
   useEffect(() => {
     if (!resolvedEvent) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') startClose();
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -76,9 +85,17 @@ export default function EventModal({ resolvedEvent, onClose }: EventModalProps) 
   const endTimeStr = event.endTime ? formatTime(event.endTime) : null;
 
   return (
-    <div className="events__modal-backdrop" onClick={onClose} ref={modalRef} role="dialog" aria-modal="true" aria-label={event.title}>
+    <div
+      className={`events__modal-backdrop${isClosing ? ' events__modal-backdrop--closing' : ''}`}
+      onClick={startClose}
+      onAnimationEnd={() => { if (isClosing) { setIsClosing(false); onClose(); } }}
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={event.title}
+    >
       <div className="events__modal" onClick={(e) => e.stopPropagation()}>
-        <button className="events__modal-close" onClick={onClose} aria-label="Close" ref={closeRef}>
+        <button className="events__modal-close" onClick={startClose} aria-label="Close" ref={closeRef}>
           &times;
         </button>
         <div className="events__modal-header">

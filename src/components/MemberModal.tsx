@@ -56,17 +56,30 @@ const GENERIC_LINK_ICON = (
   </svg>
 );
 
+const IMAGE_OFF_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="2" y1="2" x2="22" y2="22" />
+    <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
+    <path d="M21 15V6a2 2 0 0 0-2-2H9" />
+    <path d="M3 8.7V19a2 2 0 0 0 2 2h12.3" />
+  </svg>
+);
+
 function CarouselSlide({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
-  const { loaded, handleLoad, handleError } = useImageLoaded(src);
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(src);
   return (
     <div className={`members__carousel-slide${!loaded ? ' shimmer-bg' : ''}`}>
-      <img
-        src={src}
-        alt={alt}
-        className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      {errored ? (
+        <div className="img-error-fallback" style={{ aspectRatio: '4/3' }}>{IMAGE_OFF_ICON}</div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
       {caption && <span className="members__carousel-caption">{caption}</span>}
     </div>
   );
@@ -81,7 +94,16 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const { loaded: avatarLoaded, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(member?.avatar);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const startClose = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onClose();
+    } else {
+      setIsClosing(true);
+    }
+  };
+  const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(member?.avatar);
 
   const photos = member?.samplePhotos ?? [];
   const hasPhotos = photos.length > 0;
@@ -117,7 +139,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
   useEffect(() => {
     if (!member) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') startClose();
       if (hasMultiplePhotos) {
         if (e.key === 'ArrowLeft') goToPrev();
         if (e.key === 'ArrowRight') goToNext();
@@ -162,21 +184,33 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
   const hasLinks = socialEntries.length > 0 || member.website;
 
   return (
-    <div className="members__modal-backdrop" onClick={onClose} ref={modalRef} role="dialog" aria-modal="true" aria-label={member.name}>
+    <div
+      className={`members__modal-backdrop${isClosing ? ' members__modal-backdrop--closing' : ''}`}
+      onClick={startClose}
+      onAnimationEnd={() => { if (isClosing) { setIsClosing(false); onClose(); } }}
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={member.name}
+    >
       <div className="members__modal" onClick={(e) => e.stopPropagation()}>
-        <button className="members__modal-close" onClick={onClose} aria-label="Close" ref={closeRef}>
+        <button className="members__modal-close" onClick={startClose} aria-label="Close" ref={closeRef}>
           &times;
         </button>
 
         <div className="members__modal-header">
           <div className={`members__modal-avatar${!avatarLoaded ? ' shimmer-bg' : ''}`}>
-            <img
-              src={member.avatar}
-              alt={member.name}
-              className={`img-fade${avatarLoaded ? ' img-fade--loaded' : ''}`}
-              onLoad={onAvatarLoad}
-              onError={onAvatarError}
-            />
+            {avatarErrored ? (
+              <div className="img-error-fallback">{IMAGE_OFF_ICON}</div>
+            ) : (
+              <img
+                src={member.avatar}
+                alt={member.name}
+                className={`img-fade${avatarLoaded ? ' img-fade--loaded' : ''}`}
+                onLoad={onAvatarLoad}
+                onError={onAvatarError}
+              />
+            )}
           </div>
           <div className="members__modal-info">
             <h3>{member.name}</h3>

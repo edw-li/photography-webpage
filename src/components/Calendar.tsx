@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import type { ResolvedEvent } from '../types/events';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, formatTime } from '../utils/recurrence';
 
@@ -16,6 +16,8 @@ interface CalendarProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
+  calAnimPhase?: 'exit' | 'enter' | null;
+  onCalAnimEnd?: () => void;
 }
 
 export default function Calendar({
@@ -26,8 +28,12 @@ export default function Calendar({
   onPrevMonth,
   onNextMonth,
   onToday,
+  calAnimPhase,
+  onCalAnimEnd,
 }: CalendarProps) {
   const [popoverDay, setPopoverDay] = useState<string | null>(null);
+  const daysRef = useRef<HTMLDivElement>(null);
+  const prevHeightRef = useRef<number | null>(null);
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -53,6 +59,31 @@ export default function Calendar({
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
+  useLayoutEffect(() => {
+    const el = daysRef.current;
+    if (!el) return;
+
+    if (calAnimPhase === 'exit') {
+      prevHeightRef.current = el.offsetHeight;
+      el.style.height = `${el.offsetHeight}px`;
+    } else if (calAnimPhase === 'enter') {
+      const oldHeight = prevHeightRef.current;
+      el.style.height = 'auto';
+      const newHeight = el.offsetHeight;
+      if (oldHeight !== null && oldHeight !== newHeight) {
+        el.style.height = `${oldHeight}px`;
+        el.getBoundingClientRect();          // force reflow
+        el.style.height = `${newHeight}px`;  // triggers CSS transition
+      } else {
+        el.style.height = '';
+      }
+      prevHeightRef.current = null;
+    } else {
+      el.style.height = '';
+      prevHeightRef.current = null;
+    }
+  }, [calAnimPhase]);
+
   return (
     <div className="events__calendar">
       <div className="events__calendar-header">
@@ -64,7 +95,13 @@ export default function Calendar({
           >
             &#8249;
           </button>
-          <h3>
+          <h3
+            className={
+              calAnimPhase === 'exit' ? 'events__calendar-title--exit'
+              : calAnimPhase === 'enter' ? 'events__calendar-title--enter'
+              : undefined
+            }
+          >
             {MONTH_NAMES[month]} {year}
           </h3>
           <button
@@ -89,7 +126,15 @@ export default function Calendar({
           </div>
         ))}
       </div>
-      <div className="events__calendar-days">
+      <div
+        ref={daysRef}
+        className={[
+          'events__calendar-days',
+          calAnimPhase === 'exit' && 'events__calendar-days--exit',
+          calAnimPhase === 'enter' && 'events__calendar-days--enter',
+        ].filter(Boolean).join(' ')}
+        onAnimationEnd={onCalAnimEnd}
+      >
         {days.map((day, i) => {
           if (day === null) {
             return <div key={`empty-${i}`} className="events__day-cell events__day-cell--empty" />;
