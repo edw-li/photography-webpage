@@ -56,28 +56,30 @@ export default function Calendar({
   return (
     <div className="events__calendar">
       <div className="events__calendar-header">
-        <button
-          className="events__calendar-nav"
-          onClick={onPrevMonth}
-          aria-label="Previous month"
-        >
-          &#8249;
-        </button>
-        <h3>
-          {MONTH_NAMES[month]} {year}
-        </h3>
+        <div className="events__calendar-nav-group">
+          <button
+            className="events__calendar-nav"
+            onClick={onPrevMonth}
+            aria-label="Previous month"
+          >
+            &#8249;
+          </button>
+          <h3>
+            {MONTH_NAMES[month]} {year}
+          </h3>
+          <button
+            className="events__calendar-nav"
+            onClick={onNextMonth}
+            aria-label="Next month"
+          >
+            &#8250;
+          </button>
+        </div>
         <button
           className="events__calendar-today-btn"
           onClick={onToday}
         >
           Today
-        </button>
-        <button
-          className="events__calendar-nav"
-          onClick={onNextMonth}
-          aria-label="Next month"
-        >
-          &#8250;
         </button>
       </div>
       <div className="events__calendar-weekdays">
