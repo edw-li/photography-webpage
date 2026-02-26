@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import type { Member, MembersConfig } from '../types/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
@@ -69,14 +69,17 @@ export default function Members() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [expandPhase, setExpandPhase] = useState<'expand-squeeze' | 'expand-enter' | 'collapse-exit' | 'collapse-grow' | null>(null);
+  const [expandPhase, setExpandPhase] = useState<'expand-enter' | 'collapse-grow' | null>(null);
   const [filterAnimPhase, setFilterAnimPhase] = useState<'exit' | 'enter' | null>(null);
   const [pendingFilter, setPendingFilter] = useState<string | null>(null);
   const [filterVersion, setFilterVersion] = useState(0);
   const filtersRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const controlsExpanded = filtersExpanded || expandPhase === 'expand-squeeze' || expandPhase === 'collapse-exit';
-  const isSqueezing = expandPhase === 'expand-squeeze' || expandPhase === 'collapse-grow';
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const prevHeightRef = useRef<number | null>(null);
+  const prevSearchWidthRef = useRef<number | null>(null);
+  const controlsExpanded = filtersExpanded;
+  const isSqueezing = expandPhase === 'collapse-grow';
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -166,36 +169,102 @@ export default function Members() {
     });
   }, [pageSize, filteredMembers.length]);
 
-  useEffect(() => {
-    if (expandPhase !== 'expand-squeeze') return;
-    const el = searchRef.current;
-    if (!el) { setFiltersExpanded(true); setExpandPhase('expand-enter'); return; }
+  // FLIP height animation: expand-enter (controls container grows + search widens concurrently)
+  useLayoutEffect(() => {
+    if (expandPhase !== 'expand-enter') return;
+    const el = controlsRef.current;
+    const oldH = prevHeightRef.current;
+    if (!el || oldH === null) return;
+    prevHeightRef.current = null;
 
-    let done = false;
-    const advance = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(fallbackTimer);
-      el.removeEventListener('transitionend', onEnd);
-      setFiltersExpanded(true);
-      setExpandPhase('expand-enter');
-    };
+    // FLIP height
+    const newH = el.scrollHeight;
+    el.style.height = `${oldH}px`;
+    el.style.overflow = 'hidden';
+    void el.offsetHeight;
+    el.style.transition = 'height 0.35s ease';
+    el.style.height = `${newH}px`;
+
+    // FLIP search width (if captured — only during expand, not collapse)
+    const searchEl = searchRef.current;
+    const startW = prevSearchWidthRef.current;
+    if (searchEl && startW !== null) {
+      prevSearchWidthRef.current = null;
+      searchEl.style.flex = '0 0 auto';
+      searchEl.style.width = `${startW}px`;
+      void searchEl.offsetHeight;
+      searchEl.style.transition = 'width 0.35s ease';
+      searchEl.style.width = '100%';
+    }
+
     const onEnd = (e: TransitionEvent) => {
-      if (e.target === el && e.propertyName === 'flex-basis') advance();
+      if (e.propertyName !== 'height') return;
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.transition = '';
+      // Clear search FLIP styles if they were set
+      if (searchEl && startW !== null) {
+        searchEl.style.transition = 'none';
+        searchEl.style.flex = '';
+        searchEl.style.width = '';
+        void searchEl.offsetHeight;
+        searchEl.style.transition = '';
+      }
     };
     el.addEventListener('transitionend', onEnd);
-    const fallbackTimer = setTimeout(advance, 500);
+    return () => {
+      el.removeEventListener('transitionend', onEnd);
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.transition = '';
+      if (searchEl) {
+        searchEl.style.flex = '';
+        searchEl.style.width = '';
+        searchEl.style.transition = '';
+      }
+    };
+  }, [expandPhase]);
 
-    return () => { done = true; clearTimeout(fallbackTimer); el.removeEventListener('transitionend', onEnd); };
+  // FLIP height animation: collapse-grow (controls container shrinks + search narrows concurrently)
+  useLayoutEffect(() => {
+    if (expandPhase !== 'collapse-grow') return;
+    const el = controlsRef.current;
+    const oldH = prevHeightRef.current;
+    if (!el || oldH === null) return;
+    prevHeightRef.current = null;
+
+    const newH = el.scrollHeight;
+    el.style.height = `${oldH}px`;
+    el.style.overflow = 'hidden';
+    void el.offsetHeight;
+    el.style.transition = 'height 0.35s ease';
+    el.style.height = `${newH}px`;
+
+    const onEnd = (e: TransitionEvent) => {
+      if (e.propertyName !== 'height') return;
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.transition = '';
+    };
+    el.addEventListener('transitionend', onEnd);
+    return () => {
+      el.removeEventListener('transitionend', onEnd);
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.transition = '';
+    };
   }, [expandPhase]);
 
   // Catch-all fallback: force-complete if any phase lingers
   useEffect(() => {
     if (!expandPhase) return;
     const timer = setTimeout(() => {
-      if (expandPhase === 'expand-squeeze') setFiltersExpanded(true);
-      if (expandPhase === 'collapse-exit') setFiltersExpanded(false);
       setExpandPhase(null);
+      // Safety: clear inline styles
+      const el = controlsRef.current;
+      if (el) { el.style.height = ''; el.style.overflow = ''; el.style.transition = ''; }
+      const sEl = searchRef.current;
+      if (sEl) { sEl.style.flex = ''; sEl.style.width = ''; sEl.style.transition = ''; }
     }, 900);
     return () => clearTimeout(timer);
   }, [expandPhase]);
@@ -240,7 +309,7 @@ export default function Members() {
           <>
             {showControls && (
               <div className="fade-in-up">
-              <div className={`members__controls${controlsExpanded ? ' members__controls--expanded' : ''}${isSqueezing ? ' members__controls--squeezing' : ''}`}>
+              <div ref={controlsRef} className={`members__controls${controlsExpanded ? ' members__controls--expanded' : ''}${isSqueezing ? ' members__controls--squeezing' : ''}`}>
                 <input
                   ref={searchRef}
                   type="text"
@@ -257,9 +326,7 @@ export default function Members() {
                   className={[
                     'members__filters',
                     isSqueezing && 'members__filters--squeezing',
-                    expandPhase === 'expand-squeeze' && 'members__filters--pill-exit-reverse',
                     expandPhase === 'expand-enter' && 'members__filters--pill-enter',
-                    expandPhase === 'collapse-exit' && 'members__filters--pill-exit-reverse',
                     expandPhase === 'collapse-grow' && 'members__filters--pill-enter-reverse',
                   ].filter(Boolean).join(' ')}
                   role="group"
@@ -268,11 +335,6 @@ export default function Members() {
                     if (expandPhase === 'expand-enter' && e.animationName === 'filterPillFadeIn') {
                       if (e.target === filtersRef.current?.lastElementChild) {
                         setExpandPhase(null);
-                      }
-                    } else if (expandPhase === 'collapse-exit' && e.animationName === 'filterPillFadeOut') {
-                      if (e.target === filtersRef.current?.firstElementChild) {
-                        setFiltersExpanded(false);
-                        setExpandPhase('collapse-grow');
                       }
                     } else if (expandPhase === 'collapse-grow' && e.animationName === 'filterPillFadeIn') {
                       if (e.target === filtersRef.current?.firstElementChild) {
@@ -309,7 +371,11 @@ export default function Members() {
                         }
                         const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
                         if (isMobile) { setFiltersExpanded(true); return; }
-                        setExpandPhase('expand-squeeze');
+                        prevSearchWidthRef.current = searchRef.current?.getBoundingClientRect().width ?? null;
+                        const controlsEl = controlsRef.current;
+                        if (controlsEl) prevHeightRef.current = controlsEl.getBoundingClientRect().height;
+                        setFiltersExpanded(true);
+                        setExpandPhase('expand-enter');
                       }}
                       aria-expanded={false}
                       aria-label={`Show ${hiddenCount} more filter options`}
@@ -329,7 +395,10 @@ export default function Members() {
                         }
                         const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
                         if (isMobile) { setFiltersExpanded(false); return; }
-                        setExpandPhase('collapse-exit');
+                        const controlsEl = controlsRef.current;
+                        if (controlsEl) prevHeightRef.current = controlsEl.getBoundingClientRect().height;
+                        setFiltersExpanded(false);
+                        setExpandPhase('collapse-grow');
                       }}
                       aria-expanded={true}
                       aria-label="Show fewer filter options"

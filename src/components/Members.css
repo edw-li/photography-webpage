@@ -41,6 +41,10 @@
   gap: 0.5rem;
 }
 
+.members__filters--hidden {
+  display: none;
+}
+
 .members__controls--squeezing {
   flex-wrap: nowrap;
 }
@@ -119,48 +123,26 @@
 .members__filters--pill-exit .members__filter-pill:nth-child(15) { animation-delay: 350ms; }
 .members__filters--pill-exit .members__filter-pill:nth-child(16) { animation-delay: 375ms; }
 
-.members__filters--pill-exit-reverse .members__filter-pill {
-  animation: filterPillFadeOut 0.2s ease both;
-  pointer-events: none;
-}
-
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(1)  { animation-delay: 0ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(2)  { animation-delay: 25ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(3)  { animation-delay: 50ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(4)  { animation-delay: 75ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(5)  { animation-delay: 100ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(6)  { animation-delay: 125ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(7)  { animation-delay: 150ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(8)  { animation-delay: 175ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(9)  { animation-delay: 200ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(10) { animation-delay: 225ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(11) { animation-delay: 250ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(12) { animation-delay: 275ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(13) { animation-delay: 300ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(14) { animation-delay: 325ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(15) { animation-delay: 350ms; }
-.members__filters--pill-exit-reverse .members__filter-pill:nth-last-child(16) { animation-delay: 375ms; }
-
 .members__filters--pill-enter .members__filter-pill {
-  animation: filterPillFadeIn 0.3s ease both;
+  animation: filterPillFadeIn 0.2s ease both;
 }
 
 .members__filters--pill-enter .members__filter-pill:nth-child(1)  { animation-delay: 0ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(2)  { animation-delay: 25ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(3)  { animation-delay: 50ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(4)  { animation-delay: 75ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(5)  { animation-delay: 100ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(6)  { animation-delay: 125ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(7)  { animation-delay: 150ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(8)  { animation-delay: 175ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(9)  { animation-delay: 200ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(10) { animation-delay: 225ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(11) { animation-delay: 250ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(12) { animation-delay: 275ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(13) { animation-delay: 300ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(14) { animation-delay: 325ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(15) { animation-delay: 350ms; }
-.members__filters--pill-enter .members__filter-pill:nth-child(16) { animation-delay: 375ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(2)  { animation-delay: 20ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(3)  { animation-delay: 40ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(4)  { animation-delay: 60ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(5)  { animation-delay: 80ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(6)  { animation-delay: 100ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(7)  { animation-delay: 120ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(8)  { animation-delay: 140ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(9)  { animation-delay: 160ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(10) { animation-delay: 180ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(11) { animation-delay: 200ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(12) { animation-delay: 220ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(13) { animation-delay: 240ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(14) { animation-delay: 260ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(15) { animation-delay: 280ms; }
+.members__filters--pill-enter .members__filter-pill:nth-child(16) { animation-delay: 300ms; }
 
 .members__filters--pill-enter-reverse .members__filter-pill {
   animation: filterPillFadeIn 0.3s ease both;
@@ -185,7 +167,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .members__filters--pill-exit .members__filter-pill,
-  .members__filters--pill-exit-reverse .members__filter-pill,
   .members__filters--pill-enter .members__filter-pill,
   .members__filters--pill-enter-reverse .members__filter-pill {
     animation: none;
