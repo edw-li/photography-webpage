@@ -277,7 +277,7 @@ export default function About() {
     updateIndicator();
     window.addEventListener('resize', updateIndicator);
     return () => window.removeEventListener('resize', updateIndicator);
-  }, [activeTab, updateIndicator]);
+  }, [activeTab, updateIndicator, loading]);
 
   return (
     <section id="about" className="about section">
@@ -333,7 +333,7 @@ export default function About() {
 
             <div className="about__content-wrapper fade-in-up">
               <div
-                className={`about__content${isTabTransitioning ? ' about__content--exiting' : ''}`}
+                className={`about__content${isTabTransitioning ? ' about__content--exiting' : ''}${!isTabTransitioning && (activeTab === 'leadership' || activeTab === 'benefits') ? ' about__content--card-stagger' : ''}`}
                 key={activeTab}
                 role="tabpanel"
                 aria-labelledby={activeTab}

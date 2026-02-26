@@ -61,6 +61,16 @@
   to { opacity: 0; transform: translateY(-8px); }
 }
 
+@keyframes aboutCardEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes aboutImageEnter {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 .about__content {
   animation: aboutFadeIn 0.35s ease;
 }
@@ -69,8 +79,49 @@
   animation: aboutFadeOut 0.2s ease forwards;
 }
 
+/* Suppress parent fade-in for card tabs — cards and image animate individually */
+.about__content--card-stagger {
+  animation: none;
+}
+
+/* Hero image: subtle scale-up fade (all tabs) */
+.about__content .about__image {
+  animation: aboutImageEnter 0.35s ease both;
+}
+
+/* Stagger the image with cards in Leadership/Benefits */
+.about__content--card-stagger .about__image {
+  animation-delay: 80ms;
+}
+
+/* Leader card stagger (4 cards): 0.1s each, 80ms apart */
+.about__content--card-stagger .about__leader-card {
+  animation: aboutCardEnter 0.1s ease-out both;
+}
+.about__content--card-stagger .about__leader-card:nth-child(1) { animation-delay: 0ms; }
+.about__content--card-stagger .about__leader-card:nth-child(2) { animation-delay: 80ms; }
+.about__content--card-stagger .about__leader-card:nth-child(3) { animation-delay: 160ms; }
+.about__content--card-stagger .about__leader-card:nth-child(4) { animation-delay: 240ms; }
+
+/* Benefit card stagger (6 cards): 0.1s each, 48ms apart */
+.about__content--card-stagger .about__benefit-card {
+  animation: aboutCardEnter 0.1s ease-out both;
+}
+.about__content--card-stagger .about__benefit-card:nth-child(1) { animation-delay: 0ms; }
+.about__content--card-stagger .about__benefit-card:nth-child(2) { animation-delay: 48ms; }
+.about__content--card-stagger .about__benefit-card:nth-child(3) { animation-delay: 96ms; }
+.about__content--card-stagger .about__benefit-card:nth-child(4) { animation-delay: 144ms; }
+.about__content--card-stagger .about__benefit-card:nth-child(5) { animation-delay: 192ms; }
+.about__content--card-stagger .about__benefit-card:nth-child(6) { animation-delay: 240ms; }
+
 @media (prefers-reduced-motion: reduce) {
   .about__content--exiting {
+    animation: none;
+  }
+  .about__content .about__image,
+  .about__content--card-stagger,
+  .about__content--card-stagger .about__leader-card,
+  .about__content--card-stagger .about__benefit-card {
     animation: none;
   }
 }
