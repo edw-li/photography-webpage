@@ -38,12 +38,17 @@
 
 .navbar__links {
   display: flex;
-  gap: 1.75rem;
+  gap: 1.25rem;
+}
+
+.navbar__links li {
+  display: flex;
+  align-items: center;
 }
 
 .navbar__links a {
   color: var(--color-light-100);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 500;
   position: relative;
   padding-bottom: 4px;
@@ -102,6 +107,35 @@
   transform: rotate(-45deg) translate(5px, -5px);
 }
 
+/* CTA Button */
+.navbar__cta {
+  padding: 0.5rem 1.25rem;
+  background: var(--color-accent);
+  color: var(--color-light-100) !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.navbar__cta::after {
+  display: none !important;
+}
+
+.navbar__cta:hover {
+  background: var(--color-accent-light);
+  color: var(--color-light-100) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(247, 148, 29, 0.3);
+}
+
+.navbar__cta--active {
+  background: var(--color-accent-light);
+  box-shadow: 0 2px 8px rgba(247, 148, 29, 0.25);
+}
+
 @media (max-width: 768px) {
   .navbar__hamburger {
     display: flex;
@@ -128,5 +162,12 @@
 
   .navbar__links a {
     font-size: 1.1rem;
+  }
+
+  .navbar__cta {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem 1.25rem;
+    margin-top: 0.5rem;
   }
 }

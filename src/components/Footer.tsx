@@ -1,6 +1,21 @@
+import { useLocation, useNavigate } from 'react-router-dom';
+import { scrollToSection } from '../utils/scrollToSection';
 import './Footer.css';
 
 export default function Footer() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHomePage = location.pathname === '/';
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    e.preventDefault();
+    if (isHomePage) {
+      scrollToSection(sectionId);
+    } else {
+      navigate('/', { state: { scrollTo: sectionId } });
+    }
+  };
+
   return (
     <footer className="footer">
       <div className="container">
@@ -17,11 +32,11 @@ export default function Footer() {
           <div className="footer__links">
             <h4>Quick Links</h4>
             <ul>
-              <li><a href="#about">About</a></li>
-              <li><a href="#gallery">Gallery</a></li>
-              <li><a href="#events">Events</a></li>
-              <li><a href="#members">Members</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li><a href="#about" onClick={(e) => handleLinkClick(e, 'about')}>About</a></li>
+              <li><a href="#gallery" onClick={(e) => handleLinkClick(e, 'gallery')}>Gallery</a></li>
+              <li><a href="#events" onClick={(e) => handleLinkClick(e, 'events')}>Events</a></li>
+              <li><a href="#members" onClick={(e) => handleLinkClick(e, 'members')}>Members</a></li>
+              <li><a href="#contact" onClick={(e) => handleLinkClick(e, 'contact')}>Contact</a></li>
             </ul>
           </div>
           <div className="footer__social">
