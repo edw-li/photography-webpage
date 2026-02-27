@@ -340,8 +340,8 @@ p {
 }
 
 /* Theme transition */
-body, .navbar, .about, .gallery, .events, .members, .contact, .footer,
-.events__modal, .members__modal, .events__card, .members__card {
+body, .navbar, .about, .gallery, .events, .newsletter, .members, .contact, .footer,
+.events__modal, .members__modal, .newsletter__modal, .events__card, .members__card, .newsletter__card {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

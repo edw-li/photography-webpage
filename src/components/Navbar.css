@@ -38,7 +38,7 @@
 
 .navbar__links {
   display: flex;
-  gap: 2rem;
+  gap: 1.75rem;
 }
 
 .navbar__links a {

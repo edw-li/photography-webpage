@@ -7,6 +7,7 @@ import Hero from './components/Hero';
 import About from './components/About';
 import Gallery from './components/Gallery';
 import Events from './components/Events';
+import Newsletter from './components/Newsletter';
 import Members from './components/Members';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
@@ -67,6 +68,7 @@ function App() {
       <About />
       <Gallery />
       <Events />
+      <Newsletter />
       <Members />
       <Contact />
       <Footer />
