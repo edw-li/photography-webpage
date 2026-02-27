@@ -118,10 +118,10 @@ export default function Navbar() {
           <li>
             <Link
               to="/contest"
-              className={`navbar__cta${isContestActive ? ' navbar__cta--active' : ''}`}
+              className={`navbar__link--accent${isContestActive ? ' active' : ''}`}
               onClick={() => setMenuOpen(false)}
             >
-              Monthly Contest
+              Contest
             </Link>
           </li>
         </ul>

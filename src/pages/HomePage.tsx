@@ -20,9 +20,9 @@ export default function HomePage() {
     const state = location.state as { scrollTo?: string } | null;
     if (state?.scrollTo) {
       // Small delay to ensure DOM is ready after navigation
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         scrollToSection(state.scrollTo!);
-      });
+      }, 100);
       // Clear the state so it doesn't re-scroll on re-render
       window.history.replaceState({}, '');
     }

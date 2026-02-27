@@ -92,6 +92,10 @@ html {
   scrollbar-gutter: stable;
 }
 
+section[id] {
+  scroll-margin-top: 80px;
+}
+
 body {
   font-family: var(--font-body);
   font-weight: 400;
