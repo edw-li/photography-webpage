@@ -1,5 +1,5 @@
 .members {
-  background: var(--color-bg-alt);
+  background: var(--color-bg);
 }
 
 /* ── Search & Filter Controls ── */
@@ -189,6 +189,7 @@
 .members__card {
   text-align: center;
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.5rem 1rem;
   transition: all var(--transition-base);
@@ -197,6 +198,7 @@
 .members__card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
+  border-color: var(--color-accent);
 }
 
 .members__card--clickable {
@@ -310,11 +312,11 @@
 }
 
 .members__page-nav--up {
-  background: linear-gradient(to bottom, var(--color-bg-alt) 30%, transparent);
+  background: linear-gradient(to bottom, var(--color-bg) 30%, transparent);
 }
 
 .members__page-nav--down {
-  background: linear-gradient(to top, var(--color-bg-alt) 30%, transparent);
+  background: linear-gradient(to top, var(--color-bg) 30%, transparent);
 }
 
 .members__page-nav:hover {
