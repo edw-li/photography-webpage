@@ -1,0 +1,132 @@
+[
+  {
+    "id": 1,
+    "month": "March 2026",
+    "theme": "New Beginnings",
+    "description": "Capture the essence of fresh starts, renewal, and transformation. From budding flowers to new construction, show us what \"new beginnings\" means through your lens.",
+    "status": "active",
+    "deadline": "2026-03-31",
+    "submissionCount": 12,
+    "participantCount": 10,
+    "guidelines": [
+      "Photos must be original work taken within the contest month",
+      "Maximum 3 submissions per participant",
+      "Minimum resolution: 2000px on the longest edge",
+      "Basic editing (exposure, contrast, crop) is allowed; heavy compositing is not",
+      "Include a brief description of how your photo relates to the theme",
+      "All genres welcome: landscape, portrait, street, macro, etc."
+    ],
+    "submissions": [
+      { "id": 101, "url": "https://picsum.photos/seed/nb1", "title": "First Light", "photographer": "Sarah Chen", "exif": { "camera": "Sony A7IV", "focalLength": "35mm", "aperture": "f/2.8", "shutterSpeed": "1/250s", "iso": 400 } },
+      { "id": 102, "url": "https://picsum.photos/seed/nb2", "title": "Spring Sprout", "photographer": "Marcus Rivera", "exif": { "camera": "Canon R6", "focalLength": "100mm", "aperture": "f/4", "shutterSpeed": "1/500s", "iso": 200 } },
+      { "id": 103, "url": "https://picsum.photos/seed/nb3", "title": "Morning Commute", "photographer": "Aiko Tanaka" },
+      { "id": 104, "url": "https://picsum.photos/seed/nb4", "title": "Breaking Ground", "photographer": "David Okafor", "exif": { "camera": "Nikon Z6II", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/125s", "iso": 100 } },
+      { "id": 105, "url": "https://picsum.photos/seed/nb5", "title": "Cherry Blossoms", "photographer": "Elena Volkov" },
+      { "id": 106, "url": "https://picsum.photos/seed/nb6", "title": "New Chapter", "photographer": "James Mitchell", "exif": { "camera": "Fuji X-T5", "focalLength": "56mm", "aperture": "f/1.4", "shutterSpeed": "1/1000s", "iso": 160 } },
+      { "id": 107, "url": "https://picsum.photos/seed/nb7", "title": "Dawn Patrol", "photographer": "Lisa Park" },
+      { "id": 108, "url": "https://picsum.photos/seed/nb8", "title": "Fresh Canvas", "photographer": "Tom Bradley", "exif": { "camera": "Sony A7III", "focalLength": "50mm", "aperture": "f/1.8", "shutterSpeed": "1/200s", "iso": 320 } },
+      { "id": 109, "url": "https://picsum.photos/seed/nb9", "title": "Seedling", "photographer": "Maria Santos" },
+      { "id": 110, "url": "https://picsum.photos/seed/nb10", "title": "Blank Page", "photographer": "Ryan Hughes" },
+      { "id": 111, "url": "https://picsum.photos/seed/nb11", "title": "Sunrise Over the Bridge", "photographer": "Priya Sharma", "exif": { "camera": "Canon R5", "focalLength": "70mm", "aperture": "f/5.6", "shutterSpeed": "1/60s", "iso": 200 } },
+      { "id": 112, "url": "https://picsum.photos/seed/nb12", "title": "Unfolding", "photographer": "Jamal Washington" }
+    ]
+  },
+  {
+    "id": 2,
+    "month": "February 2026",
+    "theme": "Reflections",
+    "description": "Explore the world of reflections — in water, glass, mirrors, or even metaphorical reflections on life. Show us reality doubled, distorted, or reimagined.",
+    "status": "voting",
+    "deadline": "2026-03-05",
+    "submissionCount": 28,
+    "participantCount": 22,
+    "guidelines": [
+      "Photos must be original work taken within the contest month",
+      "Maximum 3 submissions per participant",
+      "Minimum resolution: 2000px on the longest edge",
+      "Basic editing (exposure, contrast, crop) is allowed; heavy compositing is not",
+      "Include a brief description of how your photo relates to the theme",
+      "All genres welcome: landscape, portrait, street, macro, etc."
+    ],
+    "submissions": [
+      { "id": 201, "url": "https://picsum.photos/seed/ref1", "title": "Mirror Lake", "photographer": "Sarah Chen", "votes": 47, "exif": { "camera": "Sony A7IV", "focalLength": "16mm", "aperture": "f/11", "shutterSpeed": "1/30s", "iso": 100 } },
+      { "id": 202, "url": "https://picsum.photos/seed/ref2", "title": "City in a Puddle", "photographer": "Jamal Washington", "votes": 62, "exif": { "camera": "Leica Q3", "focalLength": "28mm", "aperture": "f/2.8", "shutterSpeed": "1/500s", "iso": 400 } },
+      { "id": 203, "url": "https://picsum.photos/seed/ref3", "title": "Self Portrait", "photographer": "Elena Volkov", "votes": 38 },
+      { "id": 204, "url": "https://picsum.photos/seed/ref4", "title": "Glass Tower", "photographer": "Marcus Rivera", "votes": 55, "exif": { "camera": "Canon R6", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/250s", "iso": 200 } },
+      { "id": 205, "url": "https://picsum.photos/seed/ref5", "title": "Rainy Window", "photographer": "Aiko Tanaka", "votes": 41 },
+      { "id": 206, "url": "https://picsum.photos/seed/ref6", "title": "Still Waters", "photographer": "David Okafor", "votes": 33, "exif": { "camera": "Nikon Z6II", "focalLength": "50mm", "aperture": "f/4", "shutterSpeed": "1/60s", "iso": 200 } },
+      { "id": 207, "url": "https://picsum.photos/seed/ref7", "title": "Chrome Dreams", "photographer": "Lisa Park", "votes": 29 },
+      { "id": 208, "url": "https://picsum.photos/seed/ref8", "title": "Double Vision", "photographer": "Tom Bradley", "votes": 44, "exif": { "camera": "Sony A7III", "focalLength": "85mm", "aperture": "f/1.8", "shutterSpeed": "1/400s", "iso": 160 } },
+      { "id": 209, "url": "https://picsum.photos/seed/ref9", "title": "Reflecting Pool", "photographer": "Priya Sharma", "votes": 58, "exif": { "camera": "Canon R5", "focalLength": "35mm", "aperture": "f/5.6", "shutterSpeed": "1/125s", "iso": 100 } },
+      { "id": 210, "url": "https://picsum.photos/seed/ref10", "title": "Shattered", "photographer": "Ryan Hughes", "votes": 36 },
+      { "id": 211, "url": "https://picsum.photos/seed/ref11", "title": "Morning Dew", "photographer": "Maria Santos", "votes": 27 },
+      { "id": 212, "url": "https://picsum.photos/seed/ref12", "title": "Subway Glass", "photographer": "James Mitchell", "votes": 31, "exif": { "camera": "Fuji X-T5", "focalLength": "23mm", "aperture": "f/2", "shutterSpeed": "1/60s", "iso": 800 } },
+      { "id": 213, "url": "https://picsum.photos/seed/ref13", "title": "Lake Symmetry", "photographer": "Karen Liu", "votes": 49 },
+      { "id": 214, "url": "https://picsum.photos/seed/ref14", "title": "Eye of the Beholder", "photographer": "Alex Torres", "votes": 42, "exif": { "camera": "Nikon Z8", "focalLength": "105mm", "aperture": "f/2.8", "shutterSpeed": "1/320s", "iso": 250 } },
+      { "id": 215, "url": "https://picsum.photos/seed/ref15", "title": "Wet Streets", "photographer": "Nina Patel", "votes": 35 },
+      { "id": 216, "url": "https://picsum.photos/seed/ref16", "title": "Kaleidoscope", "photographer": "Chris Evans", "votes": 28 },
+      { "id": 217, "url": "https://picsum.photos/seed/ref17", "title": "Infinite Corridor", "photographer": "Yuki Sato", "votes": 51, "exif": { "camera": "Sony A1", "focalLength": "20mm", "aperture": "f/4", "shutterSpeed": "1/15s", "iso": 1600 } },
+      { "id": 218, "url": "https://picsum.photos/seed/ref18", "title": "Mercury", "photographer": "Ben Walker", "votes": 23 },
+      { "id": 219, "url": "https://picsum.photos/seed/ref19", "title": "Parallel World", "photographer": "Olivia Grant", "votes": 39 },
+      { "id": 220, "url": "https://picsum.photos/seed/ref20", "title": "Crystal Ball", "photographer": "Sam Reeves", "votes": 46, "exif": { "camera": "Canon R6 II", "focalLength": "50mm", "aperture": "f/2.5", "shutterSpeed": "1/200s", "iso": 100 } },
+      { "id": 221, "url": "https://picsum.photos/seed/ref21", "title": "Golden Hour Glass", "photographer": "Diana Cross", "votes": 34 },
+      { "id": 222, "url": "https://picsum.photos/seed/ref22", "title": "Echoes", "photographer": "Mike Novak", "votes": 30 },
+      { "id": 223, "url": "https://picsum.photos/seed/ref23", "title": "Ripple Effect", "photographer": "Hannah Lee", "votes": 43, "exif": { "camera": "Fuji X-H2", "focalLength": "16mm", "aperture": "f/8", "shutterSpeed": "1/30s", "iso": 200 } },
+      { "id": 224, "url": "https://picsum.photos/seed/ref24", "title": "Through the Glass", "photographer": "Derek Kim", "votes": 37 },
+      { "id": 225, "url": "https://picsum.photos/seed/ref25", "title": "Upside Down", "photographer": "Rachel Green", "votes": 26 },
+      { "id": 226, "url": "https://picsum.photos/seed/ref26", "title": "Mirror Mirror", "photographer": "Leo Fernandez", "votes": 32 },
+      { "id": 227, "url": "https://picsum.photos/seed/ref27", "title": "Liquid Gold", "photographer": "Amy Watson", "votes": 40, "exif": { "camera": "Sony A7RV", "focalLength": "70mm", "aperture": "f/2.8", "shutterSpeed": "1/500s", "iso": 320 } },
+      { "id": 228, "url": "https://picsum.photos/seed/ref28", "title": "Between Worlds", "photographer": "Carlos Mendez", "votes": 45 }
+    ]
+  },
+  {
+    "id": 3,
+    "month": "January 2026",
+    "theme": "Urban Geometry",
+    "description": "Find beauty in the lines, shapes, and patterns of the urban landscape. Architecture, infrastructure, and city life through a geometric lens.",
+    "status": "completed",
+    "deadline": "2026-01-31",
+    "submissionCount": 20,
+    "participantCount": 16,
+    "guidelines": [
+      "Photos must be original work taken within the contest month",
+      "Maximum 3 submissions per participant",
+      "Minimum resolution: 2000px on the longest edge",
+      "Basic editing (exposure, contrast, crop) is allowed; heavy compositing is not",
+      "Include a brief description of how your photo relates to the theme",
+      "All genres welcome: landscape, portrait, street, macro, etc."
+    ],
+    "submissions": [
+      { "id": 301, "url": "https://picsum.photos/seed/ug1", "title": "Converging Lines", "photographer": "Priya Sharma", "votes": 89, "exif": { "camera": "Canon R5", "focalLength": "16mm", "aperture": "f/11", "shutterSpeed": "1/125s", "iso": 100 } },
+      { "id": 302, "url": "https://picsum.photos/seed/ug2", "title": "Steel Canyon", "photographer": "Jamal Washington", "votes": 76, "exif": { "camera": "Leica Q3", "focalLength": "28mm", "aperture": "f/5.6", "shutterSpeed": "1/250s", "iso": 200 } },
+      { "id": 303, "url": "https://picsum.photos/seed/ug3", "title": "Grid Life", "photographer": "Sarah Chen", "votes": 54, "exif": { "camera": "Sony A7IV", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 } },
+      { "id": 304, "url": "https://picsum.photos/seed/ug4", "title": "Spiral Staircase", "photographer": "Elena Volkov", "votes": 67 },
+      { "id": 305, "url": "https://picsum.photos/seed/ug5", "title": "Bridge Symmetry", "photographer": "Marcus Rivera", "votes": 45, "exif": { "camera": "Canon R6", "focalLength": "35mm", "aperture": "f/8", "shutterSpeed": "1/160s", "iso": 200 } },
+      { "id": 306, "url": "https://picsum.photos/seed/ug6", "title": "Concrete Jungle", "photographer": "Aiko Tanaka", "votes": 58 },
+      { "id": 307, "url": "https://picsum.photos/seed/ug7", "title": "Shadow Play", "photographer": "David Okafor", "votes": 63, "exif": { "camera": "Nikon Z6II", "focalLength": "50mm", "aperture": "f/5.6", "shutterSpeed": "1/500s", "iso": 100 } },
+      { "id": 308, "url": "https://picsum.photos/seed/ug8", "title": "Window Grid", "photographer": "Lisa Park", "votes": 42 },
+      { "id": 309, "url": "https://picsum.photos/seed/ug9", "title": "Vanishing Point", "photographer": "Tom Bradley", "votes": 71, "exif": { "camera": "Sony A7III", "focalLength": "20mm", "aperture": "f/8", "shutterSpeed": "1/100s", "iso": 400 } },
+      { "id": 310, "url": "https://picsum.photos/seed/ug10", "title": "Tessellation", "photographer": "Maria Santos", "votes": 49 },
+      { "id": 311, "url": "https://picsum.photos/seed/ug11", "title": "Neon Grid", "photographer": "James Mitchell", "votes": 55, "exif": { "camera": "Fuji X-T5", "focalLength": "23mm", "aperture": "f/2", "shutterSpeed": "1/60s", "iso": 1600 } },
+      { "id": 312, "url": "https://picsum.photos/seed/ug12", "title": "Parking Patterns", "photographer": "Ryan Hughes", "votes": 38 },
+      { "id": 313, "url": "https://picsum.photos/seed/ug13", "title": "Scaffolding", "photographer": "Karen Liu", "votes": 44 },
+      { "id": 314, "url": "https://picsum.photos/seed/ug14", "title": "Rooftop Lines", "photographer": "Alex Torres", "votes": 52, "exif": { "camera": "Nikon Z8", "focalLength": "70mm", "aperture": "f/5.6", "shutterSpeed": "1/320s", "iso": 200 } },
+      { "id": 315, "url": "https://picsum.photos/seed/ug15", "title": "Subway Tiles", "photographer": "Nina Patel", "votes": 36 },
+      { "id": 316, "url": "https://picsum.photos/seed/ug16", "title": "Angles", "photographer": "Chris Evans", "votes": 41 },
+      { "id": 317, "url": "https://picsum.photos/seed/ug17", "title": "Glass Facade", "photographer": "Yuki Sato", "votes": 60, "exif": { "camera": "Sony A1", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 } },
+      { "id": 318, "url": "https://picsum.photos/seed/ug18", "title": "Cable Web", "photographer": "Ben Walker", "votes": 33 },
+      { "id": 319, "url": "https://picsum.photos/seed/ug19", "title": "Urban Maze", "photographer": "Olivia Grant", "votes": 47, "exif": { "camera": "Canon R6 II", "focalLength": "14mm", "aperture": "f/11", "shutterSpeed": "1/60s", "iso": 400 } },
+      { "id": 320, "url": "https://picsum.photos/seed/ug20", "title": "Crosswalk", "photographer": "Sam Reeves", "votes": 50 }
+    ],
+    "winners": [
+      { "submissionId": 301, "place": 1 },
+      { "submissionId": 302, "place": 2 },
+      { "submissionId": 309, "place": 3 }
+    ],
+    "honorableMentions": [
+      { "submissionId": 304 },
+      { "submissionId": 307 },
+      { "submissionId": 317 }
+    ]
+  }
+]

@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { scrollToSection } from '../utils/scrollToSection';
 import './Navbar.css';
 
-const navLinks = [
-  { label: 'Home', href: '#hero' },
-  { label: 'About', href: '#about' },
-  { label: 'Gallery', href: '#gallery' },
-  { label: 'Events', href: '#events' },
-  { label: 'Newsletter', href: '#newsletter' },
-  { label: 'Members', href: '#members' },
-  { label: 'Contact', href: '#contact' },
+const sectionLinks = [
+  { label: 'Home', id: 'hero' },
+  { label: 'About', id: 'about' },
+  { label: 'Gallery', id: 'gallery' },
+  { label: 'Events', id: 'events' },
+  { label: 'Newsletter', id: 'newsletter' },
+  { label: 'Members', id: 'members' },
+  { label: 'Contact', id: 'contact' },
 ];
 
 export default function Navbar() {
@@ -16,7 +18,17 @@ export default function Navbar() {
   const [activeSection, setActiveSection] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHomePage = location.pathname === '/';
+
+  // IntersectionObserver — only run on home page
   useEffect(() => {
+    if (!isHomePage) {
+      setActiveSection('');
+      return;
+    }
+
     const sections = document.querySelectorAll<HTMLElement>('section[id]');
 
     const observer = new IntersectionObserver(
@@ -32,7 +44,7 @@ export default function Navbar() {
 
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [isHomePage]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -40,10 +52,41 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleNavClick = useCallback(
+    (sectionId: string) => {
+      setMenuOpen(false);
+      if (isHomePage) {
+        if (sectionId === 'hero') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          scrollToSection(sectionId);
+        }
+      } else {
+        navigate('/', { state: { scrollTo: sectionId === 'hero' ? undefined : sectionId } });
+      }
+    },
+    [isHomePage, navigate]
+  );
+
+  const handleLogoClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setMenuOpen(false);
+      if (isHomePage) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        navigate('/');
+      }
+    },
+    [isHomePage, navigate]
+  );
+
+  const isContestActive = location.pathname === '/contest';
+
   return (
     <nav className={`navbar${scrolled ? ' navbar--scrolled' : ''}`}>
       <div className="navbar__inner container">
-        <a href="#hero" className="navbar__logo">
+        <a href="#" className="navbar__logo" onClick={handleLogoClick}>
           Bridgeway <span>Photography</span>
         </a>
 
@@ -58,17 +101,29 @@ export default function Navbar() {
         </button>
 
         <ul className={`navbar__links${menuOpen ? ' navbar__links--open' : ''}`}>
-          {navLinks.map(({ label, href }) => (
-            <li key={href}>
+          {sectionLinks.map(({ label, id }) => (
+            <li key={id}>
               <a
-                href={href}
-                className={activeSection === href.slice(1) ? 'active' : ''}
-                onClick={() => setMenuOpen(false)}
+                href={`#${id}`}
+                className={isHomePage && activeSection === id ? 'active' : ''}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick(id);
+                }}
               >
                 {label}
               </a>
             </li>
           ))}
+          <li>
+            <Link
+              to="/contest"
+              className={`navbar__link--accent${isContestActive ? ' active' : ''}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Contest
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>
