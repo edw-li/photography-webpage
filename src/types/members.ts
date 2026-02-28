@@ -14,6 +14,7 @@ export interface SamplePhoto {
 }
 
 export interface Member {
+  id?: number;
   name: string;
   specialty: string;
   avatar: string;

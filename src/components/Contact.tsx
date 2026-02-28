@@ -1,9 +1,34 @@
-import { type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { submitContact } from '../api/contact';
 import './Contact.css';
 
 export default function Contact() {
-  const handleSubmit = (e: FormEvent) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      await submitContact({ name: name.trim(), email: email.trim(), message: message.trim() });
+      setSuccess(true);
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -14,23 +39,59 @@ export default function Contact() {
           <p>Interested in joining? Drop us a message and we'll get back to you</p>
         </div>
         <div className="contact__grid fade-in-up">
-          <form className="contact__form" onSubmit={handleSubmit}>
-            <div className="contact__field">
-              <label htmlFor="name">Name</label>
-              <input type="text" id="name" placeholder="Your name" />
+          {success ? (
+            <div className="contact__success">
+              <h3>Message Sent!</h3>
+              <p>Thank you for reaching out. We'll get back to you soon.</p>
+              <button
+                className="btn btn-primary"
+                onClick={() => setSuccess(false)}
+              >
+                Send Another Message
+              </button>
             </div>
-            <div className="contact__field">
-              <label htmlFor="email">Email</label>
-              <input type="email" id="email" placeholder="you@example.com" />
-            </div>
-            <div className="contact__field">
-              <label htmlFor="message">Message</label>
-              <textarea id="message" rows={5} placeholder="Tell us about yourself..." />
-            </div>
-            <button type="submit" className="btn btn-primary">
-              Send Message
-            </button>
-          </form>
+          ) : (
+            <form className="contact__form" onSubmit={handleSubmit}>
+              <div className="contact__field">
+                <label htmlFor="name">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="contact__field">
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="contact__field">
+                <label htmlFor="message">Message</label>
+                <textarea
+                  id="message"
+                  rows={5}
+                  placeholder="Tell us about yourself..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </div>
+              {error && <p className="contact__error">{error}</p>}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitting}
+              >
+                {submitting ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
+          )}
           <div className="contact__info">
             <div className="contact__info-item">
               <h3>Location</h3>

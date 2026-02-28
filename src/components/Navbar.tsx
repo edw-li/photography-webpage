@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
+import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
 const sectionLinks = [
@@ -17,7 +18,10 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
@@ -52,6 +56,17 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close user menu on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const handleNavClick = useCallback(
     (sectionId: string) => {
       setMenuOpen(false);
@@ -80,6 +95,13 @@ export default function Navbar() {
     },
     [isHomePage, navigate]
   );
+
+  const handleLogout = () => {
+    setUserMenuOpen(false);
+    setMenuOpen(false);
+    logout();
+    navigate('/');
+  };
 
   const isContestActive = location.pathname === '/contest';
 
@@ -123,6 +145,45 @@ export default function Navbar() {
             >
               Contest
             </Link>
+          </li>
+          <li>
+            {isAuthenticated ? (
+              <div className="navbar__user-menu" ref={userMenuRef}>
+                <button
+                  className="navbar__user-btn"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
+                  {user?.email.split('@')[0]}
+                </button>
+                {userMenuOpen && (
+                  <div className="navbar__user-dropdown">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="navbar__user-dropdown-item"
+                        onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    <button
+                      className="navbar__user-dropdown-item"
+                      onClick={handleLogout}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className={location.pathname === '/login' ? 'active' : ''}
+                onClick={() => setMenuOpen(false)}
+              >
+                Log In
+              </Link>
+            )}
           </li>
         </ul>
       </div>

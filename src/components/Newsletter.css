@@ -278,6 +278,19 @@
   padding: 0.75rem 1.5rem;
 }
 
+.newsletter__signup-success {
+  color: var(--color-accent);
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.newsletter__signup-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
 /* ── Modal ── */
 
 .newsletter__modal-backdrop {

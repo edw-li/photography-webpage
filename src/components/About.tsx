@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, GraduationCap, Handshake, Image, Trophy, Users } from 'lucide-react';
-import type { Member, MembersConfig } from '../types/members';
+import type { Member } from '../types/members';
+import { getLeaders } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
 import './About.css';
@@ -240,10 +241,9 @@ export default function About() {
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    import('../data/members.json')
-      .then((mod) => {
-        const config = (mod.default ?? mod) as MembersConfig;
-        setMembers(config.members);
+    getLeaders()
+      .then((leaders) => {
+        setMembers(leaders);
         setLoading(false);
       })
       .catch(() => {
