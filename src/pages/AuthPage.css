@@ -4,27 +4,58 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: var(--color-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("https://picsum.photos/id/1067/1920/1080") center / cover no-repeat;
+  z-index: -2;
+}
+
+.auth-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.82);
+  z-index: -1;
+}
+
+@keyframes authCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  animation: authCardEnter 0.4s ease both;
+  background: rgba(26, 26, 26, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   padding: 2.5rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .auth-card h1 {
-  color: var(--color-text);
+  color: var(--color-light-100);
   font-size: 1.75rem;
   margin-bottom: 0.5rem;
 }
 
 .auth-card p {
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
@@ -39,19 +70,23 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.3rem;
 }
 
 .auth-card__field input {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-md);
   font-size: 0.95rem;
   transition: border-color var(--transition-fast);
+}
+
+.auth-card__field input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .auth-card__field input:focus {
@@ -72,7 +107,7 @@
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.9rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .auth-card__footer a {
@@ -82,4 +117,10 @@
 
 .auth-card__footer a:hover {
   text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card {
+    animation: none;
+  }
 }

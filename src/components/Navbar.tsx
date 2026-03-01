@@ -178,7 +178,7 @@ export default function Navbar() {
             ) : (
               <Link
                 to="/login"
-                className={location.pathname === '/login' ? 'active' : ''}
+                className={location.pathname === '/login' || location.pathname === '/register' ? 'active' : ''}
                 onClick={() => setMenuOpen(false)}
               >
                 Log In
