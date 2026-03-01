@@ -29,6 +29,8 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads
+      - ./src/data:/src/data:ro
+      - ./src/newsletters:/src/newsletters:ro
 
   frontend:
     build: .

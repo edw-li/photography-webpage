@@ -36,3 +36,6 @@ backend/app/__pycache__/
 
 # Uploads
 uploads/
+
+# Deployment guide (local reference only)
+DEPLOY_ORACLE_CLOUD.txt
