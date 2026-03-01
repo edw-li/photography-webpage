@@ -3,6 +3,7 @@ import { Camera, Users, Check, Trophy, ArrowLeft } from 'lucide-react';
 import type { Contest, ContestSubmission } from '../types/contest';
 import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
+import { getContests } from '../api/contests';
 import Footer from '../components/Footer';
 import './ContestPage.css';
 
@@ -911,9 +912,8 @@ export default function ContestPage() {
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    import('../data/contests.json')
-      .then((mod) => {
-        const data = (mod.default ?? mod) as Contest[];
+    getContests()
+      .then((data) => {
         setContests(data);
         setLoading(false);
       })

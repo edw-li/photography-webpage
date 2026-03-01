@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import type { CalendarEvent, ResolvedEvent, EventsConfig } from '../types/events';
+import type { CalendarEvent, ResolvedEvent } from '../types/events';
 import { getEventsForMonth, getUpcomingEvents, parseDate, formatTime } from '../utils/recurrence';
+import { getEvents } from '../api/events';
 import Calendar from './Calendar';
 import EventModal from './EventModal';
 import './Events.css';
@@ -52,10 +53,9 @@ export default function Events() {
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    import('../data/events.json')
-      .then((mod) => {
-        const config = (mod.default ?? mod) as EventsConfig;
-        setEvents(config.events);
+    getEvents()
+      .then((data) => {
+        setEvents(data);
         setLoading(false);
       })
       .catch(() => {

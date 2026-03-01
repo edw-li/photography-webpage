@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
-import type { Member, MembersConfig } from '../types/members';
+import type { Member } from '../types/members';
+import { getMembers } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
 import './Members.css';
@@ -84,10 +85,9 @@ export default function Members() {
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    import('../data/members.json')
-      .then((mod) => {
-        const config = (mod.default ?? mod) as MembersConfig;
-        setMembers(config.members);
+    getMembers({ pageSize: 100 })
+      .then((res) => {
+        setMembers(res.items);
         setLoading(false);
       })
       .catch(() => {

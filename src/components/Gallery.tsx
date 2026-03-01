@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { GalleryPhoto, GalleryConfig } from '../types/gallery';
+import type { GalleryPhoto } from '../types/gallery';
+import { getGalleryPhotos } from '../api/gallery';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import './Gallery.css';
 
@@ -285,10 +286,9 @@ export default function Gallery() {
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    import('../data/gallery.json')
-      .then((mod) => {
-        const config = (mod.default ?? mod) as GalleryConfig;
-        setPhotos(config.gallery);
+    getGalleryPhotos(1, 100)
+      .then((res) => {
+        setPhotos(res.items);
         setLoading(false);
       })
       .catch(() => {

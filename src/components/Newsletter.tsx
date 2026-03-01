@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type FormEvent } from 'react';
 import type { Newsletter as NewsletterType } from '../types/newsletter';
-import { parseNewsletter } from '../utils/parseNewsletter';
+import { getNewsletters, subscribeToNewsletter } from '../api/newsletters';
+import { ApiError } from '../api/client';
 import './Newsletter.css';
 
 const MONTH_NAMES = [
@@ -12,11 +13,6 @@ function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
 }
-
-const modules = import.meta.glob('../newsletters/*.md', {
-  query: '?raw',
-  import: 'default',
-});
 
 /* ─── Modal ─── */
 
@@ -107,20 +103,18 @@ export default function Newsletter() {
   const [filterAnimPhase, setFilterAnimPhase] = useState<'exit' | 'enter' | null>(null);
   const [pendingFilter, setPendingFilter] = useState<string | null>(null);
   const [filterVersion, setFilterVersion] = useState(0);
+  const [subName, setSubName] = useState('');
+  const [subEmail, setSubEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subSuccess, setSubSuccess] = useState(false);
+  const [subError, setSubError] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const entries = Object.entries(modules);
-      const parsed = await Promise.all(
-        entries.map(async ([path, loader]) => {
-          const raw = (await loader()) as string;
-          return parseNewsletter(path, raw);
-        })
-      );
-      parsed.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
-      setNewsletters(parsed);
+      const response = await getNewsletters();
+      setNewsletters(response.items);
       setLoading(false);
     } catch {
       setError(true);
@@ -164,8 +158,25 @@ export default function Newsletter() {
     setFilterAnimPhase('exit');
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!subName.trim() || !subEmail.trim()) return;
+    setSubscribing(true);
+    setSubError('');
+    try {
+      await subscribeToNewsletter({ name: subName.trim(), email: subEmail.trim() });
+      setSubSuccess(true);
+      setSubName('');
+      setSubEmail('');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setSubError('This email is already subscribed.');
+      } else {
+        setSubError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   return (
@@ -290,23 +301,36 @@ export default function Newsletter() {
                 <h3>Subscribe to Our Newsletter</h3>
                 <p>Get club updates, photography tips, and challenge announcements delivered to your inbox.</p>
               </div>
-              <form className="newsletter__signup-form" onSubmit={handleSubmit}>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  aria-label="Name"
-                  className="newsletter__signup-input"
-                />
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  aria-label="Email"
-                  className="newsletter__signup-input"
-                />
-                <button type="submit" className="btn btn-primary newsletter__signup-btn">
-                  Subscribe
-                </button>
-              </form>
+              {subSuccess ? (
+                <p className="newsletter__signup-success">You're subscribed!</p>
+              ) : (
+                <form className="newsletter__signup-form" onSubmit={handleSubmit}>
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    aria-label="Name"
+                    className="newsletter__signup-input"
+                    value={subName}
+                    onChange={(e) => setSubName(e.target.value)}
+                  />
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    aria-label="Email"
+                    className="newsletter__signup-input"
+                    value={subEmail}
+                    onChange={(e) => setSubEmail(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary newsletter__signup-btn"
+                    disabled={subscribing}
+                  >
+                    {subscribing ? 'Subscribing...' : 'Subscribe'}
+                  </button>
+                  {subError && <p className="newsletter__signup-error">{subError}</p>}
+                </form>
+              )}
             </div>
           </>
         )}
