@@ -19,6 +19,7 @@ from ..schemas.contest import (
     VoteRequest,
 )
 from ..services.storage import save_submission_image
+from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
 
 router = APIRouter()
@@ -130,6 +131,7 @@ async def create_contest(
         guidelines=body.guidelines,
     )
     db.add(contest)
+    await log_activity(db, admin, "create", "contest", body.theme, f"Created contest: {body.theme}")
     await db.commit()
     await db.refresh(contest)
     return _contest_to_response(contest)
@@ -162,6 +164,7 @@ async def update_contest(
         contest.winners = [w.model_dump(by_alias=True) for w in body.winners]
     if body.honorable_mentions is not None:
         contest.honorable_mentions = [h.model_dump(by_alias=True) for h in body.honorable_mentions]
+    await log_activity(db, admin, "update", "contest", str(contest_id), f"Updated contest: {contest.theme}")
     await db.commit()
     await db.refresh(contest)
     return _contest_to_response(contest)
@@ -177,6 +180,7 @@ async def delete_contest(
     contest = result.scalar_one_or_none()
     if contest is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    await log_activity(db, admin, "delete", "contest", str(contest_id), f"Deleted contest: {contest.theme}")
     await db.delete(contest)
     await db.commit()
 

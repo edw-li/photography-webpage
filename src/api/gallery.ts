@@ -1,4 +1,4 @@
-import type { GalleryPhoto } from '../types/gallery';
+import type { GalleryPhoto, PhotoExif } from '../types/gallery';
 import { apiFetch } from './client';
 
 interface PaginatedResponse<T> {
@@ -20,4 +20,38 @@ export async function getGalleryPhotos(
 
 export async function getGalleryPhoto(id: number): Promise<GalleryPhoto> {
   return apiFetch<GalleryPhoto>(`/gallery/${id}`);
+}
+
+export interface GalleryPhotoCreateData {
+  url: string;
+  title: string;
+  photographer: string;
+  memberId?: number | null;
+  exif?: PhotoExif | null;
+}
+
+export async function createGalleryPhoto(data: GalleryPhotoCreateData): Promise<GalleryPhoto> {
+  return apiFetch<GalleryPhoto>('/gallery', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function uploadGalleryPhoto(formData: FormData): Promise<GalleryPhoto> {
+  return apiFetch<GalleryPhoto>('/gallery/upload', {
+    method: 'POST',
+    body: formData,
+    headers: {},
+  });
+}
+
+export async function updateGalleryPhoto(id: number, data: Partial<GalleryPhotoCreateData>): Promise<GalleryPhoto> {
+  return apiFetch<GalleryPhoto>(`/gallery/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteGalleryPhoto(id: number): Promise<void> {
+  await apiFetch(`/gallery/${id}`, { method: 'DELETE' });
 }

@@ -18,6 +18,47 @@ export async function getNewsletters(
   );
 }
 
+export interface NewsletterWithBody extends Newsletter {
+  bodyMd: string;
+}
+
+export async function getNewsletter(id: string): Promise<NewsletterWithBody> {
+  return apiFetch<NewsletterWithBody>(`/newsletters/${id}`);
+}
+
+export async function getNewsletterCategories(): Promise<string[]> {
+  return apiFetch<string[]>('/newsletters/categories');
+}
+
+export interface NewsletterCreateData {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  author: string;
+  preview: string;
+  featured: boolean;
+  bodyMd: string;
+}
+
+export async function createNewsletter(data: NewsletterCreateData): Promise<Newsletter> {
+  return apiFetch<Newsletter>('/newsletters', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateNewsletter(id: string, data: Partial<NewsletterCreateData>): Promise<Newsletter> {
+  return apiFetch<Newsletter>(`/newsletters/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteNewsletter(id: string): Promise<void> {
+  await apiFetch(`/newsletters/${id}`, { method: 'DELETE' });
+}
+
 interface SubscribeData {
   name: string;
   email: string;

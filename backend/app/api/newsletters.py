@@ -16,6 +16,7 @@ from ..schemas.newsletter import (
     SubscribeRequest,
     SubscriberResponse,
 )
+from .activity import log_activity
 from .deps import get_db, require_admin
 
 router = APIRouter()
@@ -35,6 +36,7 @@ def _newsletter_to_response(nl: Newsletter) -> NewsletterResponse:
         preview=nl.preview,
         featured=nl.featured,
         html=nl.html,
+        body_md=nl.body_md,
     )
 
 
@@ -196,6 +198,7 @@ async def create_newsletter(
         html=_render_md(body.body_md),
     )
     db.add(nl)
+    await log_activity(db, admin, "create", "newsletter", body.id, f"Created newsletter: {body.title}")
     await db.commit()
     await db.refresh(nl)
     return _newsletter_to_response(nl)

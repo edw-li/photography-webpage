@@ -8,6 +8,7 @@ from ..models.event import Event
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.event import EventCreate, EventResponse, EventUpdate, RecurrenceRuleSchema
+from .activity import log_activity
 from .deps import get_db, require_admin
 
 router = APIRouter()
@@ -88,6 +89,7 @@ async def create_event(
         recurrence=recurrence_dict,
     )
     db.add(event)
+    await log_activity(db, admin, "create", "event", body.id, f"Created event: {body.title}")
     await db.commit()
     await db.refresh(event)
     return _event_to_response(event)
@@ -118,6 +120,7 @@ async def update_event(
         event.date = body.date
     if body.recurrence is not None:
         event.recurrence = body.recurrence.model_dump(by_alias=True, exclude_none=True)
+    await log_activity(db, admin, "update", "event", event_id, f"Updated event: {event.title}")
     await db.commit()
     await db.refresh(event)
     return _event_to_response(event)
@@ -133,5 +136,6 @@ async def delete_event(
     event = result.scalar_one_or_none()
     if event is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    await log_activity(db, admin, "delete", "event", event_id, f"Deleted event: {event.title}")
     await db.delete(event)
     await db.commit()
