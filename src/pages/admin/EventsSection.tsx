@@ -3,7 +3,7 @@ import { getEvents, createEvent, updateEvent, deleteEvent } from '../../api/even
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
-import type { CalendarEvent, RecurrenceRule } from '../../types/events';
+import type { CalendarEvent, RecurrenceRule, RecurrenceFrequency } from '../../types/events';
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -17,7 +17,7 @@ const emptyForm = {
   time: '',
   endTime: '',
   useRecurrence: false,
-  frequency: 'weekly' as const,
+  frequency: 'weekly' as RecurrenceFrequency,
   interval: 1,
   dayOfWeek: [] as number[],
   weekOfMonth: [] as number[],
@@ -65,7 +65,7 @@ export default function EventsSection() {
       time: ev.time,
       endTime: ev.endTime || '',
       useRecurrence: !!ev.recurrence,
-      frequency: (ev.recurrence?.frequency || 'weekly') as 'weekly' | 'monthly',
+      frequency: ev.recurrence?.frequency || 'weekly',
       interval: ev.recurrence?.interval || 1,
       dayOfWeek: ev.recurrence?.dayOfWeek || [],
       weekOfMonth: ev.recurrence?.weekOfMonth || [],
