@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import './AuthPage.css';
 
 export default function RegisterPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -14,7 +16,10 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || !confirm) return;
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirm) {
+      setError('All fields are required.');
+      return;
+    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
@@ -26,7 +31,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError('');
     try {
-      await register(email.trim(), password);
+      await register(email.trim(), password, firstName.trim(), lastName.trim());
       navigate('/');
     } catch {
       setError('Registration failed. Email may already be in use.');
@@ -41,6 +46,28 @@ export default function RegisterPage() {
         <h1>Register</h1>
         <p>Join Bridgeway Photography</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>
+          <div className="auth-card__row">
+            <div className="auth-card__field">
+              <label htmlFor="reg-first-name">First Name</label>
+              <input
+                id="reg-first-name"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+              />
+            </div>
+            <div className="auth-card__field">
+              <label htmlFor="reg-last-name">Last Name</label>
+              <input
+                id="reg-last-name"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
+              />
+            </div>
+          </div>
           <div className="auth-card__field">
             <label htmlFor="reg-email">Email</label>
             <input

@@ -18,6 +18,8 @@ class User(Base):
     )
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False, server_default="")
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False, server_default="")
     role: Mapped[str] = mapped_column(String(20), nullable=False, server_default="member")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     created_at: Mapped[datetime] = mapped_column(

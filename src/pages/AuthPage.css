@@ -66,6 +66,15 @@
   gap: 1rem;
 }
 
+.auth-card__row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.auth-card__row .auth-card__field {
+  flex: 1;
+}
+
 .auth-card__field label {
   display: block;
   font-size: 0.85rem;

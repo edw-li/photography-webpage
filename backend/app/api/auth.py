@@ -6,9 +6,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.user import User
-from ..models.member import Member
+from ..models.member import Member, SocialLink, SamplePhoto
 from ..schemas.common import PaginatedResponse
 from ..schemas.user import (
+    ProfileUpdate,
     RefreshRequest,
     TokenResponse,
     UserLogin,
@@ -55,8 +56,21 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    user = User(email=body.email, hashed_password=hash_password(body.password))
+    user = User(
+        email=body.email,
+        hashed_password=hash_password(body.password),
+        first_name=body.first_name,
+        last_name=body.last_name,
+    )
     db.add(user)
+    await db.flush()
+    member = Member(
+        user_id=user.id,
+        name=f"{body.first_name} {body.last_name}",
+        specialty="General Photography",
+        avatar_url="DEFAULT",
+    )
+    db.add(member)
     await db.commit()
     await db.refresh(user)
     return TokenResponse(
@@ -109,6 +123,73 @@ async def get_me(
     return UserWithMember(
         id=user.id,
         email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        member=member_resp,
+    )
+
+
+@router.put("/profile", response_model=UserWithMember)
+async def update_profile(
+    body: ProfileUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.first_name is not None:
+        user.first_name = body.first_name
+    if body.last_name is not None:
+        user.last_name = body.last_name
+
+    result = await db.execute(select(Member).where(Member.user_id == user.id))
+    member = result.scalar_one_or_none()
+
+    if member is None:
+        member = Member(
+            user_id=user.id,
+            name=f"{user.first_name} {user.last_name}",
+            specialty=body.specialty or "General Photography",
+            avatar_url=body.avatar or "DEFAULT",
+        )
+        db.add(member)
+    else:
+        # Update name from first/last
+        member.name = f"{body.first_name or user.first_name} {body.last_name or user.last_name}"
+        if body.specialty is not None:
+            member.specialty = body.specialty
+        if body.avatar is not None:
+            member.avatar_url = body.avatar
+        if body.photography_type is not None:
+            member.photography_type = body.photography_type
+        if body.website is not None:
+            member.website = body.website
+        if body.bio is not None:
+            member.bio = body.bio
+
+    if body.social_links is not None:
+        member.social_links.clear()
+        for platform, url in body.social_links.items():
+            member.social_links.append(SocialLink(platform=platform, url=url))
+
+    if body.sample_photos is not None:
+        member.sample_photos.clear()
+        for i, sp in enumerate(body.sample_photos):
+            member.sample_photos.append(
+                SamplePhoto(src_url=sp.src, caption=sp.caption, sort_order=i)
+            )
+
+    await db.commit()
+    await db.refresh(user)
+    await db.refresh(member)
+    member_resp = _member_to_response(member)
+    return UserWithMember(
+        id=user.id,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
         role=user.role,
         is_active=user.is_active,
         created_at=user.created_at,
@@ -135,7 +216,8 @@ async def list_users(
     return PaginatedResponse(
         items=[
             UserResponse(
-                id=u.id, email=u.email, role=u.role, is_active=u.is_active,
+                id=u.id, email=u.email, first_name=u.first_name, last_name=u.last_name,
+                role=u.role, is_active=u.is_active,
                 created_at=u.created_at, updated_at=u.updated_at,
             )
             for u in users
@@ -165,6 +247,7 @@ async def update_user(
     await db.commit()
     await db.refresh(target)
     return UserResponse(
-        id=target.id, email=target.email, role=target.role, is_active=target.is_active,
+        id=target.id, email=target.email, first_name=target.first_name,
+        last_name=target.last_name, role=target.role, is_active=target.is_active,
         created_at=target.created_at, updated_at=target.updated_at,
     )

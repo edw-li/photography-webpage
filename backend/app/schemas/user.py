@@ -9,6 +9,8 @@ from .common import CamelModel
 class UserRegister(CamelModel):
     email: str
     password: str
+    first_name: str
+    last_name: str
 
 
 class UserLogin(CamelModel):
@@ -29,6 +31,8 @@ class RefreshRequest(CamelModel):
 class UserResponse(CamelModel):
     id: uuid.UUID
     email: str
+    first_name: str
+    last_name: str
     role: str
     is_active: bool
     created_at: datetime
@@ -44,7 +48,20 @@ class UserUpdate(CamelModel):
     is_active: bool | None = None
 
 
+class ProfileUpdate(CamelModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    specialty: str | None = None
+    avatar: str | None = None
+    photography_type: str | None = None
+    website: str | None = None
+    bio: str | None = None
+    social_links: dict[str, str] | None = None
+    sample_photos: list[SamplePhotoSchema] | None = None
+
+
 # Deferred import for forward reference resolution
-from .member import MemberResponse  # noqa: E402, F811
+from .member import MemberResponse, SamplePhotoSchema  # noqa: E402, F811
 
 UserWithMember.model_rebuild()
+ProfileUpdate.model_rebuild()
