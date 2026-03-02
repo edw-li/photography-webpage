@@ -1,7 +1,7 @@
 .profile-page {
   min-height: 100vh;
   padding: 6rem 2rem 3rem;
-  background: var(--color-dark-900);
+  background: var(--color-bg);
 }
 
 .profile-page__inner {
@@ -10,25 +10,25 @@
 }
 
 .profile-page h1 {
-  color: var(--color-light-100);
+  color: var(--color-text);
   font-size: 1.75rem;
   margin-bottom: 2rem;
 }
 
 .profile-section {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .profile-section h2 {
-  color: var(--color-light-100);
+  color: var(--color-text);
   font-size: 1.1rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .profile-field {
@@ -39,7 +39,7 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   margin-bottom: 0.3rem;
 }
 
@@ -53,9 +53,9 @@
 .profile-field select {
   width: 100%;
   padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
   transition: border-color var(--transition-fast);
@@ -63,7 +63,7 @@
 
 .profile-field input::placeholder,
 .profile-field textarea::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-muted);
 }
 
 .profile-field input:focus,
@@ -99,20 +99,20 @@
   height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--color-border);
 }
 
 .profile-avatar-preview .avatar-placeholder {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface-alt);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   font-size: 1.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--color-border);
 }
 
 /* Dynamic list rows (social links, sample photos) */
@@ -127,9 +127,9 @@
   width: 140px;
   flex-shrink: 0;
   padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
 }
@@ -137,11 +137,17 @@
 .profile-list-row input {
   flex: 1;
   padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
+}
+
+.profile-list-row select option,
+.profile-field select option {
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .profile-list-row input:focus,
@@ -168,8 +174,8 @@
 
 .profile-list-add {
   background: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -192,9 +198,9 @@
 }
 
 .profile-actions .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
   padding: 0.65rem 1.5rem;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -203,7 +209,7 @@
 }
 
 .profile-actions .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-bg-alt);
 }
 
 .profile-error {
@@ -213,7 +219,7 @@
 }
 
 .profile-loading {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   text-align: center;
   padding: 4rem 0;
 }

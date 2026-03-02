@@ -153,17 +153,19 @@ export default function Navbar() {
                   className="navbar__user-btn"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
-                  Welcome, {user?.firstName}!
+                  {isAdmin ? 'Welcome, admin!' : `Welcome, ${user?.firstName}!`}
                 </button>
                 {userMenuOpen && (
                   <div className="navbar__user-dropdown">
-                    <Link
-                      to="/profile"
-                      className="navbar__user-dropdown-item"
-                      onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
-                    >
-                      My Profile
-                    </Link>
+                    {!isAdmin && (
+                      <Link
+                        to="/profile"
+                        className="navbar__user-dropdown-item"
+                        onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                      >
+                        My Profile
+                      </Link>
+                    )}
                     {isAdmin && (
                       <Link
                         to="/admin"

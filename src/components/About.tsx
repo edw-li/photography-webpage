@@ -24,6 +24,13 @@ const IMAGE_OFF_ICON = (
   </svg>
 );
 
+const USER_PLACEHOLDER_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M20 21a8 8 0 0 0-16 0" />
+  </svg>
+);
+
 function MissionContent() {
   const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1025/600/700');
   return (
@@ -143,15 +150,16 @@ function BenefitsContent() {
 }
 
 function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(member.avatar);
+  const isBroken = !member.avatar || member.avatar === 'DEFAULT';
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(isBroken ? undefined : member.avatar);
   return (
     <div
       className="about__leader-card about__leader-card--clickable"
       onClick={onClick}
     >
-      <div className={`about__leader-avatar${!loaded ? ' shimmer-bg' : ''}`}>
-        {errored ? (
-          <div className="img-error-fallback">{IMAGE_OFF_ICON}</div>
+      <div className={`about__leader-avatar${!loaded && !isBroken ? ' shimmer-bg' : ''}`}>
+        {isBroken || errored ? (
+          <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
         ) : (
           <img
             src={member.avatar}
