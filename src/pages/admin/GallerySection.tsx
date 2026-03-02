@@ -14,6 +14,34 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
 import Pagination from './Pagination';
 
+const IMAGE_OFF_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="2" y1="2" x2="22" y2="22" />
+    <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
+    <path d="M21 15V6a2 2 0 0 0-2-2H9" />
+    <path d="M3 8.7V19a2 2 0 0 0 2 2h12.3" />
+  </svg>
+);
+
+function GalleryThumb({ src, alt }: { src: string; alt: string }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="img-error-fallback" style={{ width: 48, height: 48, borderRadius: 4 }}>
+        {IMAGE_OFF_ICON}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 const emptyForm = {
   title: '',
   photographer: '',
@@ -204,7 +232,7 @@ export default function GallerySection() {
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id}>
-                <td><img src={p.url} alt={p.title} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} /></td>
+                <td><GalleryThumb src={p.url} alt={p.title} /></td>
                 <td>{p.title}</td>
                 <td>{p.photographer}</td>
                 <td style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>

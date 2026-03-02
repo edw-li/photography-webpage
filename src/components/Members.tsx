@@ -5,6 +5,13 @@ import { useImageLoaded } from '../hooks/useImageLoaded';
 import MemberModal from './MemberModal';
 import './Members.css';
 
+const USER_PLACEHOLDER_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M20 21a8 8 0 0 0-16 0" />
+  </svg>
+);
+
 const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 3 } as const;
 const BREAKPOINTS = { tablet: 1024, mobile: 480 } as const;
 const VISIBLE_FILTER_COUNT = 5;
@@ -40,18 +47,23 @@ function shortenSpecialty(s: string): string {
 }
 
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
-  const { loaded, handleLoad, handleError } = useImageLoaded(member.avatar);
+  const isBroken = !member.avatar || member.avatar === 'DEFAULT';
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(isBroken ? undefined : member.avatar);
   return (
     <div className="members__card members__card--clickable" onClick={onClick}>
-      <div className={`members__avatar${!loaded ? ' shimmer-bg' : ''}`}>
-        <img
-          src={member.avatar}
-          alt={member.name}
-          loading="lazy"
-          className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
+      <div className={`members__avatar${!loaded && !isBroken ? ' shimmer-bg' : ''}`}>
+        {isBroken || errored ? (
+          <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
+        ) : (
+          <img
+            src={member.avatar}
+            alt={member.name}
+            loading="lazy"
+            className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
       </div>
       <h3>{member.name}</h3>
       <p>{member.specialty}</p>
