@@ -76,6 +76,21 @@ export default function AdminPage() {
 
   return (
     <div className="admin">
+      {/* Hero */}
+      <div className="admin__hero">
+        <div className="admin__hero-bg">
+          <img
+            src="https://picsum.photos/seed/admin-dark/1600/600"
+            alt=""
+            aria-hidden="true"
+          />
+        </div>
+        <div className="admin__hero-content container">
+          <h1>Admin Console</h1>
+          <p>Manage your photography club</p>
+        </div>
+      </div>
+
       <div className="container">
         <div className="admin__layout">
           <div className="admin__sidebar">
@@ -96,7 +111,7 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
-          <div className="admin__content">
+          <div className="admin__content" key={activeTab}>
             {renderSection()}
           </div>
         </div>
