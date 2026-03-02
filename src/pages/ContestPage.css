@@ -59,8 +59,8 @@
 .contest-page__hero-content {
   position: relative;
   z-index: 1;
-  padding: 3rem 0;
   padding-top: 100px;
+  padding-bottom: 3rem;
 }
 
 .contest-page__hero-badge {
@@ -1102,8 +1102,8 @@
   }
 
   .contest-page__hero-content {
-    padding: 2rem 0;
     padding-top: 80px;
+    padding-bottom: 2rem;
   }
 
   .contest__card {
