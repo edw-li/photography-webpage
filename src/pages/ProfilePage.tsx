@@ -16,7 +16,7 @@ interface SocialRow {
 
 export default function ProfilePage() {
   const { user, isAuthenticated, loading, refreshUser } = useAuth();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
   const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState('');
@@ -60,10 +60,10 @@ export default function ProfilePage() {
             }
           }
         })
-        .catch(() => showToast('Failed to load profile', 'error'))
+        .catch(() => addToast('error', 'Failed to load profile'))
         .finally(() => setLoadingProfile(false));
     }
-  }, [loading, isAuthenticated, navigate, showToast]);
+  }, [loading, isAuthenticated, navigate, addToast]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -103,9 +103,9 @@ export default function ProfilePage() {
       };
       await updateMyProfile(payload);
       await refreshUser();
-      showToast('Profile updated successfully', 'success');
+      addToast('success', 'Profile updated successfully');
     } catch {
-      showToast('Failed to update profile', 'error');
+      addToast('error', 'Failed to update profile');
     } finally {
       setSaving(false);
     }
