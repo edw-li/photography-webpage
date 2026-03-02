@@ -33,3 +33,21 @@ export async function getMember(id: number): Promise<Member> {
 export async function getLeaders(): Promise<Member[]> {
   return apiFetch<Member[]>('/members/leaders');
 }
+
+export async function createMember(data: Omit<Member, 'id'>): Promise<Member> {
+  return apiFetch<Member>('/members', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMember(id: number, data: Partial<Member>): Promise<Member> {
+  return apiFetch<Member>(`/members/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMember(id: number): Promise<void> {
+  await apiFetch(`/members/${id}`, { method: 'DELETE' });
+}

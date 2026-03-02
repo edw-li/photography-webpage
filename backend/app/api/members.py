@@ -8,6 +8,7 @@ from ..models.member import Member, SamplePhoto, SocialLink
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.member import MemberCreate, MemberResponse, MemberUpdate
+from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
 
 router = APIRouter()
@@ -114,6 +115,7 @@ async def create_member(
                 SamplePhoto(src_url=photo.src, caption=photo.caption, sort_order=i)
             )
     db.add(member)
+    await log_activity(db, admin, "create", "member", str(member.id or ""), f"Created member: {body.name}")
     await db.commit()
     await db.refresh(member)
     return _member_to_response(member)
@@ -177,5 +179,6 @@ async def delete_member(
     member = result.scalar_one_or_none()
     if member is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+    await log_activity(db, admin, "delete", "member", str(member_id), f"Deleted member: {member.name}")
     await db.delete(member)
     await db.commit()

@@ -14,6 +14,7 @@ class NewsletterResponse(CamelModel):
     preview: str
     featured: bool
     html: str
+    body_md: str
 
 
 class NewsletterCreate(CamelModel):
