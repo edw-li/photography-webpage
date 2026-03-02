@@ -32,8 +32,8 @@
   background: linear-gradient(
     to top,
     rgba(26, 26, 26, 0.95) 0%,
-    rgba(26, 26, 26, 0.65) 50%,
-    rgba(26, 26, 26, 0.4) 100%
+    rgba(26, 26, 26, 0.6) 50%,
+    rgba(26, 26, 26, 0.3) 100%
   );
 }
 
@@ -88,6 +88,8 @@
 }
 
 .admin__tab {
+  display: block;
+  width: 100%;
   padding: 0.6rem 0;
   border: none;
   border-radius: 0;
@@ -143,7 +145,7 @@
 
 .admin__content {
   min-width: 0;
-  animation: adminTabEnter 0.2s ease;
+  animation: adminTabEnter 0.35s ease;
 }
 
 .admin__content h2 {

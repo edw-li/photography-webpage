@@ -80,7 +80,7 @@ export default function AdminPage() {
       <div className="admin__hero">
         <div className="admin__hero-bg">
           <img
-            src="https://picsum.photos/seed/admin-dark/1600/600"
+            src="https://picsum.photos/seed/landscape/1600/600"
             alt=""
             aria-hidden="true"
           />
