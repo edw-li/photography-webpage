@@ -11,6 +11,7 @@ import ContestPage from './pages/ContestPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -25,6 +26,7 @@ function App() {
             <Route path="/contest" element={<ContestPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
           <button

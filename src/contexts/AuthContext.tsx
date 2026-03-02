@@ -8,7 +8,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
@@ -35,8 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   }, []);
 
-  const register = useCallback(async (email: string, password: string) => {
-    const u = await apiRegister(email, password);
+  const register = useCallback(async (email: string, password: string, firstName: string, lastName: string) => {
+    const u = await apiRegister(email, password, firstName, lastName);
+    setUser(u);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const u = await getCurrentUser();
     setUser(u);
   }, []);
 
@@ -54,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: user?.role === 'admin',
         login,
         register,
+        refreshUser,
         logout,
       }}
     >
