@@ -224,10 +224,8 @@ export default function MembersSection() {
         <table className="admin__table">
           <thead>
             <tr>
-              <th style={{ width: 48 }}>Avatar</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Specialty</th>
               <th>Role</th>
               <th>Status</th>
               <th>Actions</th>
@@ -236,16 +234,12 @@ export default function MembersSection() {
           <tbody>
             {items.map((m) => (
               <tr key={m.id}>
-                <td>
-                  <MemberAvatar avatar={m.avatar} name={m.name} />
-                </td>
                 <td>{m.name}</td>
                 <td>
                   {m.email
                     ? m.email
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
-                <td>{m.specialty}</td>
                 <td>
                   {m.userId && (
                     <span className={`admin__badge admin__badge--${m.userRole}`} style={{ marginRight: '0.25rem' }}>
@@ -264,7 +258,7 @@ export default function MembersSection() {
                       </span>
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <td style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
                   <button className="admin__action-btn" onClick={() => openEdit(m)}>Edit</button>
                   {m.userId && (
                     <>
@@ -291,7 +285,7 @@ export default function MembersSection() {
               </tr>
             ))}
             {items.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center' }}>No members yet</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No members yet</td></tr>
             )}
           </tbody>
         </table>

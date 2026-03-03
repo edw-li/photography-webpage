@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import './AuthPage.css';
 
 export default function LoginPage() {
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -18,6 +20,7 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email.trim(), password);
+      addToast('success', 'Logged in successfully');
       navigate('/');
     } catch {
       setError('Invalid email or password.');

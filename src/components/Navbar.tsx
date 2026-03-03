@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import './Navbar.css';
 
 const sectionLinks = [
@@ -22,6 +23,7 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { addToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
@@ -100,6 +102,7 @@ export default function Navbar() {
     setUserMenuOpen(false);
     setMenuOpen(false);
     logout();
+    addToast('success', 'Logged out successfully');
     navigate('/');
   };
 
