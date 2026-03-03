@@ -7,6 +7,7 @@ interface AuthContextValue {
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  logoutKey: number;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [logoutKey, setLogoutKey] = useState(0);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     apiLogout();
     setUser(null);
+    setLogoutKey(k => k + 1);
   }, []);
 
   return (
@@ -58,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAuthenticated: user !== null,
         isAdmin: user?.role === 'admin',
+        logoutKey,
         login,
         register,
         refreshUser,

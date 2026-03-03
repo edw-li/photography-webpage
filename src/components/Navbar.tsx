@@ -103,6 +103,7 @@ export default function Navbar() {
     setMenuOpen(false);
     logout();
     addToast('success', 'Logged out successfully');
+    window.scrollTo(0, 0);
     navigate('/');
   };
 

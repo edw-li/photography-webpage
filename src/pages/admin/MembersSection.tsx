@@ -111,7 +111,7 @@ export default function MembersSection() {
         specialty: form.specialty,
         avatar: form.avatar,
         photographyType: form.photographyType || undefined,
-        leadershipRole: form.leadershipRole || undefined,
+        leadershipRole: form.leadershipRole,
         website: form.website || undefined,
         bio: form.bio || undefined,
         socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
