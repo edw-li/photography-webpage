@@ -2,7 +2,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Sun, Moon } from 'lucide-react';
 import useTheme from './hooks/useTheme';
 import './App.css';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ToastContainer from './components/Toast';
 import Navbar from './components/Navbar';
@@ -13,6 +13,20 @@ import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 
+function AppRoutes() {
+  const { logoutKey } = useAuth();
+  return (
+    <Routes key={logoutKey}>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/contest" element={<ContestPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/admin" element={<AdminPage />} />
+    </Routes>
+  );
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme();
 
@@ -21,14 +35,7 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <Navbar />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/contest" element={<ContestPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-          </Routes>
+          <AppRoutes />
           <button
             className="theme-toggle"
             onClick={toggleTheme}

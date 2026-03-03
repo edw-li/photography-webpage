@@ -212,13 +212,13 @@ async def update_member(
     if body.avatar is not None:
         member.avatar_url = body.avatar
     if body.photography_type is not None:
-        member.photography_type = body.photography_type
+        member.photography_type = body.photography_type or None
     if body.leadership_role is not None:
-        member.leadership_role = body.leadership_role
+        member.leadership_role = body.leadership_role or None
     if body.website is not None:
-        member.website = body.website
+        member.website = body.website or None
     if body.bio is not None:
-        member.bio = body.bio
+        member.bio = body.bio or None
 
     if body.social_links is not None:
         member.social_links.clear()
