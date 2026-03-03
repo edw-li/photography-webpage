@@ -1,4 +1,4 @@
-import type { Member } from '../types/members';
+import type { Member, MemberAdmin } from '../types/members';
 import { apiFetch } from './client';
 
 interface PaginatedResponse<T> {
@@ -50,4 +50,13 @@ export async function updateMember(id: number, data: Partial<Member>): Promise<M
 
 export async function deleteMember(id: number): Promise<void> {
   await apiFetch(`/members/${id}`, { method: 'DELETE' });
+}
+
+export async function getMembersAdmin(query: MembersQuery = {}): Promise<PaginatedResponse<MemberAdmin>> {
+  const params = new URLSearchParams();
+  if (query.page) params.set('page', String(query.page));
+  if (query.pageSize) params.set('page_size', String(query.pageSize));
+  if (query.search) params.set('search', query.search);
+  const qs = params.toString();
+  return apiFetch<PaginatedResponse<MemberAdmin>>(`/members/admin${qs ? `?${qs}` : ''}`);
 }

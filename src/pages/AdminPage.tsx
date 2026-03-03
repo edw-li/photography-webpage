@@ -9,12 +9,11 @@ import NewslettersSection from './admin/NewslettersSection';
 import GallerySection from './admin/GallerySection';
 import MembersSection from './admin/MembersSection';
 import ContestsSection from './admin/ContestsSection';
-import UsersSection from './admin/UsersSection';
 import SubscribersSection from './admin/SubscribersSection';
 import ContactsSection from './admin/ContactsSection';
 
 type Tab = 'dashboard' | 'events' | 'newsletters' | 'gallery' | 'members'
-  | 'contests' | 'users' | 'subscribers' | 'contacts';
+  | 'contests' | 'subscribers' | 'contacts';
 
 interface TabGroup {
   header: string | null;
@@ -32,14 +31,13 @@ const TAB_GROUPS: TabGroup[] = [
       { key: 'events', label: 'Events' },
       { key: 'newsletters', label: 'Newsletters' },
       { key: 'gallery', label: 'Gallery' },
-      { key: 'members', label: 'Members' },
     ],
   },
   {
     header: 'Management',
     tabs: [
+      { key: 'members', label: 'Members' },
       { key: 'contests', label: 'Contests' },
-      { key: 'users', label: 'Users' },
       { key: 'subscribers', label: 'Subscribers' },
       { key: 'contacts', label: 'Contacts' },
     ],
@@ -68,7 +66,6 @@ export default function AdminPage() {
       case 'gallery': return <GallerySection />;
       case 'members': return <MembersSection />;
       case 'contests': return <ContestsSection />;
-      case 'users': return <UsersSection />;
       case 'subscribers': return <SubscribersSection />;
       case 'contacts': return <ContactsSection />;
     }

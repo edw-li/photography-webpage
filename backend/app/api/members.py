@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.member import Member, SamplePhoto, SocialLink
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
-from ..schemas.member import MemberCreate, MemberResponse, MemberUpdate
+from ..schemas.member import MemberAdminResponse, MemberCreate, MemberResponse, MemberUpdate
 from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
 
@@ -31,6 +31,74 @@ def _member_to_response(member: Member) -> MemberResponse:
         social_links=social_links_dict,
         bio=member.bio,
         sample_photos=sample_photos_list,
+    )
+
+
+def _member_to_admin_response(member: Member, user: User | None) -> MemberAdminResponse:
+    social_links_dict = {sl.platform: sl.url for sl in member.social_links} or None
+    sample_photos_list = (
+        [{"src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
+        or None
+    )
+    return MemberAdminResponse(
+        id=member.id,
+        name=member.name,
+        specialty=member.specialty,
+        avatar=member.avatar_url,
+        photography_type=member.photography_type,
+        leadership_role=member.leadership_role,
+        website=member.website,
+        social_links=social_links_dict,
+        bio=member.bio,
+        sample_photos=sample_photos_list,
+        user_id=str(user.id) if user else None,
+        email=user.email if user else None,
+        user_role=user.role if user else None,
+        is_active=user.is_active if user else None,
+    )
+
+
+@router.get("/admin", response_model=PaginatedResponse[MemberAdminResponse])
+async def list_members_admin(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: list members with linked user account info."""
+    query = select(Member, User).outerjoin(User, Member.user_id == User.id)
+    count_query = select(func.count()).select_from(Member)
+
+    if search:
+        pattern = f"%{search}%"
+        filter_clause = or_(
+            Member.name.ilike(pattern),
+            Member.specialty.ilike(pattern),
+            User.email.ilike(pattern),
+        )
+        query = query.where(filter_clause)
+        # Count query needs the join too for email search
+        count_query = (
+            select(func.count())
+            .select_from(Member)
+            .outerjoin(User, Member.user_id == User.id)
+            .where(filter_clause)
+        )
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar_one()
+
+    query = query.order_by(Member.id).offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    rows = result.all()
+
+    return PaginatedResponse(
+        items=[_member_to_admin_response(member, user) for member, user in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=math.ceil(total / page_size) if total > 0 else 0,
     )
 
 
@@ -179,6 +247,19 @@ async def delete_member(
     member = result.scalar_one_or_none()
     if member is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    # Cascade-delete linked user account if present
+    if member.user_id:
+        if member.user_id == admin.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete your own account",
+            )
+        user_result = await db.execute(select(User).where(User.id == member.user_id))
+        linked_user = user_result.scalar_one_or_none()
+        if linked_user:
+            await db.delete(linked_user)
+
     await log_activity(db, admin, "delete", "member", str(member_id), f"Deleted member: {member.name}")
     await db.delete(member)
     await db.commit()

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMembers, createMember, updateMember, deleteMember } from '../../api/members';
-import type { Member, SocialLinks, SamplePhoto } from '../../types/members';
+import { getMembersAdmin, createMember, updateMember, deleteMember } from '../../api/members';
+import { apiFetch } from '../../api/client';
+import type { MemberAdmin, SocialLinks, SamplePhoto } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
@@ -50,26 +51,29 @@ const emptyForm = {
 
 export default function MembersSection() {
   const { addToast } = useToast();
-  const [items, setItems] = useState<Member[]>([]);
+  const [items, setItems] = useState<MemberAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
   const [photoRows, setPhotoRows] = useState<PhotoRow[]>([]);
   const [saving, setSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberAdmin | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<MemberAdmin | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const pageSize = 20;
 
   const load = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const data = await getMembers({ page: p, pageSize, search: search || undefined });
+      const data = await getMembersAdmin({ page: p, pageSize, search: search || undefined });
       setItems(data.items);
       setTotal(data.total);
       setPages(data.pages);
@@ -89,7 +93,7 @@ export default function MembersSection() {
     setShowForm(true);
   };
 
-  const openEdit = (m: Member) => {
+  const openEdit = (m: MemberAdmin) => {
     setEditingMember(m);
     setForm({
       name: m.name,
@@ -169,6 +173,40 @@ export default function MembersSection() {
     setDeleting(false);
   };
 
+  const handleRoleChange = async (m: MemberAdmin) => {
+    if (!m.userId) return;
+    setLoadingId(m.userId);
+    try {
+      const newRole = m.userRole === 'admin' ? 'member' : 'admin';
+      await apiFetch(`/auth/users/${m.userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole }),
+      });
+      addToast('success', `User ${newRole === 'admin' ? 'promoted' : 'demoted'}`);
+      load(page);
+    } catch {
+      addToast('error', 'Failed to change user role');
+    }
+    setLoadingId(null);
+  };
+
+  const handleDeactivate = async () => {
+    if (!deactivateTarget?.userId) return;
+    setConfirming(true);
+    try {
+      await apiFetch(`/auth/users/${deactivateTarget.userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ isActive: !deactivateTarget.isActive }),
+      });
+      addToast('success', `User ${deactivateTarget.isActive ? 'deactivated' : 'activated'}`);
+      setDeactivateTarget(null);
+      load(page);
+    } catch {
+      addToast('error', 'Failed to update user status');
+    }
+    setConfirming(false);
+  };
+
   if (loading) return <p className="admin__loading">Loading members...</p>;
 
   return (
@@ -185,7 +223,15 @@ export default function MembersSection() {
       <div className="admin__table-wrap">
         <table className="admin__table">
           <thead>
-            <tr><th style={{ width: 48 }}>Avatar</th><th>Name</th><th>Specialty</th><th>Role</th><th>Actions</th></tr>
+            <tr>
+              <th style={{ width: 48 }}>Avatar</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Specialty</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             {items.map((m) => (
@@ -194,20 +240,58 @@ export default function MembersSection() {
                   <MemberAvatar avatar={m.avatar} name={m.name} />
                 </td>
                 <td>{m.name}</td>
+                <td>
+                  {m.email
+                    ? m.email
+                    : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
+                </td>
                 <td>{m.specialty}</td>
                 <td>
-                  {m.leadershipRole
-                    ? <span className="admin__badge admin__badge--admin">{m.leadershipRole}</span>
-                    : '—'}
+                  {m.userId && (
+                    <span className={`admin__badge admin__badge--${m.userRole}`} style={{ marginRight: '0.25rem' }}>
+                      {m.userRole}
+                    </span>
+                  )}
+                  {m.leadershipRole && (
+                    <span className="admin__badge admin__badge--admin">{m.leadershipRole}</span>
+                  )}
+                  {!m.userId && !m.leadershipRole && '—'}
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem' }}>
+                <td>
+                  {m.userId
+                    ? <span className={`admin__badge admin__badge--${m.isActive ? 'active' : 'inactive'}`}>
+                        {m.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
+                </td>
+                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button className="admin__action-btn" onClick={() => openEdit(m)}>Edit</button>
+                  {m.userId && (
+                    <>
+                      <button
+                        className="admin__action-btn"
+                        onClick={() => handleRoleChange(m)}
+                        disabled={loadingId === m.userId}
+                        style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
+                      >
+                        {m.userRole === 'admin' ? 'Demote' : 'Promote'}
+                      </button>
+                      <button
+                        className="admin__action-btn"
+                        onClick={() => setDeactivateTarget(m)}
+                        disabled={loadingId === m.userId}
+                        style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
+                      >
+                        {m.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </>
+                  )}
                   <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(m)}>Delete</button>
                 </td>
               </tr>
             ))}
             {items.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No members yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center' }}>No members yet</td></tr>
             )}
           </tbody>
         </table>
@@ -339,12 +423,28 @@ export default function MembersSection() {
       {deleteTarget && (
         <ConfirmDialog
           title="Delete Member"
-          message={`Delete "${deleteTarget.name}"? This cannot be undone.`}
+          message={
+            deleteTarget.userId
+              ? `Delete "${deleteTarget.name}"? Their user account will also be deleted and they will no longer be able to log in. This cannot be undone.`
+              : `Delete "${deleteTarget.name}"? This cannot be undone.`
+          }
           confirmLabel="Delete"
           danger
           loading={deleting}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {deactivateTarget && (
+        <ConfirmDialog
+          title={deactivateTarget.isActive ? 'Deactivate User' : 'Activate User'}
+          message={`${deactivateTarget.isActive ? 'Deactivate' : 'Activate'} ${deactivateTarget.email}?`}
+          confirmLabel={deactivateTarget.isActive ? 'Deactivate' : 'Activate'}
+          danger={deactivateTarget.isActive}
+          loading={confirming}
+          onConfirm={handleDeactivate}
+          onCancel={() => setDeactivateTarget(null)}
         />
       )}
     </>
