@@ -10,6 +10,18 @@ class Settings(BaseSettings):
     admin_email: str = "admin@example.com"
     admin_password: str = "changeme123"
     upload_dir: str = "uploads"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+    reset_token_expire_minutes: int = 30
+    frontend_url: str = "http://localhost:5173"
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_from_email)
 
     @property
     def cors_origin_list(self) -> list[str]:

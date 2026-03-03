@@ -10,3 +10,4 @@ passlib[bcrypt]>=1.7.4
 bcrypt<4.1
 python-multipart>=0.0.9
 markdown>=3.6.0
+aiosmtplib>=3.0.0

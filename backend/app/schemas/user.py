@@ -60,6 +60,19 @@ class ProfileUpdate(CamelModel):
     sample_photos: list[SamplePhotoSchema] | None = None
 
 
+class ForgotPasswordRequest(CamelModel):
+    email: str
+
+
+class ResetPasswordRequest(CamelModel):
+    token: str
+    new_password: str
+
+
+class MessageResponse(CamelModel):
+    message: str
+
+
 # Deferred import for forward reference resolution
 from .member import MemberResponse, SamplePhotoSchema  # noqa: E402, F811
 

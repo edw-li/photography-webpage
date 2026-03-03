@@ -1,3 +1,4 @@
+import logging
 import math
 import uuid
 
@@ -9,8 +10,11 @@ from ..models.user import User
 from ..models.member import Member, SocialLink, SamplePhoto
 from ..schemas.common import PaginatedResponse
 from ..schemas.user import (
+    ForgotPasswordRequest,
+    MessageResponse,
     ProfileUpdate,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserLogin,
     UserRegister,
@@ -20,13 +24,19 @@ from ..schemas.user import (
 )
 from ..schemas.member import MemberResponse
 from ..services.auth_service import (
+    _password_fingerprint,
     create_access_token,
     create_refresh_token,
+    create_reset_token,
     decode_token,
     hash_password,
     verify_password,
+    verify_reset_token,
 )
+from ..services.email_service import send_password_reset_email
 from .deps import get_current_user, get_db, require_admin
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -110,6 +120,56 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
         access_token=create_access_token(str(user.id)),
         refresh_token=create_refresh_token(str(user.id)),
     )
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if user is not None and user.is_active:
+        try:
+            token = create_reset_token(str(user.id), user.hashed_password)
+            await send_password_reset_email(user.email, token)
+        except Exception:
+            logger.exception("Failed to send password reset email to %s", body.email)
+    return MessageResponse(message="If an account with that email exists, a reset link has been sent.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    if len(body.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters.",
+        )
+    payload = verify_reset_token(body.token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset link.",
+        )
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (KeyError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token.",
+        )
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token.",
+        )
+    if _password_fingerprint(user.hashed_password) != payload.get("phash"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link has already been used.",
+        )
+    user.hashed_password = hash_password(body.new_password)
+    await db.commit()
+    return MessageResponse(message="Your password has been reset successfully.")
 
 
 @router.get("/me", response_model=UserWithMember)
