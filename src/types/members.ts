@@ -26,6 +26,13 @@ export interface Member {
   samplePhotos?: SamplePhoto[];
 }
 
+export interface MemberAdmin extends Member {
+  userId?: string;
+  email?: string;
+  userRole?: string;
+  isActive?: boolean;
+}
+
 export interface MembersConfig {
   members: Member[];
 }

@@ -22,14 +22,6 @@ export interface SubscriberItem {
   subscribedAt: string;
 }
 
-export interface UserItem {
-  id: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
 export interface ContestItem {
   id: number;
   month: string;

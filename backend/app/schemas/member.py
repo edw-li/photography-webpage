@@ -21,6 +21,15 @@ class MemberResponse(CamelModel):
     sample_photos: list[SamplePhotoSchema] | None = None
 
 
+class MemberAdminResponse(MemberResponse):
+    """Extended member response with linked user account info."""
+
+    user_id: str | None = None
+    email: str | None = None
+    user_role: str | None = None
+    is_active: bool | None = None
+
+
 class MemberCreate(CamelModel):
     name: str
     specialty: str

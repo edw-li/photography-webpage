@@ -33,13 +33,12 @@ export default function DashboardSection({ onNavigate }: Props) {
       };
 
       try {
-        const [members, gallery, events, newsletters, contests, users, subscribers, contacts] = await Promise.all([
+        const [members, gallery, events, newsletters, contests, subscribers, contacts] = await Promise.all([
           fetchCount('/members'),
           fetchCount('/gallery'),
           apiFetch<unknown[]>('/events/all').then((a) => a.length).catch(() => 0),
           fetchCount('/newsletters'),
           apiFetch<unknown[]>('/contests/all').then((a) => a.length).catch(() => 0),
-          fetchCount('/auth/users'),
           fetchCount('/newsletters/subscribers'),
           fetchCount('/contact'),
         ]);
@@ -50,7 +49,6 @@ export default function DashboardSection({ onNavigate }: Props) {
           { label: 'Events', count: events, tab: 'events' },
           { label: 'Newsletters', count: newsletters, tab: 'newsletters' },
           { label: 'Contests', count: contests, tab: 'contests' },
-          { label: 'Users', count: users, tab: 'users' },
           { label: 'Subscribers', count: subscribers, tab: 'subscribers' },
           { label: 'Contacts', count: contacts, tab: 'contacts' },
         ]);
