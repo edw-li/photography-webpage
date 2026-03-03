@@ -7,32 +7,6 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
 import Pagination from './Pagination';
 
-const USER_PLACEHOLDER_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M20 21a8 8 0 0 0-16 0" />
-  </svg>
-);
-
-function MemberAvatar({ avatar, name }: { avatar: string; name: string }) {
-  const [errored, setErrored] = useState(false);
-  if (!avatar || avatar === 'DEFAULT' || errored) {
-    return (
-      <div className="img-error-fallback" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--color-surface-alt)' }}>
-        {USER_PLACEHOLDER_ICON}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={avatar}
-      alt={name}
-      style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
-      onError={() => setErrored(true)}
-    />
-  );
-}
-
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
 const ROLES = ['', 'President', 'Vice President', 'Treasurer', 'Events Coordinator'] as const;
 
