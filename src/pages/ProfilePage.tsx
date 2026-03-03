@@ -145,9 +145,16 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
+      <div className="profile-page__hero">
+        <div className="profile-page__hero-bg">
+          <img src="https://picsum.photos/seed/profile-hero/1600/600" alt="" aria-hidden="true" />
+        </div>
+        <div className="profile-page__hero-content container">
+          <h1>My Profile</h1>
+          <p>Manage your photography club profile</p>
+        </div>
+      </div>
       <div className="profile-page__inner">
-        <h1>My Profile</h1>
-
         <form onSubmit={handleSubmit}>
           {/* Personal Info */}
           <div className="profile-section">

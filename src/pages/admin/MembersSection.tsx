@@ -7,32 +7,6 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
 import Pagination from './Pagination';
 
-const USER_PLACEHOLDER_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M20 21a8 8 0 0 0-16 0" />
-  </svg>
-);
-
-function MemberAvatar({ avatar, name }: { avatar: string; name: string }) {
-  const [errored, setErrored] = useState(false);
-  if (!avatar || avatar === 'DEFAULT' || errored) {
-    return (
-      <div className="img-error-fallback" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--color-surface-alt)' }}>
-        {USER_PLACEHOLDER_ICON}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={avatar}
-      alt={name}
-      style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
-      onError={() => setErrored(true)}
-    />
-  );
-}
-
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
 const ROLES = ['', 'President', 'Vice President', 'Treasurer', 'Events Coordinator'] as const;
 
@@ -224,10 +198,8 @@ export default function MembersSection() {
         <table className="admin__table">
           <thead>
             <tr>
-              <th style={{ width: 48 }}>Avatar</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Specialty</th>
               <th>Role</th>
               <th>Status</th>
               <th>Actions</th>
@@ -236,16 +208,12 @@ export default function MembersSection() {
           <tbody>
             {items.map((m) => (
               <tr key={m.id}>
-                <td>
-                  <MemberAvatar avatar={m.avatar} name={m.name} />
-                </td>
                 <td>{m.name}</td>
                 <td>
                   {m.email
                     ? m.email
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
-                <td>{m.specialty}</td>
                 <td>
                   {m.userId && (
                     <span className={`admin__badge admin__badge--${m.userRole}`} style={{ marginRight: '0.25rem' }}>
@@ -264,7 +232,7 @@ export default function MembersSection() {
                       </span>
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <td style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
                   <button className="admin__action-btn" onClick={() => openEdit(m)}>Edit</button>
                   {m.userId && (
                     <>
@@ -291,7 +259,7 @@ export default function MembersSection() {
               </tr>
             ))}
             {items.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center' }}>No members yet</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No members yet</td></tr>
             )}
           </tbody>
         </table>
