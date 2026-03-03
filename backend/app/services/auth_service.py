@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -37,3 +38,28 @@ def decode_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+
+def _password_fingerprint(hashed_password: str) -> str:
+    """Return first 16 hex chars of sha256(hashed_password) as a fingerprint."""
+    return hashlib.sha256(hashed_password.encode()).hexdigest()[:16]
+
+
+def create_reset_token(user_id: str, hashed_password: str) -> str:
+    """Create a JWT reset token with a password fingerprint for single-use validation."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.reset_token_expire_minutes)
+    payload = {
+        "sub": user_id,
+        "type": "reset",
+        "exp": expire,
+        "phash": _password_fingerprint(hashed_password),
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
+
+
+def verify_reset_token(token: str) -> dict | None:
+    """Decode a reset token. Returns payload if valid and type is 'reset', else None."""
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "reset":
+        return None
+    return payload
