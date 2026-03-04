@@ -20,9 +20,29 @@ class Settings(BaseSettings):
     reset_token_expire_minutes: int = 30
     frontend_url: str = "http://localhost:5173"
 
+    # OCI Object Storage (S3-compatible)
+    oci_access_key: str = ""
+    oci_secret_key: str = ""
+    oci_bucket_name: str = ""
+    oci_namespace: str = ""
+    oci_region: str = ""
+
     @property
     def smtp_configured(self) -> bool:
         return bool(self.smtp_host and self.smtp_from_email)
+
+    @property
+    def oci_configured(self) -> bool:
+        return bool(self.oci_access_key and self.oci_secret_key and self.oci_bucket_name
+                    and self.oci_namespace and self.oci_region)
+
+    @property
+    def oci_s3_endpoint(self) -> str:
+        return f"https://{self.oci_namespace}.compat.objectstorage.{self.oci_region}.oraclecloud.com"
+
+    @property
+    def oci_public_base_url(self) -> str:
+        return f"https://objectstorage.{self.oci_region}.oraclecloud.com/n/{self.oci_namespace}/b/{self.oci_bucket_name}/o"
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -1,10 +1,16 @@
+import io
+import logging
 from pathlib import Path
 from uuid import uuid4
 
+import boto3
+from botocore.config import Config
 from fastapi import UploadFile
 from PIL import Image, ImageOps
 
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path(settings.upload_dir)
 
@@ -14,8 +20,87 @@ THUMBNAIL_SIZES = {
     "full": (1600, 1200),
 }
 
+# Map extensions to PIL save format + content type
+_FORMAT_MAP = {
+    ".jpg": ("JPEG", "image/jpeg"),
+    ".jpeg": ("JPEG", "image/jpeg"),
+    ".png": ("PNG", "image/png"),
+    ".gif": ("GIF", "image/gif"),
+    ".webp": ("WEBP", "image/webp"),
+}
 
-def _generate_thumbnails(original_path: Path) -> None:
+
+# ---------------------------------------------------------------------------
+# OCI / S3 helpers
+# ---------------------------------------------------------------------------
+
+def _get_s3_client():
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.oci_s3_endpoint,
+        aws_access_key_id=settings.oci_access_key,
+        aws_secret_access_key=settings.oci_secret_key,
+        region_name=settings.oci_region,
+        config=Config(signature_version="s3v4"),
+    )
+
+
+def _content_type_for(ext: str) -> str:
+    return _FORMAT_MAP.get(ext.lower(), ("JPEG", "image/jpeg"))[1]
+
+
+def _pil_format_for(ext: str) -> str:
+    return _FORMAT_MAP.get(ext.lower(), ("JPEG", "image/jpeg"))[0]
+
+
+def _generate_thumbnail_bytes(content: bytes, ext: str, max_size: tuple[int, int]) -> bytes:
+    """Generate a thumbnail in-memory from raw image bytes."""
+    with Image.open(io.BytesIO(content)) as img:
+        img = ImageOps.exif_transpose(img)
+        img.thumbnail(max_size, Image.LANCZOS)
+        if img.mode == "RGBA" and ext.lower() in (".jpg", ".jpeg"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format=_pil_format_for(ext), quality=85)
+        return buf.getvalue()
+
+
+def _upload_to_oci(data: bytes, object_key: str, ext: str) -> str:
+    """Upload bytes to OCI bucket, return public URL."""
+    client = _get_s3_client()
+    client.put_object(
+        Bucket=settings.oci_bucket_name,
+        Key=object_key,
+        Body=data,
+        ContentType=_content_type_for(ext),
+    )
+    public_url = f"{settings.oci_public_base_url}/{object_key}"
+    logger.info("Uploaded to OCI: %s", public_url)
+    return public_url
+
+
+def _upload_with_thumbnails_oci(content: bytes, category: str, unique_name: str, ext: str) -> str:
+    """Upload original + 3 thumbnail variants to OCI. Returns the original's public URL."""
+    stem = Path(unique_name).stem
+    base_key = f"uploads/{category}/{unique_name}"
+
+    # Upload original
+    url = _upload_to_oci(content, base_key, ext)
+
+    # Upload thumbnails
+    for suffix, max_size in THUMBNAIL_SIZES.items():
+        thumb_bytes = _generate_thumbnail_bytes(content, ext, max_size)
+        thumb_key = f"uploads/{category}/{stem}_{suffix}{ext}"
+        _upload_to_oci(thumb_bytes, thumb_key, ext)
+
+    return url
+
+
+# ---------------------------------------------------------------------------
+# Local filesystem helpers
+# ---------------------------------------------------------------------------
+
+def _generate_thumbnails_local(original_path: Path) -> None:
     """Generate thumb, medium, and full-size variants alongside the original."""
     with Image.open(original_path) as img:
         img = ImageOps.exif_transpose(img)
@@ -24,7 +109,6 @@ def _generate_thumbnails(original_path: Path) -> None:
             variant = img.copy()
             variant.thumbnail(max_size, Image.LANCZOS)
 
-            # Convert RGBA to RGB for JPEG output
             if variant.mode == "RGBA" and original_path.suffix.lower() in (".jpg", ".jpeg"):
                 variant = variant.convert("RGB")
 
@@ -33,33 +117,43 @@ def _generate_thumbnails(original_path: Path) -> None:
             variant.save(out_path, quality=85)
 
 
+def _save_local(content: bytes, category: str, unique_name: str) -> str:
+    """Save image + thumbnails to local filesystem. Returns /uploads/... path."""
+    dest_dir = UPLOAD_DIR / category
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / unique_name
+    dest.write_bytes(content)
+    _generate_thumbnails_local(dest)
+    return f"/uploads/{category}/{unique_name}"
+
+
+# ---------------------------------------------------------------------------
+# Public API (unchanged signatures)
+# ---------------------------------------------------------------------------
+
 async def save_uploaded_image(file: UploadFile, category: str) -> str:
     """Save uploaded image with thumbnails, return URL path."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
-    dest_dir = UPLOAD_DIR / category
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / unique_name
     content = await file.read()
-    dest.write_bytes(content)
-    _generate_thumbnails(dest)
-    return f"/uploads/{category}/{unique_name}"
+
+    if settings.oci_configured:
+        return _upload_with_thumbnails_oci(content, category, unique_name, ext)
+    return _save_local(content, category, unique_name)
 
 
 async def save_gallery_image(file: UploadFile) -> str:
-    """Save uploaded gallery image, return URL path like /uploads/gallery/abc123.jpg"""
+    """Save uploaded gallery image, return URL."""
     return await save_uploaded_image(file, "gallery")
 
 
 async def save_submission_image(contest_id: int, file: UploadFile) -> str:
-    """Save uploaded image, return URL path like /uploads/submissions/1/abc123.jpg"""
+    """Save uploaded contest submission image, return URL."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
     category = f"submissions/{contest_id}"
-    dest_dir = UPLOAD_DIR / "submissions" / str(contest_id)
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / unique_name
     content = await file.read()
-    dest.write_bytes(content)
-    _generate_thumbnails(dest)
-    return f"/uploads/{category}/{unique_name}"
+
+    if settings.oci_configured:
+        return _upload_with_thumbnails_oci(content, category, unique_name, ext)
+    return _save_local(content, category, unique_name)

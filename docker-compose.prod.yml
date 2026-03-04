@@ -27,6 +27,11 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme123}
       UPLOAD_DIR: /app/uploads
+      OCI_ACCESS_KEY: ${OCI_ACCESS_KEY:-}
+      OCI_SECRET_KEY: ${OCI_SECRET_KEY:-}
+      OCI_BUCKET_NAME: ${OCI_BUCKET_NAME:-}
+      OCI_NAMESPACE: ${OCI_NAMESPACE:-}
+      OCI_REGION: ${OCI_REGION:-}
     volumes:
       - uploads:/app/uploads
       - ./src/data:/src/data:ro

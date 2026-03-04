@@ -17,7 +17,7 @@ from pathlib import Path
 # Add parent directory to path so we can import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.services.storage import THUMBNAIL_SIZES, _generate_thumbnails
+from app.services.storage import THUMBNAIL_SIZES, _generate_thumbnails_local as _generate_thumbnails
 
 SUFFIX_PATTERN = re.compile(r"_(?:thumb|medium|full)\.\w+$")
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
