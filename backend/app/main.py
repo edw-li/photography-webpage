@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .api import auth, members, gallery, events, newsletters, contests, contact, activity
+from .api import auth, members, gallery, events, newsletters, contests, contact, activity, uploads
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["news
 app.include_router(contests.router, prefix="/api/v1/contests", tags=["contests"])
 app.include_router(contact.router, prefix="/api/v1/contact", tags=["contact"])
 app.include_router(activity.router, prefix="/api/v1/activity", tags=["activity"])
+app.include_router(uploads.router, prefix="/api/v1/uploads", tags=["uploads"])
 
 # Mount static files for uploaded images
 upload_path = Path(settings.upload_dir)

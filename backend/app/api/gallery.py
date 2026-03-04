@@ -8,7 +8,6 @@ from ..models.gallery import GalleryPhoto
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.gallery import (
-    GalleryPhotoCreate,
     GalleryPhotoResponse,
     GalleryPhotoUpdate,
     PhotoExifSchema,
@@ -106,10 +105,12 @@ async def upload_gallery_photo(
 
 @router.post("", response_model=GalleryPhotoResponse, status_code=status.HTTP_201_CREATED)
 async def create_gallery_photo(
-    body: GalleryPhotoCreate,
+    body: GalleryPhotoUpdate,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    if not body.url or not body.title or not body.photographer:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="url, title, and photographer are required")
     photo = GalleryPhoto(
         url=body.url,
         title=body.title,

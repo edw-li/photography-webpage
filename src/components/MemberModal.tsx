@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type { Member } from '../types/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
+import { getImageUrl } from '../utils/imageUrl';
 
 const SOCIAL_ICONS: Record<string, ReactNode> = {
   instagram: (
@@ -103,7 +104,8 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
       setIsClosing(true);
     }
   };
-  const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(member?.avatar);
+  const avatarUrl = member?.avatar ? getImageUrl(member.avatar, 'medium') : undefined;
+  const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(avatarUrl);
 
   const photos = member?.samplePhotos ?? [];
   const hasPhotos = photos.length > 0;
@@ -204,7 +206,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
               <div className="img-error-fallback">{IMAGE_OFF_ICON}</div>
             ) : (
               <img
-                src={member.avatar}
+                src={avatarUrl}
                 alt={member.name}
                 className={`img-fade${avatarLoaded ? ' img-fade--loaded' : ''}`}
                 onLoad={onAvatarLoad}
@@ -265,7 +267,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
                 {photos.map((photo, i) => (
                   <CarouselSlide
                     key={i}
-                    src={photo.src}
+                    src={getImageUrl(photo.src, 'medium')}
                     alt={photo.caption ?? `${member.name} photo ${i + 1}`}
                     caption={photo.caption}
                   />

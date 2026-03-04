@@ -3,6 +3,7 @@ import { Camera, GraduationCap, Handshake, Image, Trophy, Users } from 'lucide-r
 import type { Member } from '../types/members';
 import { getLeaders } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
+import { getImageUrl } from '../utils/imageUrl';
 import MemberModal from './MemberModal';
 import './About.css';
 
@@ -151,7 +152,8 @@ function BenefitsContent() {
 
 function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const isBroken = !member.avatar || member.avatar === 'DEFAULT';
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(isBroken ? undefined : member.avatar);
+  const avatarUrl = isBroken ? undefined : getImageUrl(member.avatar, 'thumb');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(avatarUrl);
   return (
     <div
       className="about__leader-card about__leader-card--clickable"
@@ -162,7 +164,7 @@ function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }
           <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
         ) : (
           <img
-            src={member.avatar}
+            src={avatarUrl}
             alt={member.name}
             loading="lazy"
             className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}

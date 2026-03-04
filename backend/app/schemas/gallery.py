@@ -19,14 +19,6 @@ class GalleryPhotoResponse(CamelModel):
     exif: PhotoExifSchema | None = None
 
 
-class GalleryPhotoCreate(CamelModel):
-    url: str
-    title: str
-    photographer: str
-    member_id: int | None = None
-    exif: PhotoExifSchema | None = None
-
-
 class GalleryPhotoUpdate(CamelModel):
     url: str | None = None
     title: str | None = None

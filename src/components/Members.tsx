@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } fr
 import type { Member } from '../types/members';
 import { getMembers } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
+import { getImageUrl } from '../utils/imageUrl';
 import MemberModal from './MemberModal';
 import './Members.css';
 
@@ -48,7 +49,8 @@ function shortenSpecialty(s: string): string {
 
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const isBroken = !member.avatar || member.avatar === 'DEFAULT';
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(isBroken ? undefined : member.avatar);
+  const avatarUrl = isBroken ? undefined : getImageUrl(member.avatar, 'thumb');
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(avatarUrl);
   return (
     <div className="members__card members__card--clickable" onClick={onClick}>
       <div className={`members__avatar${!loaded && !isBroken ? ' shimmer-bg' : ''}`}>
@@ -56,7 +58,7 @@ function MemberCard({ member, onClick }: { member: Member; onClick: () => void }
           <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
         ) : (
           <img
-            src={member.avatar}
+            src={avatarUrl}
             alt={member.name}
             loading="lazy"
             className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
