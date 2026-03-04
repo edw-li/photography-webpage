@@ -38,10 +38,11 @@ app.include_router(contact.router, prefix="/api/v1/contact", tags=["contact"])
 app.include_router(activity.router, prefix="/api/v1/activity", tags=["activity"])
 app.include_router(uploads.router, prefix="/api/v1/uploads", tags=["uploads"])
 
-# Mount static files for uploaded images
-upload_path = Path(settings.upload_dir)
-upload_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
+# Mount static files for uploaded images (local dev only; OCI mode serves from cloud)
+if not settings.oci_configured:
+    upload_path = Path(settings.upload_dir)
+    upload_path.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
 
 
 @app.get("/api/health")
