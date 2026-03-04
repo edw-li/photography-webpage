@@ -4,6 +4,7 @@ import { getImageUrl } from '../utils/imageUrl';
 import { X } from 'lucide-react';
 
 export interface ImageWithCaption {
+  id?: number;
   url: string;
   caption: string;
 }
@@ -11,6 +12,8 @@ export interface ImageWithCaption {
 interface MultiImageUploadFieldProps {
   items: ImageWithCaption[];
   onChange: (items: ImageWithCaption[]) => void;
+  onAdd?: (src: string) => Promise<{ id: number }>;
+  onRemove?: (id: number) => Promise<void>;
   category: string;
   label?: string;
   maxItems?: number;
@@ -19,11 +22,14 @@ interface MultiImageUploadFieldProps {
 export default function MultiImageUploadField({
   items,
   onChange,
+  onAdd,
+  onRemove,
   category,
   label,
   maxItems = 10,
 }: MultiImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +42,12 @@ export default function MultiImageUploadField({
     setUploading(true);
     try {
       const url = await uploadImage(file, category);
-      onChange([...items, { url, caption: '' }]);
+      if (onAdd) {
+        const result = await onAdd(url);
+        onChange([...items, { id: result.id, url, caption: '' }]);
+      } else {
+        onChange([...items, { url, caption: '' }]);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     }
@@ -55,8 +66,20 @@ export default function MultiImageUploadField({
     onChange(updated);
   };
 
-  const removeItem = (index: number) => {
-    onChange(items.filter((_, i) => i !== index));
+  const removeItem = async (index: number) => {
+    const item = items[index];
+    if (onRemove && item.id != null) {
+      setRemovingId(item.id);
+      try {
+        await onRemove(item.id);
+        onChange(items.filter((_, i) => i !== index));
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Delete failed');
+      }
+      setRemovingId(null);
+    } else {
+      onChange(items.filter((_, i) => i !== index));
+    }
   };
 
   return (
@@ -65,7 +88,7 @@ export default function MultiImageUploadField({
 
       {items.map((item, i) => (
         <div
-          key={i}
+          key={item.id ?? i}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -95,6 +118,7 @@ export default function MultiImageUploadField({
             type="button"
             className="admin__action-btn admin__action-btn--danger"
             onClick={() => removeItem(i)}
+            disabled={removingId === item.id}
             style={{ flexShrink: 0, padding: '0.25rem' }}
           >
             <X size={14} />

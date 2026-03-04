@@ -56,6 +56,25 @@ export async function updateMyProfile(data: Record<string, unknown>): Promise<Au
   });
 }
 
+export interface SamplePhotoResponse {
+  id: number;
+  src: string;
+  caption?: string;
+}
+
+export async function addSamplePhoto(src: string, caption?: string): Promise<SamplePhotoResponse> {
+  return apiFetch<SamplePhotoResponse>('/auth/profile/sample-photos', {
+    method: 'POST',
+    body: JSON.stringify({ src, caption }),
+  });
+}
+
+export async function deleteSamplePhoto(photoId: number): Promise<void> {
+  await apiFetch<void>(`/auth/profile/sample-photos/${photoId}`, {
+    method: 'DELETE',
+  });
+}
+
 export function logout(): void {
   clearTokens();
 }

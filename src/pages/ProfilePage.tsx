@@ -1,8 +1,8 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getMyProfile, updateMyProfile } from '../api/auth';
+import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto } from '../api/auth';
 import type { SocialLinks } from '../types/members';
 import ImageUploadField from '../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
@@ -13,6 +13,17 @@ const PLATFORMS = ['Instagram', 'Twitter', 'Flickr', 'Facebook', 'YouTube', 'Lin
 interface SocialRow {
   platform: string;
   url: string;
+}
+
+interface OriginalData {
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  avatar: string;
+  photographyType: string;
+  website: string;
+  bio: string;
+  socialRows: SocialRow[];
 }
 
 export default function ProfilePage() {
@@ -29,9 +40,25 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
   const [photoItems, setPhotoItems] = useState<ImageWithCaption[]>([]);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Per-section saving state
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [savingSocial, setSavingSocial] = useState(false);
+
+  // Original data for dirty detection
+  const originalRef = useRef<OriginalData>({
+    firstName: '',
+    lastName: '',
+    specialty: 'General Photography',
+    avatar: '',
+    photographyType: '',
+    website: '',
+    bio: '',
+    socialRows: [],
+  });
+  const [original, setOriginal] = useState<OriginalData>(originalRef.current);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -41,47 +68,136 @@ export default function ProfilePage() {
     if (!loading && isAuthenticated) {
       getMyProfile()
         .then((profile) => {
-          setFirstName(profile.firstName || '');
-          setLastName(profile.lastName || '');
+          const fn = profile.firstName || '';
+          const ln = profile.lastName || '';
+          setFirstName(fn);
+          setLastName(ln);
+
+          let sp = 'General Photography';
+          let av = '';
+          let pt = '';
+          let ws = '';
+          let bi = '';
+          let sr: SocialRow[] = [];
+
           if (profile.member) {
             const m = profile.member;
-            setSpecialty(m.specialty || 'General Photography');
-            setAvatar(m.avatar === 'DEFAULT' ? '' : m.avatar || '');
-            setPhotographyType(m.photographyType || '');
-            setWebsite(m.website || '');
-            setBio(m.bio || '');
+            sp = m.specialty || 'General Photography';
+            av = m.avatar === 'DEFAULT' ? '' : m.avatar || '';
+            pt = m.photographyType || '';
+            ws = m.website || '';
+            bi = m.bio || '';
             if (m.socialLinks) {
-              const rows = Object.entries(m.socialLinks as SocialLinks)
+              sr = Object.entries(m.socialLinks as SocialLinks)
                 .filter(([, url]) => url)
                 .map(([platform, url]) => ({ platform, url: url! }));
-              setSocialRows(rows);
             }
             if (m.samplePhotos) {
-              setPhotoItems(m.samplePhotos.map((p) => ({ url: p.src, caption: p.caption || '' })));
+              setPhotoItems(m.samplePhotos.map((p) => ({ id: p.id, url: p.src, caption: p.caption || '' })));
             }
           }
+
+          setSpecialty(sp);
+          setAvatar(av);
+          setPhotographyType(pt);
+          setWebsite(ws);
+          setBio(bi);
+          setSocialRows(sr);
+
+          const orig: OriginalData = {
+            firstName: fn,
+            lastName: ln,
+            specialty: sp,
+            avatar: av,
+            photographyType: pt,
+            website: ws,
+            bio: bi,
+            socialRows: sr,
+          };
+          originalRef.current = orig;
+          setOriginal(orig);
         })
         .catch(() => addToast('error', 'Failed to load profile'))
         .finally(() => setLoadingProfile(false));
     }
   }, [loading, isAuthenticated, navigate, addToast]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!firstName.trim()) {
-      setError('First name is required.');
-      return;
+  // --- Dirty detection ---
+  const personalInfoDirty =
+    firstName !== original.firstName ||
+    lastName !== original.lastName ||
+    specialty !== original.specialty;
+
+  const profileDetailsDirty =
+    avatar !== original.avatar ||
+    photographyType !== original.photographyType ||
+    website !== original.website ||
+    bio !== original.bio;
+
+  const serializeSocial = (rows: SocialRow[]) =>
+    JSON.stringify([...rows].filter(r => r.url.trim()).sort((a, b) => a.platform.localeCompare(b.platform)));
+  const socialLinksDirty = serializeSocial(socialRows) !== serializeSocial(original.socialRows);
+
+  // --- Per-section save handlers ---
+  const savePersonalInfo = async () => {
+    if (!firstName.trim()) { addToast('error', 'First name is required'); return; }
+    if (!lastName.trim()) { addToast('error', 'Last name is required'); return; }
+    if (!specialty.trim()) { addToast('error', 'Specialty is required'); return; }
+    setSavingPersonal(true);
+    try {
+      await updateMyProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        specialty: specialty.trim(),
+      });
+      await refreshUser();
+      const updated = { ...original, firstName: firstName.trim(), lastName: lastName.trim(), specialty: specialty.trim() };
+      originalRef.current = updated;
+      setOriginal(updated);
+      addToast('success', 'Personal info saved');
+    } catch {
+      addToast('error', 'Failed to save personal info');
+    } finally {
+      setSavingPersonal(false);
     }
-    if (!lastName.trim()) {
-      setError('Last name is required.');
-      return;
+  };
+
+  const cancelPersonalInfo = () => {
+    setFirstName(original.firstName);
+    setLastName(original.lastName);
+    setSpecialty(original.specialty);
+  };
+
+  const saveProfileDetails = async () => {
+    setSavingDetails(true);
+    try {
+      await updateMyProfile({
+        avatar: avatar.trim() || 'DEFAULT',
+        photographyType: photographyType.trim() || null,
+        website: website.trim() || null,
+        bio: bio.trim() || null,
+      });
+      await refreshUser();
+      const updated = { ...original, avatar, photographyType, website, bio };
+      originalRef.current = updated;
+      setOriginal(updated);
+      addToast('success', 'Profile details saved');
+    } catch {
+      addToast('error', 'Failed to save profile details');
+    } finally {
+      setSavingDetails(false);
     }
-    if (!specialty.trim()) {
-      setError('Specialty is required.');
-      return;
-    }
-    setError('');
-    setSaving(true);
+  };
+
+  const cancelProfileDetails = () => {
+    setAvatar(original.avatar);
+    setPhotographyType(original.photographyType);
+    setWebsite(original.website);
+    setBio(original.bio);
+  };
+
+  const saveSocialLinks = async () => {
+    setSavingSocial(true);
     try {
       const socialLinksObj: Record<string, string> = {};
       for (const row of socialRows) {
@@ -89,27 +205,33 @@ export default function ProfilePage() {
           socialLinksObj[row.platform] = row.url.trim();
         }
       }
-      const payload: Record<string, unknown> = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        specialty: specialty.trim(),
-        avatar: avatar.trim() || 'DEFAULT',
-        photographyType: photographyType.trim() || null,
-        website: website.trim() || null,
-        bio: bio.trim() || null,
+      await updateMyProfile({
         socialLinks: Object.keys(socialLinksObj).length > 0 ? socialLinksObj : null,
-        samplePhotos: photoItems.filter((p) => p.url.trim()).length > 0
-          ? photoItems.filter((p) => p.url.trim()).map((p) => ({ src: p.url, caption: p.caption || undefined }))
-          : null,
-      };
-      await updateMyProfile(payload);
+      });
       await refreshUser();
-      addToast('success', 'Profile updated successfully');
+      const updated = { ...original, socialRows: [...socialRows] };
+      originalRef.current = updated;
+      setOriginal(updated);
+      addToast('success', 'Social links saved');
     } catch {
-      addToast('error', 'Failed to update profile');
+      addToast('error', 'Failed to save social links');
     } finally {
-      setSaving(false);
+      setSavingSocial(false);
     }
+  };
+
+  const cancelSocialLinks = () => {
+    setSocialRows([...original.socialRows]);
+  };
+
+  // --- Sample photo auto-save handlers ---
+  const handleAddPhoto = async (src: string) => {
+    const result = await addSamplePhoto(src);
+    return { id: result.id };
+  };
+
+  const handleRemovePhoto = async (id: number) => {
+    await deleteSamplePhoto(id);
   };
 
   // Social link helpers
@@ -120,8 +242,6 @@ export default function ProfilePage() {
     updated[i] = { ...updated[i], [field]: value };
     setSocialRows(updated);
   };
-
-
 
   if (loading || loadingProfile) {
     return (
@@ -149,140 +269,180 @@ export default function ProfilePage() {
         </div>
       </div>
       <div className="profile-page__inner">
-        <form onSubmit={handleSubmit}>
-          {/* Personal Info */}
-          <div className="profile-section">
-            <h2>Personal Info</h2>
-            <div className="profile-row">
-              <div className="profile-field">
-                <label>First Name <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="First name"
-                />
-              </div>
-              <div className="profile-field">
-                <label>Last Name <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Last name"
-                />
-              </div>
-            </div>
+        {/* Personal Info */}
+        <div className="profile-section">
+          <h2>Personal Info</h2>
+          <div className="profile-row">
             <div className="profile-field">
-              <label>Specialty <span className="required">*</span></label>
+              <label>First Name <span className="required">*</span></label>
               <input
                 type="text"
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
-                placeholder="e.g. Street Photography"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+              />
+            </div>
+            <div className="profile-field">
+              <label>Last Name <span className="required">*</span></label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
               />
             </div>
           </div>
-
-          {/* Profile Details */}
-          <div className="profile-section">
-            <h2>Profile Details</h2>
-            <div className="profile-field">
-              <label>Avatar</label>
-              <ImageUploadField
-                value={avatarValue}
-                onChange={setAvatar}
-                category="avatars"
-                shape="circle"
-              />
-            </div>
-            <div className="profile-field">
-              <label>Photography Type</label>
-              <input
-                type="text"
-                value={photographyType}
-                onChange={(e) => setPhotographyType(e.target.value)}
-                placeholder="e.g. Digital, Film, Both"
-              />
-            </div>
-            <div className="profile-field">
-              <label>Website</label>
-              <input
-                type="text"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://yourwebsite.com"
-              />
-            </div>
-            <div className="profile-field">
-              <label>Bio</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell us about yourself..."
-              />
-            </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="profile-section">
-            <h2>Social Media Links</h2>
-            {socialRows.map((row, i) => (
-              <div key={i} className="profile-list-row">
-                <select
-                  value={row.platform}
-                  onChange={(e) => updateSocialRow(i, 'platform', e.target.value)}
-                >
-                  {PLATFORMS.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={row.url}
-                  onChange={(e) => updateSocialRow(i, 'url', e.target.value)}
-                  placeholder="https://..."
-                />
-                <button
-                  type="button"
-                  className="profile-list-remove"
-                  onClick={() => removeSocialRow(i)}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button type="button" className="profile-list-add" onClick={addSocialRow}>
-              + Add Social Link
-            </button>
-          </div>
-
-          {/* Sample Photos */}
-          <div className="profile-section">
-            <h2>Sample Photos</h2>
-            <MultiImageUploadField
-              items={photoItems}
-              onChange={setPhotoItems}
-              category="sample-photos"
-              maxItems={10}
+          <div className="profile-field">
+            <label>Specialty <span className="required">*</span></label>
+            <input
+              type="text"
+              value={specialty}
+              onChange={(e) => setSpecialty(e.target.value)}
+              placeholder="e.g. Street Photography"
             />
           </div>
-
-          {error && <p className="profile-error">{error}</p>}
-
-          <div className="profile-actions">
+          <div className="profile-section__actions">
             <button
               type="button"
               className="btn-secondary"
-              onClick={() => navigate(-1)}
+              onClick={cancelPersonalInfo}
+              disabled={!personalInfoDirty}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Profile'}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={savePersonalInfo}
+              disabled={!personalInfoDirty || savingPersonal}
+            >
+              {savingPersonal ? 'Saving...' : 'Save'}
             </button>
           </div>
-        </form>
+        </div>
+
+        {/* Profile Details */}
+        <div className="profile-section">
+          <h2>Profile Details</h2>
+          <div className="profile-field">
+            <label>Avatar</label>
+            <ImageUploadField
+              value={avatarValue}
+              onChange={setAvatar}
+              category="avatars"
+              shape="circle"
+            />
+          </div>
+          <div className="profile-field">
+            <label>Photography Type</label>
+            <input
+              type="text"
+              value={photographyType}
+              onChange={(e) => setPhotographyType(e.target.value)}
+              placeholder="e.g. Digital, Film, Both"
+            />
+          </div>
+          <div className="profile-field">
+            <label>Website</label>
+            <input
+              type="text"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://yourwebsite.com"
+            />
+          </div>
+          <div className="profile-field">
+            <label>Bio</label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us about yourself..."
+            />
+          </div>
+          <div className="profile-section__actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={cancelProfileDetails}
+              disabled={!profileDetailsDirty}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={saveProfileDetails}
+              disabled={!profileDetailsDirty || savingDetails}
+            >
+              {savingDetails ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* Social Links */}
+        <div className="profile-section">
+          <h2>Social Media Links</h2>
+          {socialRows.map((row, i) => (
+            <div key={i} className="profile-list-row">
+              <select
+                value={row.platform}
+                onChange={(e) => updateSocialRow(i, 'platform', e.target.value)}
+              >
+                {PLATFORMS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={row.url}
+                onChange={(e) => updateSocialRow(i, 'url', e.target.value)}
+                placeholder="https://..."
+              />
+              <button
+                type="button"
+                className="profile-list-remove"
+                onClick={() => removeSocialRow(i)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" className="profile-list-add" onClick={addSocialRow}>
+            + Add Social Link
+          </button>
+          <div className="profile-section__actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={cancelSocialLinks}
+              disabled={!socialLinksDirty}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={saveSocialLinks}
+              disabled={!socialLinksDirty || savingSocial}
+            >
+              {savingSocial ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* Sample Photos */}
+        <div className="profile-section">
+          <h2>Sample Photos</h2>
+          <p className="profile-section__hint">Photos are saved automatically when uploaded or removed.</p>
+          <MultiImageUploadField
+            items={photoItems}
+            onChange={setPhotoItems}
+            onAdd={handleAddPhoto}
+            onRemove={handleRemovePhoto}
+            category="sample-photos"
+            maxItems={3}
+          />
+        </div>
       </div>
     </div>
   );
