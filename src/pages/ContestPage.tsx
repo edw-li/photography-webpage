@@ -5,6 +5,7 @@ import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { getContests } from '../api/contests';
 import Footer from '../components/Footer';
+import { getImageUrl } from '../utils/imageUrl';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
@@ -457,7 +458,7 @@ function TabVote({
                 aria-checked={selectedId === sub.id}
                 aria-label={`${sub.title} by ${sub.photographer}`}
               >
-                <img src={`${sub.url}/300/200`} alt={sub.title} loading="lazy" />
+                <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
                 {selectedId === sub.id && (
                   <div className="contest__vote-check">
                     <Check size={24} />
@@ -541,7 +542,7 @@ function TabGallery({ contest }: { contest: Contest }) {
             <ArrowLeft size={16} /> Back to gallery
           </button>
           <img
-            src={`${expandedSub.url}/800/600`}
+            src={getImageUrl(expandedSub.url, 'medium')}
             alt={expandedSub.title}
             className="contest__gallery-expanded-img"
           />
@@ -578,7 +579,7 @@ function TabGallery({ contest }: { contest: Contest }) {
             aria-label={`View ${sub.title} by ${sub.photographer}`}
           >
             <img
-              src={`${sub.url}/400/300`}
+              src={getImageUrl(sub.url, 'medium')}
               alt={sub.title}
               loading="lazy"
             />
@@ -635,7 +636,7 @@ function TabPodium({ contest }: { contest: Contest }) {
             className={`contest__podium-place contest__podium-place--${p.place}`}
           >
             <div className="contest__podium-photo">
-              <img src={`${p.url}/300/200`} alt={p.title} />
+              <img src={getImageUrl(p.url, 'thumb')} alt={p.title} />
             </div>
             <Trophy size={24} color={trophyColor(p.place)} />
             <span className="contest__podium-label" style={{ color: trophyColor(p.place) }}>
@@ -654,7 +655,7 @@ function TabPodium({ contest }: { contest: Contest }) {
           <div className="contest__podium-mentions-grid">
             {mentions.map((m) => (
               <div key={m.id} className="contest__podium-mention-card">
-                <img src={`${m.url}/200/150`} alt={m.title} />
+                <img src={getImageUrl(m.url, 'thumb')} alt={m.title} />
                 <div className="contest__podium-mention-info">
                   <span className="contest__podium-mention-title">{m.title}</span>
                   <span className="contest__podium-mention-photographer">{m.photographer}</span>
@@ -713,7 +714,7 @@ function TabFullResults({ contest }: { contest: Contest }) {
               </span>
               <img
                 className="contest__results-thumb"
-                src={`${sub.url}/80/60`}
+                src={getImageUrl(sub.url, 'thumb')}
                 alt={sub.title}
                 loading="lazy"
               />
@@ -986,7 +987,7 @@ export default function ContestPage() {
       <div className="contest-page__hero">
         <div className="contest-page__hero-bg">
           <img
-            src={`${activeContest?.submissions[0]?.url ?? 'https://picsum.photos/seed/contest-hero'}/1600/600`}
+            src={getImageUrl(activeContest?.submissions[0]?.url ?? 'https://picsum.photos/seed/contest-hero/1600/600', 'full')}
             alt=""
             aria-hidden="true"
           />

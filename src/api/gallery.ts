@@ -37,14 +37,6 @@ export async function createGalleryPhoto(data: GalleryPhotoCreateData): Promise<
   });
 }
 
-export async function uploadGalleryPhoto(formData: FormData): Promise<GalleryPhoto> {
-  return apiFetch<GalleryPhoto>('/gallery/upload', {
-    method: 'POST',
-    body: formData,
-    headers: {},
-  });
-}
-
 export async function updateGalleryPhoto(id: number, data: Partial<GalleryPhotoCreateData>): Promise<GalleryPhoto> {
   return apiFetch<GalleryPhoto>(`/gallery/${id}`, {
     method: 'PUT',

@@ -5,13 +5,14 @@ import type { MemberAdmin, SocialLinks, SamplePhoto } from '../../types/members'
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
+import ImageUploadField from '../../components/ImageUploadField';
+import MultiImageUploadField, { type ImageWithCaption } from '../../components/MultiImageUploadField';
 import Pagination from './Pagination';
 
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
 const ROLES = ['', 'President', 'Vice President', 'Treasurer', 'Events Coordinator'] as const;
 
 interface SocialRow { platform: string; url: string }
-interface PhotoRow { src: string; caption: string }
 
 const emptyForm = {
   name: '',
@@ -35,7 +36,7 @@ export default function MembersSection() {
   const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
-  const [photoRows, setPhotoRows] = useState<PhotoRow[]>([]);
+  const [photoRows, setPhotoRows] = useState<ImageWithCaption[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MemberAdmin | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -82,8 +83,8 @@ export default function MembersSection() {
       ? Object.entries(m.socialLinks).map(([platform, url]) => ({ platform, url: url || '' }))
       : [];
     setSocialRows(sl);
-    const sp: PhotoRow[] = m.samplePhotos
-      ? m.samplePhotos.map((p) => ({ src: p.src, caption: p.caption || '' }))
+    const sp: ImageWithCaption[] = m.samplePhotos
+      ? m.samplePhotos.map((p) => ({ url: p.src, caption: p.caption || '' }))
       : [];
     setPhotoRows(sp);
     setShowForm(true);
@@ -103,8 +104,8 @@ export default function MembersSection() {
         }
       });
       const samplePhotos: SamplePhoto[] = photoRows
-        .filter((r) => r.src)
-        .map((r) => ({ src: r.src, caption: r.caption || undefined }));
+        .filter((r) => r.url)
+        .map((r) => ({ src: r.url, caption: r.caption || undefined }));
 
       const payload = {
         name: form.name,
@@ -283,13 +284,14 @@ export default function MembersSection() {
               <input className="afm-input" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} />
             </div>
           </div>
-          <div className="afm-field">
-            <label className="afm-label">Avatar URL *</label>
-            <input className="afm-input" value={form.avatar} onChange={(e) => setForm({ ...form, avatar: e.target.value })} />
-            {form.avatar && (
-              <img src={form.avatar} alt="Avatar preview" style={{ marginTop: 8, width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
-            )}
-          </div>
+          <ImageUploadField
+            value={form.avatar}
+            onChange={(url) => setForm({ ...form, avatar: url })}
+            category="avatars"
+            label="Avatar"
+            shape="circle"
+            required
+          />
           <div className="afm-row">
             <div className="afm-field">
               <label className="afm-label">Photography Type</label>
@@ -350,41 +352,13 @@ export default function MembersSection() {
             </div>
           </div>
 
-          <div className="afm-field">
-            <label className="afm-label">Sample Photos</label>
-            <div className="afm-dynamic-list">
-              {photoRows.map((row, i) => (
-                <div key={i} className="afm-dynamic-row">
-                  <input
-                    className="afm-input"
-                    placeholder="Image URL"
-                    value={row.src}
-                    onChange={(e) => {
-                      const updated = [...photoRows];
-                      updated[i] = { ...row, src: e.target.value };
-                      setPhotoRows(updated);
-                    }}
-                  />
-                  <input
-                    className="afm-input"
-                    placeholder="Caption"
-                    value={row.caption}
-                    onChange={(e) => {
-                      const updated = [...photoRows];
-                      updated[i] = { ...row, caption: e.target.value };
-                      setPhotoRows(updated);
-                    }}
-                  />
-                  <button className="afm-remove-btn" onClick={() => setPhotoRows(photoRows.filter((_, j) => j !== i))}>
-                    &times;
-                  </button>
-                </div>
-              ))}
-              <button className="afm-add-btn" onClick={() => setPhotoRows([...photoRows, { src: '', caption: '' }])}>
-                + Add Photo
-              </button>
-            </div>
-          </div>
+          <MultiImageUploadField
+            items={photoRows}
+            onChange={setPhotoRows}
+            category="sample-photos"
+            label="Sample Photos"
+            maxItems={10}
+          />
         </AdminFormModal>
       )}
 

@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getGalleryPhotos,
   createGalleryPhoto,
-  uploadGalleryPhoto,
   updateGalleryPhoto,
   deleteGalleryPhoto,
 } from '../../api/gallery';
@@ -12,6 +11,8 @@ import type { Member } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
+import ImageUploadField from '../../components/ImageUploadField';
+import { getImageUrl } from '../../utils/imageUrl';
 import Pagination from './Pagination';
 
 const IMAGE_OFF_ICON = (
@@ -34,7 +35,7 @@ function GalleryThumb({ src, alt }: { src: string; alt: string }) {
   }
   return (
     <img
-      src={src}
+      src={getImageUrl(src, 'thumb')}
       alt={alt}
       style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
       onError={() => setErrored(true)}
@@ -66,13 +67,9 @@ export default function GallerySection() {
   const [showForm, setShowForm] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<GalleryPhoto | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [uploadMode, setUploadMode] = useState<'url' | 'upload'>('url');
-  const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<GalleryPhoto | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 20;
 
   const load = useCallback(async (p: number) => {
@@ -96,15 +93,11 @@ export default function GallerySection() {
   const openCreate = () => {
     setEditingPhoto(null);
     setForm(emptyForm);
-    setFile(null);
-    setUploadMode('url');
     setShowForm(true);
   };
 
   const openEdit = (photo: GalleryPhoto) => {
     setEditingPhoto(photo);
-    setUploadMode('url');
-    setFile(null);
     setForm({
       title: photo.title,
       photographer: photo.photographer,
@@ -124,30 +117,14 @@ export default function GallerySection() {
       addToast('error', 'Title and photographer are required');
       return;
     }
-    if (!editingPhoto && uploadMode === 'url' && !form.url) {
-      addToast('error', 'Please provide an image URL');
-      return;
-    }
-    if (!editingPhoto && uploadMode === 'upload' && !file) {
-      addToast('error', 'Please select a file');
+    if (!form.url) {
+      addToast('error', 'Please upload an image');
       return;
     }
     setSaving(true);
     try {
       const hasExif = form.camera || form.focalLength || form.aperture || form.shutterSpeed || form.iso;
-      if (!editingPhoto && uploadMode === 'upload' && file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', form.title);
-        formData.append('photographer', form.photographer);
-        if (form.memberId) formData.append('member_id', form.memberId);
-        if (form.camera) formData.append('exif_camera', form.camera);
-        if (form.focalLength) formData.append('exif_focal_length', form.focalLength);
-        if (form.aperture) formData.append('exif_aperture', form.aperture);
-        if (form.shutterSpeed) formData.append('exif_shutter_speed', form.shutterSpeed);
-        if (form.iso) formData.append('exif_iso', form.iso);
-        await uploadGalleryPhoto(formData);
-      } else if (editingPhoto) {
+      if (editingPhoto) {
         await updateGalleryPhoto(editingPhoto.id, {
           title: form.title,
           photographer: form.photographer,
@@ -197,16 +174,6 @@ export default function GallerySection() {
       addToast('error', 'Failed to delete photo');
     }
     setDeleting(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) {
-      setFile(f);
-      setUploadMode('upload');
-    }
   };
 
   const filtered = search
@@ -259,59 +226,13 @@ export default function GallerySection() {
           onSave={handleSave}
           saving={saving}
         >
-          {!editingPhoto && (
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              <button
-                className={`admin__action-btn${uploadMode === 'url' ? ' admin__tab--active' : ''}`}
-                style={uploadMode === 'url' ? { background: 'var(--color-accent)', color: '#fff', borderColor: 'var(--color-accent)' } : {}}
-                onClick={() => setUploadMode('url')}
-              >
-                URL
-              </button>
-              <button
-                className={`admin__action-btn${uploadMode === 'upload' ? ' admin__tab--active' : ''}`}
-                style={uploadMode === 'upload' ? { background: 'var(--color-accent)', color: '#fff', borderColor: 'var(--color-accent)' } : {}}
-                onClick={() => setUploadMode('upload')}
-              >
-                Upload
-              </button>
-            </div>
-          )}
-
-          {(uploadMode === 'url' || editingPhoto) && (
-            <div className="afm-field">
-              <label className="afm-label">Image URL *</label>
-              <input className="afm-input" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://..." />
-              {form.url && (
-                <img src={form.url} alt="Preview" style={{ marginTop: 8, maxHeight: 120, borderRadius: 4, objectFit: 'cover' }} />
-              )}
-            </div>
-          )}
-
-          {uploadMode === 'upload' && !editingPhoto && (
-            <div
-              className={`admin__drop-zone${dragging ? ' admin__drop-zone--active' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
-              />
-              {file ? (
-                <p style={{ margin: 0, fontSize: '0.85rem' }}>{file.name}</p>
-              ) : (
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                  Drag & drop an image here, or click to browse
-                </p>
-              )}
-            </div>
-          )}
+          <ImageUploadField
+            value={form.url}
+            onChange={(url) => setForm({ ...form, url })}
+            category="gallery"
+            label="Image"
+            required
+          />
 
           <div className="afm-row">
             <div className="afm-field">

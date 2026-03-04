@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getMyProfile, updateMyProfile } from '../api/auth';
-import type { SocialLinks, SamplePhoto } from '../types/members';
-import { User } from 'lucide-react';
+import type { SocialLinks } from '../types/members';
+import ImageUploadField from '../components/ImageUploadField';
+import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
 import './ProfilePage.css';
 
 const PLATFORMS = ['Instagram', 'Twitter', 'Flickr', 'Facebook', 'YouTube', 'LinkedIn'] as const;
@@ -27,7 +28,7 @@ export default function ProfilePage() {
   const [website, setWebsite] = useState('');
   const [bio, setBio] = useState('');
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
-  const [samplePhotos, setSamplePhotos] = useState<SamplePhoto[]>([]);
+  const [photoItems, setPhotoItems] = useState<ImageWithCaption[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -56,7 +57,7 @@ export default function ProfilePage() {
               setSocialRows(rows);
             }
             if (m.samplePhotos) {
-              setSamplePhotos(m.samplePhotos);
+              setPhotoItems(m.samplePhotos.map((p) => ({ url: p.src, caption: p.caption || '' })));
             }
           }
         })
@@ -97,8 +98,8 @@ export default function ProfilePage() {
         website: website.trim() || null,
         bio: bio.trim() || null,
         socialLinks: Object.keys(socialLinksObj).length > 0 ? socialLinksObj : null,
-        samplePhotos: samplePhotos.filter((sp) => sp.src.trim()).length > 0
-          ? samplePhotos.filter((sp) => sp.src.trim())
+        samplePhotos: photoItems.filter((p) => p.url.trim()).length > 0
+          ? photoItems.filter((p) => p.url.trim()).map((p) => ({ src: p.url, caption: p.caption || undefined }))
           : null,
       };
       await updateMyProfile(payload);
@@ -120,14 +121,7 @@ export default function ProfilePage() {
     setSocialRows(updated);
   };
 
-  // Sample photo helpers
-  const addSamplePhoto = () => setSamplePhotos([...samplePhotos, { src: '', caption: '' }]);
-  const removeSamplePhoto = (i: number) => setSamplePhotos(samplePhotos.filter((_, idx) => idx !== i));
-  const updateSamplePhoto = (i: number, field: 'src' | 'caption', value: string) => {
-    const updated = [...samplePhotos];
-    updated[i] = { ...updated[i], [field]: value };
-    setSamplePhotos(updated);
-  };
+
 
   if (loading || loadingProfile) {
     return (
@@ -141,7 +135,7 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const showAvatarPreview = avatar.trim() && avatar.trim() !== 'DEFAULT';
+  const avatarValue = avatar.trim() && avatar.trim() !== 'DEFAULT' ? avatar : '';
 
   return (
     <div className="profile-page">
@@ -194,22 +188,13 @@ export default function ProfilePage() {
           <div className="profile-section">
             <h2>Profile Details</h2>
             <div className="profile-field">
-              <label>Avatar URL</label>
-              <input
-                type="text"
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
+              <label>Avatar</label>
+              <ImageUploadField
+                value={avatarValue}
+                onChange={setAvatar}
+                category="avatars"
+                shape="circle"
               />
-              <div className="profile-avatar-preview">
-                {showAvatarPreview ? (
-                  <img src={avatar} alt="Avatar preview" />
-                ) : (
-                  <div className="avatar-placeholder">
-                    <User size={28} />
-                  </div>
-                )}
-              </div>
             </div>
             <div className="profile-field">
               <label>Photography Type</label>
@@ -275,32 +260,12 @@ export default function ProfilePage() {
           {/* Sample Photos */}
           <div className="profile-section">
             <h2>Sample Photos</h2>
-            {samplePhotos.map((sp, i) => (
-              <div key={i} className="profile-list-row">
-                <input
-                  type="text"
-                  value={sp.src}
-                  onChange={(e) => updateSamplePhoto(i, 'src', e.target.value)}
-                  placeholder="Image URL"
-                />
-                <input
-                  type="text"
-                  value={sp.caption || ''}
-                  onChange={(e) => updateSamplePhoto(i, 'caption', e.target.value)}
-                  placeholder="Caption (optional)"
-                />
-                <button
-                  type="button"
-                  className="profile-list-remove"
-                  onClick={() => removeSamplePhoto(i)}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button type="button" className="profile-list-add" onClick={addSamplePhoto}>
-              + Add Sample Photo
-            </button>
+            <MultiImageUploadField
+              items={photoItems}
+              onChange={setPhotoItems}
+              category="sample-photos"
+              maxItems={10}
+            />
           </div>
 
           {error && <p className="profile-error">{error}</p>}

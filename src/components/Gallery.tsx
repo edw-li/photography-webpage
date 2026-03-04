@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GalleryPhoto } from '../types/gallery';
 import { getGalleryPhotos } from '../api/gallery';
 import { useImageLoaded } from '../hooks/useImageLoaded';
+import { getImageUrl } from '../utils/imageUrl';
 import './Gallery.css';
 
 const PAGE_SIZE = 12;
@@ -28,7 +29,7 @@ function GalleryItem({
   onKeyDown: (e: React.KeyboardEvent) => void;
   ariaLabel: string;
 }) {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(`${photo.url}/600/400`);
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(getImageUrl(photo.url, 'medium'));
   return (
     <div
       className={`gallery__item${!loaded ? ' shimmer-bg' : ''}`}
@@ -49,7 +50,7 @@ function GalleryItem({
         </div>
       ) : (
         <img
-          src={`${photo.url}/600/400`}
+          src={getImageUrl(photo.url, 'medium')}
           alt={photo.title}
           loading="lazy"
           className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
@@ -92,7 +93,7 @@ function GalleryLightbox({
       setIsClosing(true);
     }
   };
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(`${photo.url}/1200/800`);
+  const { loaded, errored, handleLoad, handleError } = useImageLoaded(getImageUrl(photo.url, 'full'));
 
   const [prevPhoto, setPrevPhoto] = useState<GalleryPhoto | null>(null);
   const prevIndexRef = useRef(index);
@@ -101,7 +102,7 @@ function GalleryLightbox({
   const fadeUrlRef = useRef('');
 
   // Synchronous reset — ensures opacity: 0 start state before paint
-  const currentUrl = `${photo.url}/1200/800`;
+  const currentUrl = getImageUrl(photo.url, 'full');
   if (fadeUrlRef.current !== currentUrl) {
     fadeUrlRef.current = currentUrl;
     if (fadeIn) setFadeIn(false);
@@ -224,7 +225,7 @@ function GalleryLightbox({
               className={`gallery__lightbox-img gallery__lightbox-img--prev${
                 fadeIn ? ' gallery__lightbox-img--fade-out' : ''
               }`}
-              src={`${prevPhoto.url}/1200/800`}
+              src={getImageUrl(prevPhoto.url, 'full')}
               alt=""
             />
           )}
@@ -242,7 +243,7 @@ function GalleryLightbox({
             <img
               key={photo.url}
               className={`gallery__lightbox-img${fadeIn ? ' gallery__lightbox-img--loaded' : ''}`}
-              src={`${photo.url}/1200/800`}
+              src={getImageUrl(photo.url, 'full')}
               alt={photo.title}
               onLoad={handleLightboxLoad}
               onError={handleLightboxError}
