@@ -22,7 +22,8 @@ from ..schemas.user import (
     UserUpdate,
     UserWithMember,
 )
-from ..schemas.member import MemberResponse
+from ..schemas.member import MemberResponse, SamplePhotoCreate, SamplePhotoResponse
+from ..services.storage import delete_uploaded_image
 from ..services.auth_service import (
     _password_fingerprint,
     create_access_token,
@@ -44,7 +45,7 @@ router = APIRouter()
 def _member_to_response(member: Member) -> MemberResponse:
     social_links_dict = {sl.platform: sl.url for sl in member.social_links} or None
     sample_photos_list = (
-        [{"src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
+        [{"id": sp.id, "src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
         or None
     )
     return MemberResponse(
@@ -256,6 +257,64 @@ async def update_profile(
         updated_at=user.updated_at,
         member=member_resp,
     )
+
+
+@router.post("/profile/sample-photos", response_model=SamplePhotoResponse, status_code=status.HTTP_201_CREATED)
+async def add_sample_photo(
+    body: SamplePhotoCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.user_id == user.id))
+    member = result.scalar_one_or_none()
+
+    if member is None:
+        member = Member(
+            user_id=user.id,
+            name=f"{user.first_name} {user.last_name}",
+            specialty="General Photography",
+            avatar_url="DEFAULT",
+        )
+        db.add(member)
+        await db.flush()
+
+    if len(member.sample_photos) >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum of 3 sample photos allowed",
+        )
+
+    max_order = max((sp.sort_order for sp in member.sample_photos), default=-1)
+    photo = SamplePhoto(
+        member_id=member.id,
+        src_url=body.src,
+        caption=body.caption,
+        sort_order=max_order + 1,
+    )
+    db.add(photo)
+    await db.commit()
+    await db.refresh(photo)
+    return SamplePhotoResponse(id=photo.id, src=photo.src_url, caption=photo.caption)
+
+
+@router.delete("/profile/sample-photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_sample_photo(
+    photo_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.user_id == user.id))
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    photo = next((sp for sp in member.sample_photos if sp.id == photo_id), None)
+    if photo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
+
+    delete_uploaded_image(photo.src_url)
+    await db.delete(photo)
+    await db.commit()
 
 
 @router.get("/users", response_model=PaginatedResponse[UserResponse])

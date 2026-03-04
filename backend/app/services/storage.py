@@ -41,7 +41,11 @@ def _get_s3_client():
         aws_access_key_id=settings.oci_access_key,
         aws_secret_access_key=settings.oci_secret_key,
         region_name=settings.oci_region,
-        config=Config(signature_version="s3v4"),
+        config=Config(
+            signature_version="s3v4",
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_required",
+        ),
     )
 
 
@@ -72,6 +76,7 @@ def _upload_to_oci(data: bytes, object_key: str, ext: str) -> str:
         Bucket=settings.oci_bucket_name,
         Key=object_key,
         Body=data,
+        ContentLength=len(data),
         ContentType=_content_type_for(ext),
     )
     public_url = f"{settings.oci_public_base_url}/{object_key}"
@@ -140,6 +145,39 @@ async def save_uploaded_image(file: UploadFile, category: str) -> str:
     if settings.oci_configured:
         return _upload_with_thumbnails_oci(content, category, unique_name, ext)
     return _save_local(content, category, unique_name)
+
+
+def delete_uploaded_image(url: str) -> None:
+    """Delete an image and its thumbnail variants from storage."""
+    if settings.oci_configured and url.startswith(settings.oci_public_base_url):
+        _delete_from_oci(url)
+    elif url.startswith("/uploads/"):
+        _delete_local(url)
+
+
+def _delete_from_oci(url: str) -> None:
+    """Delete original + thumbnail variants from OCI."""
+    prefix = f"{settings.oci_public_base_url}/"
+    object_key = url[len(prefix):]
+    stem = Path(object_key).stem
+    ext = Path(object_key).suffix
+    parent = str(Path(object_key).parent)
+    client = _get_s3_client()
+    keys = [object_key] + [f"{parent}/{stem}_{s}{ext}" for s in THUMBNAIL_SIZES]
+    for key in keys:
+        try:
+            client.delete_object(Bucket=settings.oci_bucket_name, Key=key)
+        except Exception:
+            logger.warning("Failed to delete OCI object: %s", key)
+
+
+def _delete_local(url: str) -> None:
+    """Delete original + thumbnail variants from local filesystem."""
+    rel = url.lstrip("/")
+    path = UPLOAD_DIR.parent / rel
+    stem, ext = path.stem, path.suffix
+    for file in [path] + [path.parent / f"{stem}_{s}{ext}" for s in THUMBNAIL_SIZES]:
+        file.unlink(missing_ok=True)
 
 
 async def save_gallery_image(file: UploadFile) -> str:

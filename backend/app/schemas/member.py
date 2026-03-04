@@ -2,6 +2,18 @@ from .common import CamelModel
 
 
 class SamplePhotoSchema(CamelModel):
+    id: int | None = None
+    src: str
+    caption: str | None = None
+
+
+class SamplePhotoCreate(CamelModel):
+    src: str
+    caption: str | None = None
+
+
+class SamplePhotoResponse(CamelModel):
+    id: int
     src: str
     caption: str | None = None
 

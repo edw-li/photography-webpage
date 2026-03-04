@@ -9,6 +9,7 @@ export interface SocialLinks {
 }
 
 export interface SamplePhoto {
+  id?: number;
   src: string;
   caption?: string;
 }
