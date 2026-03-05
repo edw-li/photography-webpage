@@ -175,7 +175,13 @@ curl http://localhost/api/v1/gallery/
 
 Then open `http://<your-server-ip>` in a browser.
 
-## Updating the Site
+## Seed the Site Admin User
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python -m app.seed
+```
+
+## Updating Site with New Changes
 
 ```bash
 cd ~/photography-webpage
