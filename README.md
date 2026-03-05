@@ -179,6 +179,7 @@ Then open `http://<your-server-ip>` in a browser.
 
 ```bash
 cd ~/photography-webpage
+docker compose -f docker-compose.prod.yml down --remove-orphans
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
