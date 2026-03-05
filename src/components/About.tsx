@@ -3,7 +3,6 @@ import { Camera, GraduationCap, Handshake, Image, Trophy, Users } from 'lucide-r
 import type { Member } from '../types/members';
 import { getLeaders } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
-import { getImageUrl } from '../utils/imageUrl';
 import MemberModal from './MemberModal';
 import './About.css';
 
@@ -152,7 +151,7 @@ function BenefitsContent() {
 
 function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const isBroken = !member.avatar || member.avatar === 'DEFAULT';
-  const avatarUrl = isBroken ? undefined : getImageUrl(member.avatar, 'thumb');
+  const avatarUrl = isBroken ? undefined : member.avatar;
   const { loaded, errored, handleLoad, handleError } = useImageLoaded(avatarUrl);
   return (
     <div

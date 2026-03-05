@@ -9,6 +9,7 @@ from .deps import get_current_user
 router = APIRouter()
 
 VALID_CATEGORIES = {"avatars", "gallery", "sample-photos", "general"}
+NO_THUMBNAIL_CATEGORIES = {"avatars"}
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
 
@@ -45,5 +46,5 @@ async def upload_file(
     # Seek back so save_uploaded_image can read it
     await file.seek(0)
 
-    url = await save_uploaded_image(file, category)
+    url = await save_uploaded_image(file, category, thumbnails=(category not in NO_THUMBNAIL_CATEGORIES))
     return UploadResponse(url=url)
