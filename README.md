@@ -9,6 +9,10 @@ A photography club website built with React + TypeScript (Vite), FastAPI (Python
 - Git
 - PostgreSQL 16
 
+> You will need to set up an Oracle Cloud instance (eg. Always Free) to host this site. You can learn more [here](docs/deploy_oracle_cloud.txt). 
+
+> You'll also need to create an Oracle Object Store bucket for storing uploaded images. 
+
 ## Step 1: Install Docker
 
 ```bash
