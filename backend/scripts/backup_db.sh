@@ -18,7 +18,7 @@ fi
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${POSTGRES_DB:-photography}"
-DB_USER="${POSTGRES_USER:-postgres}"
+DB_USER="${POSTGRES_USER:-photography}"
 
 # OCI Object Storage config (S3-compatible)
 OCI_REGION="${OCI_REGION:?Set OCI_REGION}"
@@ -51,23 +51,31 @@ PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
 DUMP_SIZE="$(du -h "$DUMP_FILE" | cut -f1)"
 echo "[$(date)] Dump complete: ${DUMP_FILE} (${DUMP_SIZE})"
 
-# Upload to OCI Object Storage using AWS CLI (S3-compatible)
-export AWS_ACCESS_KEY_ID="$OCI_ACCESS_KEY"
-export AWS_SECRET_ACCESS_KEY="$OCI_SECRET_KEY"
-export AWS_DEFAULT_REGION="$OCI_REGION"
+# Upload to OCI Object Storage and clean up previous backup using boto3
+python3 - "$S3_ENDPOINT" "$OCI_ACCESS_KEY" "$OCI_SECRET_KEY" \
+  "$OCI_BUCKET" "$DUMP_FILE" "$OBJECT_KEY" "$YESTERDAY_KEY" <<'PYEOF'
+import sys, boto3
+from botocore.config import Config
 
-aws s3 cp "$DUMP_FILE" "s3://${OCI_BUCKET}/${OBJECT_KEY}" \
-  --endpoint-url "$S3_ENDPOINT" \
-  --quiet
+endpoint, access_key, secret_key, bucket, dump_file, obj_key, yesterday_key = sys.argv[1:8]
 
-echo "[$(date)] Uploaded to s3://${OCI_BUCKET}/${OBJECT_KEY}"
+s3 = boto3.client(
+    "s3",
+    endpoint_url=endpoint,
+    aws_access_key_id=access_key,
+    aws_secret_access_key=secret_key,
+    config=Config(signature_version="s3v4"),
+)
 
-# Delete previous day's backup
-aws s3 rm "s3://${OCI_BUCKET}/${YESTERDAY_KEY}" \
-  --endpoint-url "$S3_ENDPOINT" \
-  --quiet 2>/dev/null && \
-  echo "[$(date)] Deleted previous backup: ${YESTERDAY_KEY}" || \
-  echo "[$(date)] No previous backup to delete: ${YESTERDAY_KEY}"
+s3.upload_file(dump_file, bucket, obj_key)
+print(f"Uploaded to s3://{bucket}/{obj_key}")
+
+try:
+    s3.delete_object(Bucket=bucket, Key=yesterday_key)
+    print(f"Deleted previous backup: {yesterday_key}")
+except Exception:
+    print(f"No previous backup to delete: {yesterday_key}")
+PYEOF
 
 # Clean up local dump
 rm -f "$DUMP_FILE"
