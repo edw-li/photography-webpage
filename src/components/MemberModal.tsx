@@ -104,7 +104,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
       setIsClosing(true);
     }
   };
-  const avatarUrl = member?.avatar ? getImageUrl(member.avatar, 'medium') : undefined;
+  const avatarUrl = member?.avatar ? member.avatar : undefined;
   const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(avatarUrl);
 
   const photos = member?.samplePhotos ?? [];

@@ -136,23 +136,51 @@ def _save_local(content: bytes, category: str, unique_name: str) -> str:
 # Public API (unchanged signatures)
 # ---------------------------------------------------------------------------
 
-async def save_uploaded_image(file: UploadFile, category: str) -> str:
-    """Save uploaded image with thumbnails, return URL path."""
+async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool = True) -> str:
+    """Save uploaded image, optionally with thumbnails. Return URL path."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
     content = await file.read()
 
     if settings.oci_configured:
-        return _upload_with_thumbnails_oci(content, category, unique_name, ext)
-    return _save_local(content, category, unique_name)
+        if thumbnails:
+            return _upload_with_thumbnails_oci(content, category, unique_name, ext)
+        object_key = f"uploads/{category}/{unique_name}"
+        return _upload_to_oci(content, object_key, ext)
+
+    if thumbnails:
+        return _save_local(content, category, unique_name)
+    dest_dir = UPLOAD_DIR / category
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / unique_name
+    dest.write_bytes(content)
+    return f"/uploads/{category}/{unique_name}"
 
 
-def delete_uploaded_image(url: str) -> None:
-    """Delete an image and its thumbnail variants from storage."""
+def delete_uploaded_image(url: str, thumbnails: bool = True) -> None:
+    """Delete an image and optionally its thumbnail variants from storage."""
     if settings.oci_configured and url.startswith(settings.oci_public_base_url):
-        _delete_from_oci(url)
+        if thumbnails:
+            _delete_from_oci(url)
+        else:
+            _delete_single_from_oci(url)
     elif url.startswith("/uploads/"):
-        _delete_local(url)
+        if thumbnails:
+            _delete_local(url)
+        else:
+            path = UPLOAD_DIR.parent / url.lstrip("/")
+            path.unlink(missing_ok=True)
+
+
+def _delete_single_from_oci(url: str) -> None:
+    """Delete a single object from OCI (no thumbnail variants)."""
+    prefix = f"{settings.oci_public_base_url}/"
+    object_key = url[len(prefix):]
+    client = _get_s3_client()
+    try:
+        client.delete_object(Bucket=settings.oci_bucket_name, Key=object_key)
+    except Exception:
+        logger.warning("Failed to delete OCI object: %s", object_key)
 
 
 def _delete_from_oci(url: str) -> None:
