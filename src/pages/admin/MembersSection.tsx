@@ -160,7 +160,7 @@ export default function MembersSection() {
     setConfirming(false);
   };
 
-  if (loading) return <p className="admin__loading">Loading members...</p>;
+  if (loading && !editingMember) return <p className="admin__loading">Loading members...</p>;
 
   return (
     <>
