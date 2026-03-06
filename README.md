@@ -1,4 +1,4 @@
-# Photography Club Website
+# Photography Club Website 
 
 A photography club website built with React + TypeScript (Vite), FastAPI (Python), PostgreSQL, and Nginx, deployed via Docker Compose.
 
