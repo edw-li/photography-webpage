@@ -52,6 +52,31 @@ export async function deleteMember(id: number): Promise<void> {
   await apiFetch(`/members/${id}`, { method: 'DELETE' });
 }
 
+export async function addMemberSamplePhoto(
+  memberId: number,
+  src: string,
+  caption?: string,
+): Promise<{ id: number; src: string; caption?: string }> {
+  return apiFetch(`/members/${memberId}/sample-photos`, {
+    method: 'POST',
+    body: JSON.stringify({ src, caption }),
+  });
+}
+
+export async function deleteMemberSamplePhoto(memberId: number, photoId: number): Promise<void> {
+  await apiFetch(`/members/${memberId}/sample-photos/${photoId}`, { method: 'DELETE' });
+}
+
+export async function updateMemberSamplePhotoCaptions(
+  memberId: number,
+  photos: { id: number; caption: string | null }[],
+): Promise<void> {
+  await apiFetch(`/members/${memberId}/sample-photos`, {
+    method: 'PATCH',
+    body: JSON.stringify(photos),
+  });
+}
+
 export async function getMembersAdmin(query: MembersQuery = {}): Promise<PaginatedResponse<MemberAdmin>> {
   const params = new URLSearchParams();
   if (query.page) params.set('page', String(query.page));

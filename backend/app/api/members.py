@@ -7,7 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.member import Member, SamplePhoto, SocialLink
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
-from ..schemas.member import MemberAdminResponse, MemberCreate, MemberResponse, MemberUpdate
+from ..schemas.member import (
+    MemberAdminResponse,
+    MemberCreate,
+    MemberResponse,
+    MemberUpdate,
+    SamplePhotoCaptionUpdate,
+    SamplePhotoCreate,
+    SamplePhotoResponse,
+)
 from ..services.storage import delete_uploaded_image
 from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
@@ -18,7 +26,7 @@ router = APIRouter()
 def _member_to_response(member: Member) -> MemberResponse:
     social_links_dict = {sl.platform: sl.url for sl in member.social_links} or None
     sample_photos_list = (
-        [{"src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
+        [{"id": sp.id, "src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
         or None
     )
     return MemberResponse(
@@ -38,7 +46,7 @@ def _member_to_response(member: Member) -> MemberResponse:
 def _member_to_admin_response(member: Member, user: User | None) -> MemberAdminResponse:
     social_links_dict = {sl.platform: sl.url for sl in member.social_links} or None
     sample_photos_list = (
-        [{"src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
+        [{"id": sp.id, "src": sp.src_url, "caption": sp.caption} for sp in member.sample_photos]
         or None
     )
     return MemberAdminResponse(
@@ -226,6 +234,7 @@ async def update_member(
 
     if body.social_links is not None:
         member.social_links.clear()
+        await db.flush()  # force DELETEs before INSERTs
         for platform, url in body.social_links.items():
             member.social_links.append(SocialLink(platform=platform, url=url))
 
@@ -276,3 +285,81 @@ async def delete_member(
     await log_activity(db, admin, "delete", "member", str(member_id), f"Deleted member: {member.name}")
     await db.delete(member)
     await db.commit()
+
+
+@router.post("/{member_id}/sample-photos", response_model=SamplePhotoResponse, status_code=status.HTTP_201_CREATED)
+async def add_member_sample_photo(
+    member_id: int,
+    body: SamplePhotoCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.id == member_id))
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    if len(member.sample_photos) >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum of 3 sample photos allowed",
+        )
+
+    max_order = max((sp.sort_order for sp in member.sample_photos), default=-1)
+    photo = SamplePhoto(
+        member_id=member.id,
+        src_url=body.src,
+        caption=body.caption,
+        sort_order=max_order + 1,
+    )
+    db.add(photo)
+    await db.commit()
+    await db.refresh(photo)
+    return SamplePhotoResponse(id=photo.id, src=photo.src_url, caption=photo.caption)
+
+
+@router.delete("/{member_id}/sample-photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_member_sample_photo(
+    member_id: int,
+    photo_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.id == member_id))
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    photo = next((sp for sp in member.sample_photos if sp.id == photo_id), None)
+    if photo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
+
+    delete_uploaded_image(photo.src_url)
+    await db.delete(photo)
+    await db.commit()
+
+
+@router.patch("/{member_id}/sample-photos", status_code=status.HTTP_200_OK)
+async def update_member_sample_photo_captions(
+    member_id: int,
+    body: list[SamplePhotoCaptionUpdate],
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.id == member_id))
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    photo_map = {sp.id: sp for sp in member.sample_photos}
+    for update in body:
+        photo = photo_map.get(update.id)
+        if photo is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Photo {update.id} not found",
+            )
+        photo.caption = update.caption
+
+    await db.commit()
+    return {"detail": "Captions updated"}

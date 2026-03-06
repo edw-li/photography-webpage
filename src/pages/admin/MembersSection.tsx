@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMembersAdmin, createMember, updateMember, deleteMember } from '../../api/members';
-import { apiFetch } from '../../api/client';
+import { getMembersAdmin, createMember, deleteMember } from '../../api/members';
+import { apiFetch, ApiError } from '../../api/client';
 import type { MemberAdmin, SocialLinks, SamplePhoto } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
 import ImageUploadField from '../../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../../components/MultiImageUploadField';
+import MemberEditModal from './MemberEditModal';
 import Pagination from './Pagination';
 
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
@@ -70,24 +71,6 @@ export default function MembersSection() {
 
   const openEdit = (m: MemberAdmin) => {
     setEditingMember(m);
-    setForm({
-      name: m.name,
-      specialty: m.specialty,
-      avatar: m.avatar,
-      photographyType: m.photographyType || '',
-      leadershipRole: m.leadershipRole || '',
-      website: m.website || '',
-      bio: m.bio || '',
-    });
-    const sl: SocialRow[] = m.socialLinks
-      ? Object.entries(m.socialLinks).map(([platform, url]) => ({ platform, url: url || '' }))
-      : [];
-    setSocialRows(sl);
-    const sp: ImageWithCaption[] = m.samplePhotos
-      ? m.samplePhotos.map((p) => ({ url: p.src, caption: p.caption || '' }))
-      : [];
-    setPhotoRows(sp);
-    setShowForm(true);
   };
 
   const handleSave = async () => {
@@ -119,17 +102,12 @@ export default function MembersSection() {
         samplePhotos: samplePhotos.length > 0 ? samplePhotos : undefined,
       };
 
-      if (editingMember?.id) {
-        await updateMember(editingMember.id, payload);
-        addToast('success', 'Member updated');
-      } else {
-        await createMember(payload);
-        addToast('success', 'Member created');
-      }
+      await createMember(payload);
+      addToast('success', 'Member created');
       setShowForm(false);
       load(page);
-    } catch {
-      addToast('error', `Failed to ${editingMember ? 'update' : 'create'} member`);
+    } catch (err) {
+      addToast('error', err instanceof ApiError ? err.message : 'Failed to create member');
     }
     setSaving(false);
   };
@@ -357,9 +335,17 @@ export default function MembersSection() {
             onChange={setPhotoRows}
             category="sample-photos"
             label="Sample Photos"
-            maxItems={10}
+            maxItems={3}
           />
         </AdminFormModal>
+      )}
+
+      {editingMember && (
+        <MemberEditModal
+          member={editingMember}
+          onClose={() => setEditingMember(null)}
+          onSaved={() => load(page)}
+        />
       )}
 
       {deleteTarget && (

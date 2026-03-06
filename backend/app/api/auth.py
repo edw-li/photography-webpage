@@ -22,7 +22,7 @@ from ..schemas.user import (
     UserUpdate,
     UserWithMember,
 )
-from ..schemas.member import MemberResponse, SamplePhotoCreate, SamplePhotoResponse
+from ..schemas.member import MemberResponse, SamplePhotoCaptionUpdate, SamplePhotoCreate, SamplePhotoResponse
 from ..services.storage import delete_uploaded_image
 from ..services.auth_service import (
     _password_fingerprint,
@@ -235,6 +235,7 @@ async def update_profile(
 
     if body.social_links is not None:
         member.social_links.clear()
+        await db.flush()  # force DELETEs before INSERTs
         for platform, url in body.social_links.items():
             member.social_links.append(SocialLink(platform=platform, url=url))
 
@@ -322,6 +323,31 @@ async def delete_sample_photo(
     delete_uploaded_image(photo.src_url)
     await db.delete(photo)
     await db.commit()
+
+
+@router.patch("/profile/sample-photos", status_code=status.HTTP_200_OK)
+async def update_sample_photo_captions(
+    body: list[SamplePhotoCaptionUpdate],
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Member).where(Member.user_id == user.id))
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    photo_map = {sp.id: sp for sp in member.sample_photos}
+    for update in body:
+        photo = photo_map.get(update.id)
+        if photo is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Photo {update.id} not found",
+            )
+        photo.caption = update.caption
+
+    await db.commit()
+    return {"detail": "Captions updated"}
 
 
 @router.get("/users", response_model=PaginatedResponse[UserResponse])
