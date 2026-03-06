@@ -220,7 +220,7 @@ export default function ProfilePage() {
         }
       }
       await updateMyProfile({
-        socialLinks: Object.keys(socialLinksObj).length > 0 ? socialLinksObj : null,
+        socialLinks: socialLinksObj,
       });
       await refreshUser();
       const updated = { ...original, socialRows: [...socialRows] };
