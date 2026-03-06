@@ -53,6 +53,12 @@ const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
   ],
 };
 
+const HEIGHT_REF_TAB: Record<Contest['status'], TabId> = {
+  active: 'submit',
+  voting: 'vote',
+  completed: 'podium',
+};
+
 /* --- Shared Modal Shell --- */
 
 function ModalShell({
@@ -1087,7 +1093,8 @@ function ContestModal({
   onContestRefresh: () => void;
 }) {
   const tabs = TABS_BY_STATUS[contest.status];
-  const [activeTab, setActiveTab] = useState<TabId>(tabs[0].id);
+  const refTab = HEIGHT_REF_TAB[contest.status];
+  const [activeTab, setActiveTab] = useState<TabId>(refTab);
 
   // Lifted submission form state
   const [file, setFile] = useState<File | null>(null);
@@ -1106,6 +1113,9 @@ function ContestModal({
   useLayoutEffect(() => {
     if (lockedHeight === null && tabContentRef.current) {
       setLockedHeight(tabContentRef.current.offsetHeight);
+      if (refTab !== tabs[0].id) {
+        setActiveTab(tabs[0].id);
+      }
     }
   }, []);
 
