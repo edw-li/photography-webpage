@@ -9,7 +9,7 @@ import MultiImageUploadField, { type ImageWithCaption } from '../../components/M
 import '../../components/AdminFormModal.css';
 
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
-const ROLES = ['', 'President', 'Vice President', 'Treasurer', 'Events Coordinator'] as const;
+const ROLES = ['', 'Founding Member'] as const;
 
 interface SocialRow { platform: string; url: string }
 
