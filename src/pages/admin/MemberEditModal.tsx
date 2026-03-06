@@ -190,7 +190,7 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
         }
       }
       await updateMember(memberId, {
-        socialLinks: (Object.keys(socialLinksObj).length > 0 ? socialLinksObj : null) as SocialLinks | undefined,
+        socialLinks: socialLinksObj,
       });
       const updated = { ...original, socialRows: [...socialRows] };
       originalRef.current = updated;
