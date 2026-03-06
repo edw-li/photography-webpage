@@ -211,29 +211,31 @@ export default function MembersSection() {
                       </span>
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
-                  <button className="admin__action-btn" onClick={() => openEdit(m)}>Edit</button>
-                  {m.userId && (
-                    <>
-                      <button
-                        className="admin__action-btn"
-                        onClick={() => handleRoleChange(m)}
-                        disabled={loadingId === m.userId}
-                        style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
-                      >
-                        {m.userRole === 'admin' ? 'Demote' : 'Promote'}
-                      </button>
-                      <button
-                        className="admin__action-btn"
-                        onClick={() => setDeactivateTarget(m)}
-                        disabled={loadingId === m.userId}
-                        style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
-                      >
-                        {m.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </>
-                  )}
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(m)}>Delete</button>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <button className="admin__action-btn" onClick={() => openEdit(m)}>Edit</button>
+                    {m.userId && (
+                      <>
+                        <button
+                          className="admin__action-btn"
+                          onClick={() => handleRoleChange(m)}
+                          disabled={loadingId === m.userId}
+                          style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
+                        >
+                          {m.userRole === 'admin' ? 'Demote' : 'Promote'}
+                        </button>
+                        <button
+                          className="admin__action-btn"
+                          onClick={() => setDeactivateTarget(m)}
+                          disabled={loadingId === m.userId}
+                          style={loadingId === m.userId ? { opacity: 0.6 } : undefined}
+                        >
+                          {m.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </>
+                    )}
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(m)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
