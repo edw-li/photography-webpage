@@ -42,6 +42,11 @@ class MemberAdminResponse(MemberResponse):
     is_active: bool | None = None
 
 
+class SamplePhotoCaptionUpdate(CamelModel):
+    id: int
+    caption: str | None = None
+
+
 class MemberCreate(CamelModel):
     name: str
     specialty: str

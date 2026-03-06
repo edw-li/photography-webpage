@@ -75,6 +75,15 @@ export async function deleteSamplePhoto(photoId: number): Promise<void> {
   });
 }
 
+export async function updateSamplePhotoCaptions(
+  photos: { id: number; caption: string | null }[],
+): Promise<void> {
+  await apiFetch<void>('/auth/profile/sample-photos', {
+    method: 'PATCH',
+    body: JSON.stringify(photos),
+  });
+}
+
 export function logout(): void {
   clearTokens();
 }

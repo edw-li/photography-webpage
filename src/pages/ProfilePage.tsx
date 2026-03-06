@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto } from '../api/auth';
+import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updateSamplePhotoCaptions } from '../api/auth';
 import type { SocialLinks } from '../types/members';
 import ImageUploadField from '../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
@@ -46,6 +46,12 @@ export default function ProfilePage() {
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
+  const [savingCaptions, setSavingCaptions] = useState(false);
+
+  // Original captions for dirty detection
+  const buildCaptionMap = (items: ImageWithCaption[]) =>
+    new Map(items.filter((i) => i.id != null).map((i) => [i.id!, i.caption]));
+  const [originalCaptions, setOriginalCaptions] = useState<Map<number, string>>(() => new Map());
 
   // Original data for dirty detection
   const originalRef = useRef<OriginalData>({
@@ -93,7 +99,9 @@ export default function ProfilePage() {
                 .map(([platform, url]) => ({ platform, url: url! }));
             }
             if (m.samplePhotos) {
-              setPhotoItems(m.samplePhotos.map((p) => ({ id: p.id, url: p.src, caption: p.caption || '' })));
+              const items = m.samplePhotos.map((p) => ({ id: p.id, url: p.src, caption: p.caption || '' }));
+              setPhotoItems(items);
+              setOriginalCaptions(buildCaptionMap(items));
             }
           }
 
@@ -137,6 +145,12 @@ export default function ProfilePage() {
   const serializeSocial = (rows: SocialRow[]) =>
     JSON.stringify([...rows].filter(r => r.url.trim()).sort((a, b) => a.platform.localeCompare(b.platform)));
   const socialLinksDirty = serializeSocial(socialRows) !== serializeSocial(original.socialRows);
+
+  const captionsDirty = photoItems.some((item) => {
+    if (item.id == null) return false;
+    const orig = originalCaptions.get(item.id);
+    return orig !== undefined && item.caption !== orig;
+  });
 
   // --- Per-section save handlers ---
   const savePersonalInfo = async () => {
@@ -227,11 +241,44 @@ export default function ProfilePage() {
   // --- Sample photo auto-save handlers ---
   const handleAddPhoto = async (src: string) => {
     const result = await addSamplePhoto(src);
+    setOriginalCaptions((prev) => new Map([...prev, [result.id, '']]));
     return { id: result.id };
   };
 
   const handleRemovePhoto = async (id: number) => {
     await deleteSamplePhoto(id);
+    setOriginalCaptions((prev) => { const m = new Map(prev); m.delete(id); return m; });
+  };
+
+  const saveCaptions = async () => {
+    const updates = photoItems
+      .filter((item) => {
+        if (item.id == null) return false;
+        const orig = originalCaptions.get(item.id);
+        return orig !== undefined && item.caption !== orig;
+      })
+      .map((item) => ({ id: item.id!, caption: item.caption || null }));
+    if (updates.length === 0) return;
+    setSavingCaptions(true);
+    try {
+      await updateSamplePhotoCaptions(updates);
+      setOriginalCaptions(buildCaptionMap(photoItems));
+      addToast('success', 'Captions saved');
+    } catch {
+      addToast('error', 'Failed to save captions');
+    } finally {
+      setSavingCaptions(false);
+    }
+  };
+
+  const cancelCaptions = () => {
+    setPhotoItems((prev) =>
+      prev.map((item) => {
+        if (item.id == null) return item;
+        const orig = originalCaptions.get(item.id);
+        return orig !== undefined ? { ...item, caption: orig } : item;
+      }),
+    );
   };
 
   // Social link helpers
@@ -433,7 +480,7 @@ export default function ProfilePage() {
         {/* Sample Photos */}
         <div className="profile-section">
           <h2>Sample Photos</h2>
-          <p className="profile-section__hint">Photos are saved automatically when uploaded or removed.</p>
+          <p className="profile-section__hint">Photos are saved automatically when uploaded or removed. Save below applies to caption changes.</p>
           <MultiImageUploadField
             items={photoItems}
             onChange={setPhotoItems}
@@ -442,6 +489,24 @@ export default function ProfilePage() {
             category="sample-photos"
             maxItems={3}
           />
+          <div className="profile-section__actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={cancelCaptions}
+              disabled={!captionsDirty}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={saveCaptions}
+              disabled={!captionsDirty || savingCaptions}
+            >
+              {savingCaptions ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
