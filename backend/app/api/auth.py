@@ -222,6 +222,9 @@ async def update_profile(
         if body.specialty is not None:
             member.specialty = body.specialty
         if body.avatar is not None:
+            if (member.avatar_url and member.avatar_url != "DEFAULT"
+                    and member.avatar_url != body.avatar):
+                delete_uploaded_image(member.avatar_url, thumbnails=False)
             member.avatar_url = body.avatar
         if body.photography_type is not None:
             member.photography_type = body.photography_type
@@ -236,6 +239,10 @@ async def update_profile(
             member.social_links.append(SocialLink(platform=platform, url=url))
 
     if body.sample_photos is not None:
+        new_urls = {sp.src for sp in body.sample_photos}
+        for old_photo in member.sample_photos:
+            if old_photo.src_url not in new_urls:
+                delete_uploaded_image(old_photo.src_url)
         member.sample_photos.clear()
         for i, sp in enumerate(body.sample_photos):
             member.sample_photos.append(

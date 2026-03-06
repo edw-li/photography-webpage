@@ -8,6 +8,7 @@ from ..models.member import Member, SamplePhoto, SocialLink
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.member import MemberAdminResponse, MemberCreate, MemberResponse, MemberUpdate
+from ..services.storage import delete_uploaded_image
 from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
 
@@ -210,6 +211,9 @@ async def update_member(
     if body.specialty is not None:
         member.specialty = body.specialty
     if body.avatar is not None:
+        if (member.avatar_url and member.avatar_url != "DEFAULT"
+                and member.avatar_url != body.avatar):
+            delete_uploaded_image(member.avatar_url, thumbnails=False)
         member.avatar_url = body.avatar
     if body.photography_type is not None:
         member.photography_type = body.photography_type or None
@@ -226,6 +230,10 @@ async def update_member(
             member.social_links.append(SocialLink(platform=platform, url=url))
 
     if body.sample_photos is not None:
+        new_urls = {photo.src for photo in body.sample_photos}
+        for old_photo in member.sample_photos:
+            if old_photo.src_url not in new_urls:
+                delete_uploaded_image(old_photo.src_url)
         member.sample_photos.clear()
         for i, photo in enumerate(body.sample_photos):
             member.sample_photos.append(
@@ -259,6 +267,11 @@ async def delete_member(
         linked_user = user_result.scalar_one_or_none()
         if linked_user:
             await db.delete(linked_user)
+
+    if member.avatar_url and member.avatar_url != "DEFAULT":
+        delete_uploaded_image(member.avatar_url, thumbnails=False)
+    for photo in member.sample_photos:
+        delete_uploaded_image(photo.src_url)
 
     await log_activity(db, admin, "delete", "member", str(member_id), f"Deleted member: {member.name}")
     await db.delete(member)
