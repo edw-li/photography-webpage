@@ -385,7 +385,7 @@
 .contest__tab-content {
   flex: 1;
   overflow-y: auto;
-  min-height: 0;
+  min-height: 400px;
   animation: contestTabEnter 0.2s ease;
 }
 
@@ -1517,6 +1517,10 @@
 
   .contest__carousel-arrow--right {
     right: 0;
+  }
+
+  .contest__tab-content {
+    min-height: 300px;
   }
 
   /* Category pills wrap */
