@@ -5,7 +5,7 @@
       "specialty": "Landscape Photography",
       "avatar": "https://picsum.photos/id/1005/300/300",
       "photographyType": "Landscape & Nature",
-      "leadershipRole": "President",
+      "leadershipRole": "Founding Member",
       "website": "https://example.com/alexrivera",
       "socialLinks": {
         "instagram": "https://instagram.com/alexrivera",
@@ -33,7 +33,7 @@
       "specialty": "Street Photography",
       "avatar": "https://picsum.photos/id/1011/300/300",
       "photographyType": "Street & Documentary",
-      "leadershipRole": "Vice President",
+      "leadershipRole": "Founding Member",
       "socialLinks": {
         "instagram": "https://instagram.com/jordanlee",
         "twitter": "https://twitter.com/jordanlee"
@@ -55,7 +55,7 @@
       "specialty": "Portrait Photography",
       "avatar": "https://picsum.photos/id/1012/300/300",
       "photographyType": "Portrait & Studio",
-      "leadershipRole": "Treasurer",
+      "leadershipRole": "Founding Member",
       "website": "https://example.com/sampatel",
       "socialLinks": {
         "instagram": "https://instagram.com/sampatel",
@@ -74,7 +74,7 @@
       "specialty": "Macro Photography",
       "avatar": "https://picsum.photos/id/1027/300/300",
       "photographyType": "Macro & Close-up",
-      "leadershipRole": "Events Coordinator",
+      "leadershipRole": "Founding Member",
       "socialLinks": {
         "flickr": "https://flickr.com/caseykim"
       },
