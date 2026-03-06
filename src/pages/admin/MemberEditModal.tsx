@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { updateMember, addMemberSamplePhoto, deleteMemberSamplePhoto, updateMemberSamplePhotoCaptions } from '../../api/members';
 import { ApiError } from '../../api/client';
-import type { MemberAdmin, SocialLinks } from '../../types/members';
+import type { MemberAdmin } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import ImageUploadField from '../../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../../components/MultiImageUploadField';
