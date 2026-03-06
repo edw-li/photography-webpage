@@ -12,6 +12,7 @@ export interface ContestCreateData {
   status: string;
   deadline: string;
   guidelines: string[];
+  wildcardCategory?: string | null;
 }
 
 export async function createContest(data: ContestCreateData): Promise<Contest> {
@@ -28,8 +29,7 @@ export interface ContestUpdateData {
   status?: string;
   deadline?: string;
   guidelines?: string[];
-  winners?: { submissionId: number; place: number }[];
-  honorableMentions?: { submissionId: number }[];
+  wildcardCategory?: string | null;
 }
 
 export async function updateContest(id: number, data: ContestUpdateData): Promise<Contest> {
@@ -59,9 +59,12 @@ export async function deleteSubmission(contestId: number, submissionId: number):
   await apiFetch(`/contests/${contestId}/submissions/${submissionId}`, { method: 'DELETE' });
 }
 
-export async function castVote(contestId: number, submissionId: number): Promise<void> {
+export async function castVote(
+  contestId: number,
+  votes: { category: string; submissionIds: number[] }[],
+): Promise<void> {
   await apiFetch(`/contests/${contestId}/vote`, {
     method: 'POST',
-    body: JSON.stringify({ submissionId }),
+    body: JSON.stringify({ votes }),
   });
 }

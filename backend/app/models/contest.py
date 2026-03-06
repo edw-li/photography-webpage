@@ -7,6 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
 
+VOTE_CATEGORIES = ["theme", "favorite", "wildcard"]
+MAX_VOTES_PER_CATEGORY = 3
+MAX_SUBMISSIONS_PER_USER = 3
+
 
 class Contest(Base):
     __tablename__ = "contests"
@@ -18,6 +22,7 @@ class Contest(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False)  # active / voting / completed
     deadline: Mapped[str] = mapped_column(String(10), nullable=False)
     guidelines: Mapped[list] = mapped_column(JSONB, nullable=False)
+    wildcard_category: Mapped[str | None] = mapped_column(String(200), nullable=True)
     winners: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     honorable_mentions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -61,7 +66,10 @@ class ContestSubmission(Base):
 class ContestVote(Base):
     __tablename__ = "contest_votes"
     __table_args__ = (
-        UniqueConstraint("contest_id", "user_id", name="uq_contest_votes_contest_user"),
+        UniqueConstraint(
+            "contest_id", "user_id", "category", "submission_id",
+            name="uq_contest_votes_contest_user_category_sub",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -74,6 +82,7 @@ class ContestVote(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

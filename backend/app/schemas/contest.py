@@ -9,6 +9,12 @@ class SubmissionExifSchema(CamelModel):
     iso: int | None = None
 
 
+class CategoryVotesSchema(CamelModel):
+    theme: int = 0
+    favorite: int = 0
+    wildcard: int = 0
+
+
 class ContestSubmissionResponse(CamelModel):
     id: int
     url: str
@@ -16,15 +22,18 @@ class ContestSubmissionResponse(CamelModel):
     photographer: str
     votes: int | None = None
     exif: SubmissionExifSchema | None = None
+    category_votes: CategoryVotesSchema | None = None
 
 
 class ContestWinnerSchema(CamelModel):
     submission_id: int
     place: int
+    category: str = "theme"
 
 
 class HonorableMentionSchema(CamelModel):
     submission_id: int
+    category: str = "theme"
 
 
 class ContestResponse(CamelModel):
@@ -37,9 +46,12 @@ class ContestResponse(CamelModel):
     submission_count: int
     participant_count: int
     guidelines: list[str]
+    wildcard_category: str | None = None
     submissions: list[ContestSubmissionResponse]
     winners: list[ContestWinnerSchema] | None = None
     honorable_mentions: list[HonorableMentionSchema] | None = None
+    user_submission_count: int | None = None
+    user_has_voted: bool | None = None
 
 
 class ContestCreate(CamelModel):
@@ -49,6 +61,7 @@ class ContestCreate(CamelModel):
     status: str = "active"
     deadline: str
     guidelines: list[str]
+    wildcard_category: str | None = None
 
 
 class ContestUpdate(CamelModel):
@@ -58,9 +71,13 @@ class ContestUpdate(CamelModel):
     status: str | None = None
     deadline: str | None = None
     guidelines: list[str] | None = None
-    winners: list[ContestWinnerSchema] | None = None
-    honorable_mentions: list[HonorableMentionSchema] | None = None
+    wildcard_category: str | None = None
 
 
-class VoteRequest(CamelModel):
-    submission_id: int
+class CategoryVoteRequest(CamelModel):
+    category: str
+    submission_ids: list[int]
+
+
+class BatchVoteRequest(CamelModel):
+    votes: list[CategoryVoteRequest]
