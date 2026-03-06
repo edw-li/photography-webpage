@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
-import { getImageUrl } from '../utils/imageUrl';
 
 interface ImageUploadFieldProps {
   value: string;
@@ -74,7 +73,7 @@ export default function ImageUploadField({
           onClick={() => inputRef.current?.click()}
         >
           <img
-            src={getImageUrl(value, 'thumb')}
+            src={value}
             alt="Uploaded"
             style={{
               width: previewSize,
