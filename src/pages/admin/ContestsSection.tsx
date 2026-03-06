@@ -7,7 +7,8 @@ import {
   deleteContest,
   deleteSubmission,
 } from '../../api/contests';
-import type { Contest, ContestSubmission } from '../../types/contest';
+import type { Contest, ContestSubmission, VoteCategory } from '../../types/contest';
+import { getCategoryLabel } from '../../types/contest';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
@@ -26,6 +27,7 @@ const emptyForm = {
   status: 'upcoming',
   deadline: '',
   guidelines: [''],
+  wildcardCategory: '',
 };
 
 export default function ContestsSection() {
@@ -36,8 +38,6 @@ export default function ContestsSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [winners, setWinners] = useState<{ submissionId: string; place: number }[]>([]);
-  const [honorable, setHonorable] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contest | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -64,8 +64,6 @@ export default function ContestsSection() {
   const openCreate = () => {
     setEditingContest(null);
     setForm(emptyForm);
-    setWinners([]);
-    setHonorable([]);
     setShowForm(true);
   };
 
@@ -81,13 +79,8 @@ export default function ContestsSection() {
         status: full.status,
         deadline: full.deadline,
         guidelines: full.guidelines.length > 0 ? full.guidelines : [''],
+        wildcardCategory: full.wildcardCategory || '',
       });
-      setWinners(
-        full.winners?.map((w) => ({ submissionId: String(w.submissionId), place: w.place })) || []
-      );
-      setHonorable(
-        full.honorableMentions?.map((h) => String(h.submissionId)) || []
-      );
       setShowForm(true);
     } catch {
       addToast('error', 'Failed to load contest details');
@@ -103,29 +96,20 @@ export default function ContestsSection() {
     setSaving(true);
     try {
       const guidelines = form.guidelines.filter((g) => g.trim());
+      const wildcardCategory = form.wildcardCategory.trim() || null;
       if (editingContest) {
-        const payload: Record<string, unknown> = {
+        await updateContest(editingContest.id, {
           month: form.month,
           theme: form.theme,
           description: form.description,
           status: form.status,
           deadline: form.deadline,
           guidelines,
-        };
-        if (form.status === 'completed' && winners.length > 0) {
-          payload.winners = winners
-            .filter((w) => w.submissionId)
-            .map((w) => ({ submissionId: parseInt(w.submissionId), place: w.place }));
-        }
-        if (form.status === 'completed' && honorable.length > 0) {
-          payload.honorableMentions = honorable
-            .filter((h) => h)
-            .map((h) => ({ submissionId: parseInt(h) }));
-        }
-        await updateContest(editingContest.id, payload);
+          wildcardCategory,
+        });
         addToast('success', 'Contest updated');
       } else {
-        await createContest({ ...form, guidelines });
+        await createContest({ ...form, guidelines, wildcardCategory });
         addToast('success', 'Contest created');
       }
       setShowForm(false);
@@ -317,70 +301,40 @@ export default function ContestsSection() {
             </div>
           </div>
 
-          {editingContest && form.status === 'completed' && editingContest.submissions.length > 0 && (
-            <>
-              <div className="afm-field">
-                <label className="afm-label">Winners</label>
-                {[1, 2, 3].map((place) => {
-                  const w = winners.find((w) => w.place === place);
-                  return (
-                    <div key={place} style={{ marginBottom: '0.5rem' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                        {place === 1 ? '1st' : place === 2 ? '2nd' : '3rd'} Place
-                      </label>
-                      <select
-                        className="afm-select"
-                        value={w?.submissionId || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const updated = winners.filter((w) => w.place !== place);
-                          if (val) updated.push({ submissionId: val, place });
-                          setWinners(updated);
-                        }}
-                      >
-                        <option value="">— Select —</option>
-                        {editingContest.submissions.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.title} by {s.photographer}
-                          </option>
-                        ))}
-                      </select>
+          <div className="afm-field">
+            <label className="afm-label">Wildcard Voting Category</label>
+            <input
+              className="afm-input"
+              placeholder="e.g. Best Use of Color"
+              value={form.wildcardCategory}
+              onChange={(e) => setForm({ ...form, wildcardCategory: e.target.value })}
+            />
+          </div>
+
+          {editingContest && form.status === 'completed' && editingContest.winners && editingContest.winners.length > 0 && (
+            <div className="afm-field">
+              <label className="afm-label">Winners (auto-calculated)</label>
+              {(['theme', 'favorite', 'wildcard'] as VoteCategory[])
+                .filter((cat) => editingContest.winners!.some((w) => (w.category || 'theme') === cat))
+                .map((cat) => (
+                  <div key={cat} style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-accent)', marginBottom: '0.25rem' }}>
+                      {getCategoryLabel(cat, editingContest.wildcardCategory)}
                     </div>
-                  );
-                })}
-              </div>
-              <div className="afm-field">
-                <label className="afm-label">Honorable Mentions</label>
-                <div className="afm-dynamic-list">
-                  {honorable.map((h, i) => (
-                    <div key={i} className="afm-dynamic-row">
-                      <select
-                        className="afm-select"
-                        value={h}
-                        onChange={(e) => {
-                          const updated = [...honorable];
-                          updated[i] = e.target.value;
-                          setHonorable(updated);
-                        }}
-                      >
-                        <option value="">— Select —</option>
-                        {editingContest.submissions.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.title} by {s.photographer}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="afm-remove-btn" onClick={() => setHonorable(honorable.filter((_, j) => j !== i))}>
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                  <button className="afm-add-btn" onClick={() => setHonorable([...honorable, ''])}>
-                    + Add Mention
-                  </button>
-                </div>
-              </div>
-            </>
+                    {editingContest.winners!
+                      .filter((w) => (w.category || 'theme') === cat)
+                      .sort((a, b) => a.place - b.place)
+                      .map((w) => {
+                        const sub = editingContest.submissions.find((s) => s.id === w.submissionId);
+                        return (
+                          <div key={`${cat}-${w.place}`} style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', paddingLeft: '0.5rem' }}>
+                            {w.place === 1 ? '1st' : w.place === 2 ? '2nd' : '3rd'}: {sub ? `${sub.title} by ${sub.photographer}` : `Submission #${w.submissionId}`}
+                          </div>
+                        );
+                      })}
+                  </div>
+                ))}
+            </div>
           )}
         </AdminFormModal>
       )}
@@ -400,7 +354,10 @@ export default function ContestsSection() {
       {statusTarget && (
         <ConfirmDialog
           title="Advance Status"
-          message={`Move "${statusTarget.contest.theme}" to ${statusTarget.newStatus}?`}
+          message={statusTarget.newStatus === 'completed'
+            ? `Move "${statusTarget.contest.theme}" to completed? Winners will be auto-calculated from votes.`
+            : `Move "${statusTarget.contest.theme}" to ${statusTarget.newStatus}?`
+          }
           confirmLabel={`Move to ${statusTarget.newStatus}`}
           loading={advancing}
           onConfirm={handleStatusChange}

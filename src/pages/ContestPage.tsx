@@ -1,9 +1,11 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { Camera, Users, Check, Trophy, ArrowLeft } from 'lucide-react';
-import type { Contest, ContestSubmission } from '../types/contest';
+import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
+import { getCategoryLabel } from '../types/contest';
 import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
-import { getContests } from '../api/contests';
+import { useAuth } from '../contexts/AuthContext';
+import { getContests, submitPhoto, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
 import './ContestPage.css';
@@ -26,7 +28,7 @@ function formatExif(exif?: PhotoExif): string {
   return parts.join(' · ');
 }
 
-/* ─── Tab config ─── */
+/* --- Tab config --- */
 
 type TabId = 'submit' | 'vote' | 'rules' | 'gallery' | 'podium' | 'full-results';
 
@@ -37,14 +39,12 @@ interface TabDef {
 
 const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
   active: [
-    { id: 'submit', label: 'Submit' },
     { id: 'rules', label: 'Rules' },
-    { id: 'gallery', label: 'Gallery' },
+    { id: 'submit', label: 'Submit' },
   ],
   voting: [
-    { id: 'vote', label: 'Vote' },
     { id: 'rules', label: 'Rules' },
-    { id: 'gallery', label: 'Gallery' },
+    { id: 'vote', label: 'Vote' },
   ],
   completed: [
     { id: 'podium', label: 'Podium' },
@@ -53,7 +53,7 @@ const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
   ],
 };
 
-/* ─── Shared Modal Shell ─── */
+/* --- Shared Modal Shell --- */
 
 function ModalShell({
   open,
@@ -148,7 +148,7 @@ function ModalShell({
   );
 }
 
-/* ─── Tab Bar ─── */
+/* --- Tab Bar --- */
 
 function TabBar({
   tabs,
@@ -229,7 +229,7 @@ function TabBar({
   );
 }
 
-/* ─── Tab: Submit ─── */
+/* --- Tab: Submit --- */
 
 function TabSubmit({
   contest,
@@ -252,6 +252,7 @@ function TabSubmit({
   setIso,
   submitted,
   setSubmitted,
+  onContestRefresh,
 }: {
   contest: Contest;
   onClose: () => void;
@@ -273,11 +274,19 @@ function TabSubmit({
   setIso: (v: string) => void;
   submitted: boolean;
   setSubmitted: (v: boolean) => void;
+  onContestRefresh: () => void;
 }) {
+  const { isAuthenticated } = useAuth();
   const [members, setMembers] = useState<{ name: string }[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const userSubCount = contest.userSubmissionCount ?? 0;
+  const remaining = Math.max(0, 3 - userSubCount);
+  const atLimit = userSubCount >= 3;
 
   useEffect(() => {
     import('../data/members.json').then((mod) => {
@@ -293,11 +302,12 @@ function TabSubmit({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const canSubmit = file !== null && title.trim() !== '' && author !== '';
+  const canSubmit = file !== null && title.trim() !== '' && author !== '' && !atLimit;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
+    if (atLimit) return;
     const f = e.dataTransfer.files[0];
     if (f && f.type.startsWith('image/')) setFile(f);
   };
@@ -307,13 +317,41 @@ function TabSubmit({
     if (f) setFile(f);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
-    setSubmitted(true);
+    if (!canSubmit || !file) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title.trim());
+      formData.append('photographer', author);
+      if (camera.trim()) formData.append('exif_camera', camera.trim());
+      if (focalLength.trim()) formData.append('exif_focal_length', focalLength.trim());
+      if (aperture.trim()) formData.append('exif_aperture', aperture.trim());
+      if (shutterSpeed.trim()) formData.append('exif_shutter_speed', shutterSpeed.trim());
+      if (iso.trim()) formData.append('exif_iso', iso.trim());
+      await submitPhoto(contest.id, formData);
+      setSubmitted(true);
+      onContestRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit photo';
+      setError(msg);
+    }
+    setSubmitting(false);
   };
 
-  void contest;
+  if (!isAuthenticated) {
+    return (
+      <div role="tabpanel" aria-label="Submit">
+        <div className="contest__submit-success">
+          <Camera size={48} />
+          <p>Log in to submit your photos</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div role="tabpanel" aria-label="Submit">
@@ -325,10 +363,16 @@ function TabSubmit({
         </div>
       ) : (
         <form className="contest__submit-form" onSubmit={handleSubmit}>
+          <div className="contest__submit-limit">
+            <span>{remaining} of 3 submissions remaining</span>
+          </div>
+          {error && <p className="contest__submit-error">{error}</p>}
+          <p className="contest__submit-disclaimer">Submissions cannot be changed once submitted.</p>
+
           <div
-            className={`contest__dropzone${dragging ? ' contest__dropzone--active' : ''}${preview ? ' contest__dropzone--has-preview' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            className={`contest__dropzone${dragging ? ' contest__dropzone--active' : ''}${preview ? ' contest__dropzone--has-preview' : ''}${atLimit ? ' contest__dropzone--disabled' : ''}`}
+            onClick={() => !atLimit && fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); if (!atLimit) setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
           >
@@ -337,7 +381,7 @@ function TabSubmit({
             ) : (
               <div className="contest__dropzone-placeholder">
                 <Camera size={32} />
-                <p>Drag & drop your photo here, or click to browse</p>
+                <p>{atLimit ? 'Submission limit reached' : 'Drag & drop your photo here, or click to browse'}</p>
               </div>
             )}
             <input
@@ -346,6 +390,7 @@ function TabSubmit({
               accept="image/*"
               onChange={handleFileChange}
               className="contest__file-input"
+              disabled={atLimit}
             />
           </div>
 
@@ -357,6 +402,7 @@ function TabSubmit({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your photo a title"
+              disabled={atLimit}
             />
           </label>
 
@@ -366,6 +412,7 @@ function TabSubmit({
               className="contest__form-input contest__form-select"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
+              disabled={atLimit}
             >
               <option value="">Select a member</option>
               {members.map((m) => (
@@ -374,7 +421,7 @@ function TabSubmit({
             </select>
           </label>
 
-          <fieldset className="contest__exif-group">
+          <fieldset className="contest__exif-group" disabled={atLimit}>
             <legend>EXIF Data (Optional)</legend>
             <div className="contest__exif-grid">
               <label className="contest__form-label">
@@ -403,9 +450,9 @@ function TabSubmit({
           <button
             type="submit"
             className="contest__modal-btn contest__modal-btn--submit"
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
           >
-            Submit Photo
+            {submitting ? 'Submitting...' : atLimit ? 'Submission Limit Reached' : 'Submit Photo'}
           </button>
         </form>
       )}
@@ -413,87 +460,251 @@ function TabSubmit({
   );
 }
 
-/* ─── Tab: Vote ─── */
+/* --- Tab: Vote (Wizard) --- */
 
-function TabVote({
-  contest,
-  onClose,
-  selectedId,
-  setSelectedId,
-  voted,
-  setVoted,
+function WizardProgressBar({
+  steps,
+  currentStep,
 }: {
-  contest: Contest;
-  onClose: () => void;
-  selectedId: number | null;
-  setSelectedId: (id: number | null) => void;
-  voted: boolean;
-  setVoted: (v: boolean) => void;
+  steps: string[];
+  currentStep: number;
 }) {
-  const handleVote = () => {
-    if (selectedId === null) return;
-    setVoted(true);
-  };
-
   return (
-    <div role="tabpanel" aria-label="Vote">
-      {voted ? (
-        <div className="contest__submit-success">
-          <Check size={48} />
-          <p>Your vote has been cast!</p>
-          <button className="contest__modal-btn" onClick={onClose}>Close</button>
+    <div className="contest__wizard-progress">
+      {steps.map((label, i) => (
+        <div
+          key={label}
+          className={`contest__wizard-step${i === currentStep ? ' contest__wizard-step--active' : ''}${i < currentStep ? ' contest__wizard-step--completed' : ''}`}
+        >
+          <div className="contest__wizard-step-dot">
+            {i < currentStep ? <Check size={12} /> : i + 1}
+          </div>
+          <span className="contest__wizard-step-label">{label}</span>
         </div>
-      ) : (
-        <>
-          <p className="contest__modal-subtitle">Select your favorite photo, then cast your vote.</p>
-          <div className="contest__vote-grid">
-            {contest.submissions.map((sub) => (
-              <div
-                key={sub.id}
-                className={`contest__vote-thumb${selectedId === sub.id ? ' contest__vote-thumb--selected' : ''}`}
-                onClick={() => setSelectedId(sub.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(sub.id); } }}
-                tabIndex={0}
-                role="radio"
-                aria-checked={selectedId === sub.id}
-                aria-label={`${sub.title} by ${sub.photographer}`}
-              >
-                <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
-                {selectedId === sub.id && (
-                  <div className="contest__vote-check">
-                    <Check size={24} />
-                  </div>
-                )}
-                <div className="contest__vote-info">
-                  <span className="contest__vote-title">{sub.title}</span>
-                  <span className="contest__vote-photographer">{sub.photographer}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="contest__vote-footer">
-            <button
-              className="contest__modal-btn contest__modal-btn--submit"
-              disabled={selectedId === null}
-              onClick={handleVote}
-            >
-              Cast Vote
-            </button>
-          </div>
-        </>
-      )}
+      ))}
     </div>
   );
 }
 
-/* ─── Tab: Rules ─── */
-
-function TabRules({
+function TabVote({
   contest,
+  onClose,
+  onContestRefresh,
 }: {
   contest: Contest;
+  onClose: () => void;
+  onContestRefresh: () => void;
 }) {
+  const { isAuthenticated } = useAuth();
+
+  // Determine categories for this contest
+  const categories = useMemo<VoteCategory[]>(() => {
+    const cats: VoteCategory[] = ['theme', 'favorite'];
+    if (contest.wildcardCategory) cats.push('wildcard');
+    return cats;
+  }, [contest.wildcardCategory]);
+
+  const stepLabels = useMemo(() => {
+    return [...categories.map((c) => getCategoryLabel(c, contest.wildcardCategory)), 'Review'];
+  }, [categories, contest.wildcardCategory]);
+
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selections, setSelections] = useState<Record<VoteCategory, Set<number>>>(() => ({
+    theme: new Set(),
+    favorite: new Set(),
+    wildcard: new Set(),
+  }));
+  const [voted, setVoted] = useState(contest.userHasVoted === true);
+  const [submittingVote, setSubmittingVote] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
+  const isReviewStep = currentStep === categories.length;
+  const currentCategory = isReviewStep ? null : categories[currentStep];
+
+  const toggleSelection = (category: VoteCategory, subId: number) => {
+    setSelections((prev) => {
+      const s = new Set(prev[category]);
+      if (s.has(subId)) {
+        s.delete(subId);
+      } else if (s.size < 3) {
+        s.add(subId);
+      }
+      return { ...prev, [category]: s };
+    });
+  };
+
+  const currentSelectionCount = currentCategory ? selections[currentCategory].size : 0;
+  const canGoNext = currentCategory ? currentSelectionCount >= 1 : false;
+
+  const handleCastVotes = async () => {
+    setSubmittingVote(true);
+    setVoteError(null);
+    try {
+      const votes = categories
+        .filter((cat) => selections[cat].size > 0)
+        .map((cat) => ({
+          category: cat,
+          submissionIds: [...selections[cat]],
+        }));
+      await castVote(contest.id, votes);
+      setVoted(true);
+      onContestRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to cast votes';
+      setVoteError(msg);
+    }
+    setSubmittingVote(false);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div role="tabpanel" aria-label="Vote">
+        <div className="contest__submit-success">
+          <Camera size={48} />
+          <p>Log in to vote</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (voted) {
+    return (
+      <div role="tabpanel" aria-label="Vote">
+        <div className="contest__submit-success">
+          <Check size={48} />
+          <p>You&apos;ve already voted in this contest!</p>
+          <button className="contest__modal-btn" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div role="tabpanel" aria-label="Vote">
+      <WizardProgressBar steps={stepLabels} currentStep={currentStep} />
+
+      {/* Category step */}
+      {currentCategory && (
+        <>
+          <p className="contest__modal-subtitle">
+            {getCategoryLabel(currentCategory, contest.wildcardCategory)} — Select up to 3 photos
+          </p>
+          <div className="contest__wizard-counter">
+            {currentSelectionCount} of 3 selected
+          </div>
+          <div className="contest__vote-grid">
+            {contest.submissions.map((sub) => {
+              const selected = selections[currentCategory].has(sub.id);
+              const maxReached = selections[currentCategory].size >= 3;
+              const disabled = !selected && maxReached;
+              return (
+                <div
+                  key={sub.id}
+                  className={`contest__vote-thumb${selected ? ' contest__vote-thumb--selected' : ''}${disabled ? ' contest__vote-thumb--disabled' : ''}`}
+                  onClick={() => !disabled && toggleSelection(currentCategory, sub.id)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+                      e.preventDefault();
+                      toggleSelection(currentCategory, sub.id);
+                    }
+                  }}
+                  tabIndex={disabled ? -1 : 0}
+                  role="checkbox"
+                  aria-checked={selected}
+                  aria-disabled={disabled}
+                  aria-label={`${sub.title} by ${sub.photographer}`}
+                >
+                  <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
+                  {selected && (
+                    <div className="contest__vote-check">
+                      <Check size={24} />
+                    </div>
+                  )}
+                  <div className="contest__vote-info">
+                    <span className="contest__vote-title">{sub.title}</span>
+                    <span className="contest__vote-photographer">{sub.photographer}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Review step */}
+      {isReviewStep && (
+        <div className="contest__wizard-review">
+          <p className="contest__modal-subtitle">Review your selections</p>
+          {voteError && <p className="contest__submit-error">{voteError}</p>}
+          {categories.map((cat) => (
+            <div key={cat} className="contest__wizard-review-category">
+              <div className="contest__wizard-review-header">
+                <span>{getCategoryLabel(cat, contest.wildcardCategory)}</span>
+                <button
+                  className="contest__wizard-review-edit"
+                  onClick={() => setCurrentStep(categories.indexOf(cat))}
+                >
+                  Edit
+                </button>
+              </div>
+              <div className="contest__wizard-review-photos">
+                {[...selections[cat]].map((subId) => {
+                  const sub = contest.submissions.find((s) => s.id === subId);
+                  if (!sub) return null;
+                  return (
+                    <div key={subId} className="contest__wizard-review-photo">
+                      <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} />
+                      <span>{sub.title}</span>
+                    </div>
+                  );
+                })}
+                {selections[cat].size === 0 && (
+                  <span className="contest__wizard-review-empty">No selections</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Wizard footer */}
+      <div className="contest__wizard-footer">
+        <button
+          className="contest__modal-btn"
+          onClick={() => setCurrentStep((s) => s - 1)}
+          disabled={currentStep === 0}
+          style={{ opacity: currentStep === 0 ? 0.4 : 1 }}
+        >
+          Back
+        </button>
+        {isReviewStep ? (
+          <button
+            className="contest__modal-btn contest__modal-btn--submit"
+            onClick={handleCastVotes}
+            disabled={submittingVote}
+            style={{ width: 'auto', marginTop: 0 }}
+          >
+            {submittingVote ? 'Submitting...' : 'Cast Votes'}
+          </button>
+        ) : (
+          <button
+            className="contest__modal-btn"
+            onClick={() => setCurrentStep((s) => s + 1)}
+            disabled={!canGoNext}
+          >
+            Next
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* --- Tab: Rules --- */
+
+function TabRules({ contest }: { contest: Contest }) {
   const isVoting = contest.status === 'voting';
+  const isActive = contest.status === 'active';
 
   return (
     <div role="tabpanel" aria-label="Rules">
@@ -501,10 +712,24 @@ function TabRules({
         <div className="contest__rules-voting-info">
           <h3>How Voting Works</h3>
           <ul className="contest__rules-list">
-            <li>Each member may cast one vote per contest</li>
+            <li>
+              Vote in {contest.wildcardCategory ? '3' : '2'} categories: Best Addresses the Theme, Personal Favorite{contest.wildcardCategory ? `, and ${contest.wildcardCategory}` : ''}
+            </li>
+            <li>Select up to 3 photos per category</li>
+            <li>Votes are final and cannot be changed</li>
             <li>Voting deadline: {formatDeadline(contest.deadline)}</li>
-            <li>You cannot vote for your own submission</li>
             <li>Results are revealed after the voting period ends</li>
+          </ul>
+        </div>
+      )}
+
+      {isActive && (
+        <div className="contest__rules-voting-info">
+          <h3>Submission Info</h3>
+          <ul className="contest__rules-list">
+            <li>Maximum 3 submissions per person</li>
+            <li>Submissions cannot be changed once submitted</li>
+            <li>Submission deadline: {formatDeadline(contest.deadline)}</li>
           </ul>
         </div>
       )}
@@ -521,7 +746,7 @@ function TabRules({
   );
 }
 
-/* ─── Tab: Gallery ─── */
+/* --- Tab: Gallery --- */
 
 function TabGallery({ contest }: { contest: Contest }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -594,26 +819,29 @@ function TabGallery({ contest }: { contest: Contest }) {
   );
 }
 
-/* ─── Tab: Podium ─── */
+/* --- Tab: Podium (Carousel) --- */
 
 function TabPodium({ contest }: { contest: Contest }) {
-  const places = useMemo(() => {
+  const categories = useMemo<VoteCategory[]>(() => {
     if (!contest.winners) return [];
-    return contest.winners
-      .map((w) => {
-        const sub = contest.submissions.find((s) => s.id === w.submissionId);
-        return sub ? { ...sub, place: w.place } : null;
-      })
-      .filter((x): x is ContestSubmission & { place: 1 | 2 | 3 } => x !== null)
-      .sort((a, b) => a.place - b.place);
-  }, [contest]);
+    const cats = new Set<VoteCategory>();
+    for (const w of contest.winners) {
+      cats.add((w.category || 'theme') as VoteCategory);
+    }
+    return [...cats];
+  }, [contest.winners]);
 
-  const mentions = useMemo(() => {
-    if (!contest.honorableMentions) return [];
-    return contest.honorableMentions
-      .map((hm) => contest.submissions.find((s) => s.id === hm.submissionId))
-      .filter((x): x is ContestSubmission => x !== undefined);
-  }, [contest]);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-rotate
+  useEffect(() => {
+    if (categories.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setActiveSlide((s) => (s + 1) % categories.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [categories.length, isPaused]);
 
   const trophyColor = (place: number) => {
     if (place === 1) return '#FFD700';
@@ -627,65 +855,154 @@ function TabPodium({ contest }: { contest: Contest }) {
     return '3rd Place';
   };
 
-  return (
-    <div role="tabpanel" aria-label="Podium">
-      <div className="contest__podium-stage">
-        {places.map((p) => (
-          <div
-            key={p.id}
-            className={`contest__podium-place contest__podium-place--${p.place}`}
-          >
-            <div className="contest__podium-photo">
-              <img src={getImageUrl(p.url, 'thumb')} alt={p.title} />
-            </div>
-            <Trophy size={24} color={trophyColor(p.place)} />
-            <span className="contest__podium-label" style={{ color: trophyColor(p.place) }}>
-              {placeLabel(p.place)}
-            </span>
-            <span className="contest__podium-title">{p.title}</span>
-            <span className="contest__podium-photographer">{p.photographer}</span>
-            <span className="contest__podium-votes">{p.votes ?? 0} votes</span>
-          </div>
-        ))}
+  if (categories.length === 0) {
+    return (
+      <div role="tabpanel" aria-label="Podium">
+        <p className="contest__modal-subtitle">No winners have been announced yet.</p>
       </div>
+    );
+  }
 
-      {mentions.length > 0 && (
-        <div className="contest__podium-mentions">
-          <h3 className="contest__podium-mentions-heading">Honorable Mentions</h3>
-          <div className="contest__podium-mentions-grid">
-            {mentions.map((m) => (
-              <div key={m.id} className="contest__podium-mention-card">
-                <img src={getImageUrl(m.url, 'thumb')} alt={m.title} />
-                <div className="contest__podium-mention-info">
-                  <span className="contest__podium-mention-title">{m.title}</span>
-                  <span className="contest__podium-mention-photographer">{m.photographer}</span>
+  const currentCat = categories[activeSlide];
+  const winnersForCat = (contest.winners || [])
+    .filter((w) => (w.category || 'theme') === currentCat)
+    .sort((a, b) => a.place - b.place)
+    .map((w) => {
+      const sub = contest.submissions.find((s) => s.id === w.submissionId);
+      return sub ? { ...sub, place: w.place } : null;
+    })
+    .filter((x): x is ContestSubmission & { place: 1 | 2 | 3 } => x !== null);
+
+  const mentionsForCat = (contest.honorableMentions || [])
+    .filter((hm) => (hm.category || 'theme') === currentCat)
+    .map((hm) => contest.submissions.find((s) => s.id === hm.submissionId))
+    .filter((x): x is ContestSubmission => x !== undefined);
+
+  return (
+    <div
+      role="tabpanel"
+      aria-label="Podium"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="contest__carousel">
+        {categories.length > 1 && (
+          <button
+            className="contest__carousel-arrow contest__carousel-arrow--left"
+            onClick={() => setActiveSlide((s) => (s - 1 + categories.length) % categories.length)}
+            aria-label="Previous category"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        )}
+
+        <div className="contest__carousel-slide contest__carousel-slide--active">
+          <h3 className="contest__carousel-category-label">
+            {getCategoryLabel(currentCat, contest.wildcardCategory)}
+          </h3>
+
+          <div className="contest__podium-stage">
+            {winnersForCat.map((p) => (
+              <div
+                key={p.id}
+                className={`contest__podium-place contest__podium-place--${p.place}`}
+              >
+                <div className="contest__podium-photo">
+                  <img src={getImageUrl(p.url, 'thumb')} alt={p.title} />
                 </div>
+                <Trophy size={24} color={trophyColor(p.place)} />
+                <span className="contest__podium-label" style={{ color: trophyColor(p.place) }}>
+                  {placeLabel(p.place)}
+                </span>
+                <span className="contest__podium-title">{p.title}</span>
+                <span className="contest__podium-photographer">{p.photographer}</span>
+                <span className="contest__podium-votes">{p.votes ?? 0} votes</span>
               </div>
             ))}
           </div>
+
+          {mentionsForCat.length > 0 && (
+            <div className="contest__podium-mentions">
+              <h3 className="contest__podium-mentions-heading">Honorable Mentions</h3>
+              <div className="contest__podium-mentions-grid">
+                {mentionsForCat.map((m) => (
+                  <div key={m.id} className="contest__podium-mention-card">
+                    <img src={getImageUrl(m.url, 'thumb')} alt={m.title} />
+                    <div className="contest__podium-mention-info">
+                      <span className="contest__podium-mention-title">{m.title}</span>
+                      <span className="contest__podium-mention-photographer">{m.photographer}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {categories.length > 1 && (
+          <button
+            className="contest__carousel-arrow contest__carousel-arrow--right"
+            onClick={() => setActiveSlide((s) => (s + 1) % categories.length)}
+            aria-label="Next category"
+          >
+            <ChevronRight size={20} />
+          </button>
+        )}
+      </div>
+
+      {categories.length > 1 && (
+        <div className="contest__carousel-dots">
+          {categories.map((cat, i) => (
+            <button
+              key={cat}
+              className={`contest__carousel-dot${i === activeSlide ? ' contest__carousel-dot--active' : ''}`}
+              onClick={() => setActiveSlide(i)}
+            >
+              {getCategoryLabel(cat, contest.wildcardCategory)}
+            </button>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-/* ─── Tab: Full Results ─── */
+/* --- Tab: Full Results --- */
 
 function TabFullResults({ contest }: { contest: Contest }) {
+  const categories = useMemo<VoteCategory[]>(() => {
+    const cats: VoteCategory[] = ['theme', 'favorite'];
+    if (contest.wildcardCategory) cats.push('wildcard');
+    return cats;
+  }, [contest.wildcardCategory]);
+
+  const [selectedCategory, setSelectedCategory] = useState<VoteCategory>(categories[0]);
+
   const ranked = useMemo(() => {
     return [...contest.submissions]
-      .sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0))
+      .sort((a, b) => {
+        const aVotes = a.categoryVotes ? a.categoryVotes[selectedCategory] : (a.votes ?? 0);
+        const bVotes = b.categoryVotes ? b.categoryVotes[selectedCategory] : (b.votes ?? 0);
+        return bVotes - aVotes;
+      })
       .slice(0, 10);
-  }, [contest.submissions]);
+  }, [contest.submissions, selectedCategory]);
 
   const stats = useMemo(() => {
-    const totalVotes = contest.submissions.reduce((sum, s) => sum + (s.votes ?? 0), 0);
+    let totalVotes = 0;
+    for (const s of contest.submissions) {
+      totalVotes += s.categoryVotes ? s.categoryVotes[selectedCategory] : (s.votes ?? 0);
+    }
     const avgVotes = contest.submissions.length > 0
       ? (totalVotes / contest.submissions.length).toFixed(1)
       : '0';
     const uniquePhotographers = new Set(contest.submissions.map((s) => s.photographer)).size;
     return { totalVotes, avgVotes, uniquePhotographers };
-  }, [contest.submissions]);
+  }, [contest.submissions, selectedCategory]);
+
+  const getVotesForSub = (sub: ContestSubmission) => {
+    return sub.categoryVotes ? sub.categoryVotes[selectedCategory] : (sub.votes ?? 0);
+  };
 
   const medalColor = (rank: number) => {
     if (rank === 1) return '#FFD700';
@@ -696,6 +1013,18 @@ function TabFullResults({ contest }: { contest: Contest }) {
 
   return (
     <div role="tabpanel" aria-label="Full Results">
+      <div className="contest__category-pills">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            className={`contest__category-pill${cat === selectedCategory ? ' contest__category-pill--active' : ''}`}
+            onClick={() => setSelectedCategory(cat)}
+          >
+            {getCategoryLabel(cat, contest.wildcardCategory)}
+          </button>
+        ))}
+      </div>
+
       <div className="contest__results-list">
         {ranked.map((sub, i) => {
           const rank = i + 1;
@@ -722,7 +1051,7 @@ function TabFullResults({ contest }: { contest: Contest }) {
                 <span className="contest__results-name">{sub.title}</span>
                 <span className="contest__results-photographer">{sub.photographer}</span>
               </div>
-              <span className="contest__results-votes">{sub.votes ?? 0} votes</span>
+              <span className="contest__results-votes">{getVotesForSub(sub)} votes</span>
             </div>
           );
         })}
@@ -746,14 +1075,16 @@ function TabFullResults({ contest }: { contest: Contest }) {
   );
 }
 
-/* ─── Contest Modal (unified) ─── */
+/* --- Contest Modal (unified) --- */
 
 function ContestModal({
   contest,
   onClose,
+  onContestRefresh,
 }: {
   contest: Contest;
   onClose: () => void;
+  onContestRefresh: () => void;
 }) {
   const tabs = TABS_BY_STATUS[contest.status];
   const [activeTab, setActiveTab] = useState<TabId>(tabs[0].id);
@@ -768,10 +1099,6 @@ function ContestModal({
   const [shutterSpeed, setShutterSpeed] = useState('');
   const [iso, setIso] = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  // Lifted voting state
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [voted, setVoted] = useState(false);
 
   const tabContentRef = useRef<HTMLDivElement>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
@@ -826,16 +1153,14 @@ function ContestModal({
             setIso={setIso}
             submitted={submitted}
             setSubmitted={setSubmitted}
+            onContestRefresh={onContestRefresh}
           />
         )}
         {activeTab === 'vote' && (
           <TabVote
             contest={contest}
             onClose={onClose}
-            selectedId={selectedId}
-            setSelectedId={setSelectedId}
-            voted={voted}
-            setVoted={setVoted}
+            onContestRefresh={onContestRefresh}
           />
         )}
         {activeTab === 'rules' && <TabRules contest={contest} />}
@@ -847,7 +1172,7 @@ function ContestModal({
   );
 }
 
-/* ─── Contest Card ─── */
+/* --- Contest Card --- */
 
 function ContestCard({
   contest,
@@ -900,7 +1225,7 @@ function ContestCard({
   );
 }
 
-/* ─── Main Contest Page ─── */
+/* --- Main Contest Page --- */
 
 export default function ContestPage() {
   const [contests, setContests] = useState<Contest[]>([]);
@@ -983,7 +1308,7 @@ export default function ContestPage() {
 
   return (
     <div className="contest-page">
-      {/* ── Hero Banner ── */}
+      {/* Hero Banner */}
       <div className="contest-page__hero">
         <div className="contest-page__hero-bg">
           <img
@@ -1000,7 +1325,7 @@ export default function ContestPage() {
       </div>
 
       <div className="container">
-        {/* ── Contest Cards ── */}
+        {/* Contest Cards */}
         <div className="contest__cards">
           {visibleContests.map((c) => (
             <ContestCard
@@ -1019,9 +1344,13 @@ export default function ContestPage() {
 
       <Footer />
 
-      {/* ── Modal ── */}
+      {/* Modal */}
       {modalContest && (
-        <ContestModal contest={modalContest} onClose={() => setOpenModal(null)} />
+        <ContestModal
+          contest={modalContest}
+          onClose={() => setOpenModal(null)}
+          onContestRefresh={loadData}
+        />
       )}
     </div>
   );

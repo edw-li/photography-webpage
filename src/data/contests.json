@@ -6,6 +6,7 @@
     "description": "Capture the essence of fresh starts, renewal, and transformation. From budding flowers to new construction, show us what \"new beginnings\" means through your lens.",
     "status": "active",
     "deadline": "2026-03-31",
+    "wildcardCategory": "Best Use of Light",
     "submissionCount": 12,
     "participantCount": 10,
     "guidelines": [
@@ -38,6 +39,7 @@
     "description": "Explore the world of reflections — in water, glass, mirrors, or even metaphorical reflections on life. Show us reality doubled, distorted, or reimagined.",
     "status": "voting",
     "deadline": "2026-03-05",
+    "wildcardCategory": "Best Use of Color",
     "submissionCount": 28,
     "participantCount": 22,
     "guidelines": [
@@ -86,6 +88,7 @@
     "description": "Find beauty in the lines, shapes, and patterns of the urban landscape. Architecture, infrastructure, and city life through a geometric lens.",
     "status": "completed",
     "deadline": "2026-01-31",
+    "wildcardCategory": "Most Dramatic",
     "submissionCount": 20,
     "participantCount": 16,
     "guidelines": [
@@ -97,36 +100,45 @@
       "All genres welcome: landscape, portrait, street, macro, etc."
     ],
     "submissions": [
-      { "id": 301, "url": "https://picsum.photos/seed/ug1", "title": "Converging Lines", "photographer": "Priya Sharma", "votes": 89, "exif": { "camera": "Canon R5", "focalLength": "16mm", "aperture": "f/11", "shutterSpeed": "1/125s", "iso": 100 } },
-      { "id": 302, "url": "https://picsum.photos/seed/ug2", "title": "Steel Canyon", "photographer": "Jamal Washington", "votes": 76, "exif": { "camera": "Leica Q3", "focalLength": "28mm", "aperture": "f/5.6", "shutterSpeed": "1/250s", "iso": 200 } },
-      { "id": 303, "url": "https://picsum.photos/seed/ug3", "title": "Grid Life", "photographer": "Sarah Chen", "votes": 54, "exif": { "camera": "Sony A7IV", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 } },
-      { "id": 304, "url": "https://picsum.photos/seed/ug4", "title": "Spiral Staircase", "photographer": "Elena Volkov", "votes": 67 },
-      { "id": 305, "url": "https://picsum.photos/seed/ug5", "title": "Bridge Symmetry", "photographer": "Marcus Rivera", "votes": 45, "exif": { "camera": "Canon R6", "focalLength": "35mm", "aperture": "f/8", "shutterSpeed": "1/160s", "iso": 200 } },
-      { "id": 306, "url": "https://picsum.photos/seed/ug6", "title": "Concrete Jungle", "photographer": "Aiko Tanaka", "votes": 58 },
-      { "id": 307, "url": "https://picsum.photos/seed/ug7", "title": "Shadow Play", "photographer": "David Okafor", "votes": 63, "exif": { "camera": "Nikon Z6II", "focalLength": "50mm", "aperture": "f/5.6", "shutterSpeed": "1/500s", "iso": 100 } },
-      { "id": 308, "url": "https://picsum.photos/seed/ug8", "title": "Window Grid", "photographer": "Lisa Park", "votes": 42 },
-      { "id": 309, "url": "https://picsum.photos/seed/ug9", "title": "Vanishing Point", "photographer": "Tom Bradley", "votes": 71, "exif": { "camera": "Sony A7III", "focalLength": "20mm", "aperture": "f/8", "shutterSpeed": "1/100s", "iso": 400 } },
-      { "id": 310, "url": "https://picsum.photos/seed/ug10", "title": "Tessellation", "photographer": "Maria Santos", "votes": 49 },
-      { "id": 311, "url": "https://picsum.photos/seed/ug11", "title": "Neon Grid", "photographer": "James Mitchell", "votes": 55, "exif": { "camera": "Fuji X-T5", "focalLength": "23mm", "aperture": "f/2", "shutterSpeed": "1/60s", "iso": 1600 } },
-      { "id": 312, "url": "https://picsum.photos/seed/ug12", "title": "Parking Patterns", "photographer": "Ryan Hughes", "votes": 38 },
-      { "id": 313, "url": "https://picsum.photos/seed/ug13", "title": "Scaffolding", "photographer": "Karen Liu", "votes": 44 },
-      { "id": 314, "url": "https://picsum.photos/seed/ug14", "title": "Rooftop Lines", "photographer": "Alex Torres", "votes": 52, "exif": { "camera": "Nikon Z8", "focalLength": "70mm", "aperture": "f/5.6", "shutterSpeed": "1/320s", "iso": 200 } },
-      { "id": 315, "url": "https://picsum.photos/seed/ug15", "title": "Subway Tiles", "photographer": "Nina Patel", "votes": 36 },
-      { "id": 316, "url": "https://picsum.photos/seed/ug16", "title": "Angles", "photographer": "Chris Evans", "votes": 41 },
-      { "id": 317, "url": "https://picsum.photos/seed/ug17", "title": "Glass Facade", "photographer": "Yuki Sato", "votes": 60, "exif": { "camera": "Sony A1", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 } },
-      { "id": 318, "url": "https://picsum.photos/seed/ug18", "title": "Cable Web", "photographer": "Ben Walker", "votes": 33 },
-      { "id": 319, "url": "https://picsum.photos/seed/ug19", "title": "Urban Maze", "photographer": "Olivia Grant", "votes": 47, "exif": { "camera": "Canon R6 II", "focalLength": "14mm", "aperture": "f/11", "shutterSpeed": "1/60s", "iso": 400 } },
-      { "id": 320, "url": "https://picsum.photos/seed/ug20", "title": "Crosswalk", "photographer": "Sam Reeves", "votes": 50 }
+      { "id": 301, "url": "https://picsum.photos/seed/ug1", "title": "Converging Lines", "photographer": "Priya Sharma", "votes": 89, "exif": { "camera": "Canon R5", "focalLength": "16mm", "aperture": "f/11", "shutterSpeed": "1/125s", "iso": 100 }, "categoryVotes": { "theme": 32, "favorite": 28, "wildcard": 29 } },
+      { "id": 302, "url": "https://picsum.photos/seed/ug2", "title": "Steel Canyon", "photographer": "Jamal Washington", "votes": 76, "exif": { "camera": "Leica Q3", "focalLength": "28mm", "aperture": "f/5.6", "shutterSpeed": "1/250s", "iso": 200 }, "categoryVotes": { "theme": 28, "favorite": 25, "wildcard": 23 } },
+      { "id": 303, "url": "https://picsum.photos/seed/ug3", "title": "Grid Life", "photographer": "Sarah Chen", "votes": 54, "exif": { "camera": "Sony A7IV", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 }, "categoryVotes": { "theme": 20, "favorite": 18, "wildcard": 16 } },
+      { "id": 304, "url": "https://picsum.photos/seed/ug4", "title": "Spiral Staircase", "photographer": "Elena Volkov", "votes": 67, "categoryVotes": { "theme": 18, "favorite": 30, "wildcard": 19 } },
+      { "id": 305, "url": "https://picsum.photos/seed/ug5", "title": "Bridge Symmetry", "photographer": "Marcus Rivera", "votes": 45, "exif": { "camera": "Canon R6", "focalLength": "35mm", "aperture": "f/8", "shutterSpeed": "1/160s", "iso": 200 }, "categoryVotes": { "theme": 16, "favorite": 14, "wildcard": 15 } },
+      { "id": 306, "url": "https://picsum.photos/seed/ug6", "title": "Concrete Jungle", "photographer": "Aiko Tanaka", "votes": 58, "categoryVotes": { "theme": 22, "favorite": 16, "wildcard": 20 } },
+      { "id": 307, "url": "https://picsum.photos/seed/ug7", "title": "Shadow Play", "photographer": "David Okafor", "votes": 63, "exif": { "camera": "Nikon Z6II", "focalLength": "50mm", "aperture": "f/5.6", "shutterSpeed": "1/500s", "iso": 100 }, "categoryVotes": { "theme": 19, "favorite": 22, "wildcard": 22 } },
+      { "id": 308, "url": "https://picsum.photos/seed/ug8", "title": "Window Grid", "photographer": "Lisa Park", "votes": 42, "categoryVotes": { "theme": 14, "favorite": 13, "wildcard": 15 } },
+      { "id": 309, "url": "https://picsum.photos/seed/ug9", "title": "Vanishing Point", "photographer": "Tom Bradley", "votes": 71, "exif": { "camera": "Sony A7III", "focalLength": "20mm", "aperture": "f/8", "shutterSpeed": "1/100s", "iso": 400 }, "categoryVotes": { "theme": 26, "favorite": 21, "wildcard": 24 } },
+      { "id": 310, "url": "https://picsum.photos/seed/ug10", "title": "Tessellation", "photographer": "Maria Santos", "votes": 49, "categoryVotes": { "theme": 17, "favorite": 17, "wildcard": 15 } },
+      { "id": 311, "url": "https://picsum.photos/seed/ug11", "title": "Neon Grid", "photographer": "James Mitchell", "votes": 55, "exif": { "camera": "Fuji X-T5", "focalLength": "23mm", "aperture": "f/2", "shutterSpeed": "1/60s", "iso": 1600 }, "categoryVotes": { "theme": 15, "favorite": 20, "wildcard": 20 } },
+      { "id": 312, "url": "https://picsum.photos/seed/ug12", "title": "Parking Patterns", "photographer": "Ryan Hughes", "votes": 38, "categoryVotes": { "theme": 13, "favorite": 12, "wildcard": 13 } },
+      { "id": 313, "url": "https://picsum.photos/seed/ug13", "title": "Scaffolding", "photographer": "Karen Liu", "votes": 44, "categoryVotes": { "theme": 15, "favorite": 15, "wildcard": 14 } },
+      { "id": 314, "url": "https://picsum.photos/seed/ug14", "title": "Rooftop Lines", "photographer": "Alex Torres", "votes": 52, "exif": { "camera": "Nikon Z8", "focalLength": "70mm", "aperture": "f/5.6", "shutterSpeed": "1/320s", "iso": 200 }, "categoryVotes": { "theme": 17, "favorite": 19, "wildcard": 16 } },
+      { "id": 315, "url": "https://picsum.photos/seed/ug15", "title": "Subway Tiles", "photographer": "Nina Patel", "votes": 36, "categoryVotes": { "theme": 12, "favorite": 11, "wildcard": 13 } },
+      { "id": 316, "url": "https://picsum.photos/seed/ug16", "title": "Angles", "photographer": "Chris Evans", "votes": 41, "categoryVotes": { "theme": 14, "favorite": 14, "wildcard": 13 } },
+      { "id": 317, "url": "https://picsum.photos/seed/ug17", "title": "Glass Facade", "photographer": "Yuki Sato", "votes": 60, "exif": { "camera": "Sony A1", "focalLength": "24mm", "aperture": "f/8", "shutterSpeed": "1/200s", "iso": 100 }, "categoryVotes": { "theme": 21, "favorite": 19, "wildcard": 20 } },
+      { "id": 318, "url": "https://picsum.photos/seed/ug18", "title": "Cable Web", "photographer": "Ben Walker", "votes": 33, "categoryVotes": { "theme": 11, "favorite": 10, "wildcard": 12 } },
+      { "id": 319, "url": "https://picsum.photos/seed/ug19", "title": "Urban Maze", "photographer": "Olivia Grant", "votes": 47, "exif": { "camera": "Canon R6 II", "focalLength": "14mm", "aperture": "f/11", "shutterSpeed": "1/60s", "iso": 400 }, "categoryVotes": { "theme": 16, "favorite": 16, "wildcard": 15 } },
+      { "id": 320, "url": "https://picsum.photos/seed/ug20", "title": "Crosswalk", "photographer": "Sam Reeves", "votes": 50, "categoryVotes": { "theme": 18, "favorite": 15, "wildcard": 17 } }
     ],
     "winners": [
-      { "submissionId": 301, "place": 1 },
-      { "submissionId": 302, "place": 2 },
-      { "submissionId": 309, "place": 3 }
+      { "submissionId": 301, "place": 1, "category": "theme" },
+      { "submissionId": 302, "place": 2, "category": "theme" },
+      { "submissionId": 309, "place": 3, "category": "theme" },
+      { "submissionId": 304, "place": 1, "category": "favorite" },
+      { "submissionId": 301, "place": 2, "category": "favorite" },
+      { "submissionId": 302, "place": 3, "category": "favorite" },
+      { "submissionId": 301, "place": 1, "category": "wildcard" },
+      { "submissionId": 309, "place": 2, "category": "wildcard" },
+      { "submissionId": 302, "place": 3, "category": "wildcard" }
     ],
     "honorableMentions": [
-      { "submissionId": 304 },
-      { "submissionId": 307 },
-      { "submissionId": 317 }
+      { "submissionId": 306, "category": "theme" },
+      { "submissionId": 303, "category": "theme" },
+      { "submissionId": 307, "category": "favorite" },
+      { "submissionId": 309, "category": "favorite" },
+      { "submissionId": 307, "category": "wildcard" },
+      { "submissionId": 317, "category": "wildcard" }
     ]
   }
 ]
