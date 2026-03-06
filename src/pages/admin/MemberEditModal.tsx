@@ -132,7 +132,7 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
       await updateMember(memberId, {
         name: name.trim(),
         specialty: specialty.trim(),
-        leadershipRole: leadershipRole || undefined,
+        leadershipRole,
       });
       const updated = { ...original, name: name.trim(), specialty: specialty.trim(), leadershipRole };
       originalRef.current = updated;
