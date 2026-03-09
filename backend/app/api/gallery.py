@@ -12,7 +12,7 @@ from ..schemas.gallery import (
     GalleryPhotoUpdate,
     PhotoExifSchema,
 )
-from ..services.storage import save_gallery_image
+from ..services.storage import delete_uploaded_image, save_gallery_image
 from .activity import log_activity
 from .deps import get_db, require_admin
 
@@ -141,7 +141,8 @@ async def update_gallery_photo(
     photo = result.scalar_one_or_none()
     if photo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
-    if body.url is not None:
+    if body.url is not None and body.url != photo.url:
+        delete_uploaded_image(photo.url)
         photo.url = body.url
     if body.title is not None:
         photo.title = body.title
@@ -170,6 +171,7 @@ async def delete_gallery_photo(
     photo = result.scalar_one_or_none()
     if photo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
+    delete_uploaded_image(photo.url)
     await log_activity(db, admin, "delete", "gallery", str(photo_id), f"Deleted gallery photo: {photo.title}")
     await db.delete(photo)
     await db.commit()
