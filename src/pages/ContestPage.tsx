@@ -6,6 +6,7 @@ import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
 import { getContests, submitPhoto, castVote } from '../api/contests';
+import { getMembers } from '../api/members';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
 import './ContestPage.css';
@@ -295,10 +296,9 @@ function TabSubmit({
   const atLimit = userSubCount >= 3;
 
   useEffect(() => {
-    import('../data/members.json').then((mod) => {
-      const data = (mod.default ?? mod) as { members: { name: string }[] };
-      setMembers(data.members);
-    });
+    getMembers({ pageSize: 200 }).then((res) => {
+      setMembers(res.items.map((m) => ({ name: m.name })));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -373,7 +373,6 @@ function TabSubmit({
             <span>{remaining} of 3 submissions remaining</span>
           </div>
           {error && <p className="contest__submit-error">{error}</p>}
-          <p className="contest__submit-disclaimer">Submissions cannot be changed once submitted.</p>
 
           <div
             className={`contest__dropzone${dragging ? ' contest__dropzone--active' : ''}${preview ? ' contest__dropzone--has-preview' : ''}${atLimit ? ' contest__dropzone--disabled' : ''}`}
@@ -460,6 +459,7 @@ function TabSubmit({
           >
             {submitting ? 'Submitting...' : atLimit ? 'Submission Limit Reached' : 'Submit Photo'}
           </button>
+          <p className="contest__submit-disclaimer">Submissions cannot be changed once submitted.</p>
         </form>
       )}
     </div>
