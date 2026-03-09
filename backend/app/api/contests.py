@@ -26,7 +26,7 @@ from ..schemas.contest import (
     HonorableMentionSchema,
     SubmissionExifSchema,
 )
-from ..services.storage import save_submission_image
+from ..services.storage import delete_uploaded_image, save_submission_image
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
 
@@ -314,6 +314,8 @@ async def delete_contest(
     contest = result.scalar_one_or_none()
     if contest is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    for sub in contest.submissions:
+        delete_uploaded_image(sub.url)
     await log_activity(db, admin, "delete", "contest", str(contest_id), f"Deleted contest: {contest.theme}")
     await db.delete(contest)
     await db.commit()
@@ -393,6 +395,7 @@ async def delete_submission(
     submission = result.scalar_one_or_none()
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    delete_uploaded_image(submission.url)
     await db.delete(submission)
     await db.commit()
 
