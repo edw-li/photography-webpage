@@ -1,12 +1,12 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
 import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
 import { getContests, submitPhoto, castVote } from '../api/contests';
-import { getMembers } from '../api/members';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
 import './ContestPage.css';
@@ -161,10 +161,12 @@ function TabBar({
   tabs,
   activeTab,
   onTabChange,
+  isAuthenticated = true,
 }: {
   tabs: TabDef[];
   activeTab: TabId;
   onTabChange: (id: TabId) => void;
+  isAuthenticated?: boolean;
 }) {
   const tabListRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
@@ -217,16 +219,18 @@ function TabBar({
     <div className="contest__tab-bar" ref={tabListRef} role="tablist" onKeyDown={handleKeyDown}>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
+        const isDisabled = !isAuthenticated && (tab.id === 'submit' || tab.id === 'vote');
         return (
           <button
             key={tab.id}
-            className={`contest__tab${isActive ? ' contest__tab--active' : ''}`}
+            className={`contest__tab${isActive ? ' contest__tab--active' : ''}${isDisabled ? ' contest__tab--disabled' : ''}`}
             role="tab"
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             data-tab-id={tab.id}
             onClick={() => onTabChange(tab.id)}
           >
+            {isDisabled && <Lock size={12} />}
             {tab.label}
           </button>
         );
@@ -245,8 +249,6 @@ function TabSubmit({
   setFile,
   title,
   setTitle,
-  author,
-  setAuthor,
   camera,
   setCamera,
   focalLength,
@@ -267,8 +269,6 @@ function TabSubmit({
   setFile: (f: File | null) => void;
   title: string;
   setTitle: (v: string) => void;
-  author: string;
-  setAuthor: (v: string) => void;
   camera: string;
   setCamera: (v: string) => void;
   focalLength: string;
@@ -283,8 +283,7 @@ function TabSubmit({
   setSubmitted: (v: boolean) => void;
   onContestRefresh: () => void;
 }) {
-  const { isAuthenticated } = useAuth();
-  const [members, setMembers] = useState<{ name: string }[]>([]);
+  const { isAuthenticated, user } = useAuth();
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -296,19 +295,13 @@ function TabSubmit({
   const atLimit = userSubCount >= 3;
 
   useEffect(() => {
-    getMembers({ pageSize: 200 }).then((res) => {
-      setMembers(res.items.map((m) => ({ name: m.name })));
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (!file) { setPreview(null); return; }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const canSubmit = file !== null && title.trim() !== '' && author !== '' && !atLimit;
+  const canSubmit = file !== null && title.trim() !== '' && !atLimit;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -332,7 +325,7 @@ function TabSubmit({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title.trim());
-      formData.append('photographer', author);
+      formData.append('photographer', `${user!.firstName} ${user!.lastName}`);
       if (camera.trim()) formData.append('exif_camera', camera.trim());
       if (focalLength.trim()) formData.append('exif_focal_length', focalLength.trim());
       if (aperture.trim()) formData.append('exif_aperture', aperture.trim());
@@ -354,6 +347,9 @@ function TabSubmit({
         <div className="contest__submit-success">
           <Camera size={48} />
           <p>Log in to submit your photos</p>
+          <Link to="/login" className="contest__modal-btn" onClick={onClose}>
+            Log In
+          </Link>
         </div>
       </div>
     );
@@ -409,21 +405,6 @@ function TabSubmit({
               placeholder="Give your photo a title"
               disabled={atLimit}
             />
-          </label>
-
-          <label className="contest__form-label">
-            <span>Author <span className="contest__required">*</span></span>
-            <select
-              className="contest__form-input contest__form-select"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              disabled={atLimit}
-            >
-              <option value="">Select a member</option>
-              {members.map((m) => (
-                <option key={m.name} value={m.name}>{m.name}</option>
-              ))}
-            </select>
           </label>
 
           <fieldset className="contest__exif-group" disabled={atLimit}>
@@ -568,6 +549,9 @@ function TabVote({
         <div className="contest__submit-success">
           <Camera size={48} />
           <p>Log in to vote</p>
+          <Link to="/login" className="contest__modal-btn" onClick={onClose}>
+            Log In
+          </Link>
         </div>
       </div>
     );
@@ -1092,6 +1076,7 @@ function ContestModal({
   onClose: () => void;
   onContestRefresh: () => void;
 }) {
+  const { isAuthenticated } = useAuth();
   const tabs = TABS_BY_STATUS[contest.status];
   const refTab = HEIGHT_REF_TAB[contest.status];
   const [activeTab, setActiveTab] = useState<TabId>(refTab);
@@ -1099,7 +1084,6 @@ function ContestModal({
   // Lifted submission form state
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
   const [camera, setCamera] = useState('');
   const [focalLength, setFocalLength] = useState('');
   const [aperture, setAperture] = useState('');
@@ -1133,7 +1117,7 @@ function ContestModal({
         {modalTitle}
       </h2>
 
-      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} isAuthenticated={isAuthenticated} />
 
       <div
         className="contest__tab-content"
@@ -1149,8 +1133,6 @@ function ContestModal({
             setFile={setFile}
             title={title}
             setTitle={setTitle}
-            author={author}
-            setAuthor={setAuthor}
             camera={camera}
             setCamera={setCamera}
             focalLength={focalLength}
