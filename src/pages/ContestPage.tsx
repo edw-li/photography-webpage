@@ -521,7 +521,7 @@ function TabVote({
   };
 
   const currentSelectionCount = currentCategory ? selections[currentCategory].size : 0;
-  const canGoNext = currentCategory ? currentSelectionCount >= 1 : false;
+  const canGoNext = currentCategory !== null;
 
   const handleCastVotes = async () => {
     setSubmittingVote(true);
@@ -655,6 +655,10 @@ function TabVote({
             </div>
           ))}
         </div>
+      )}
+
+      {isReviewStep && (
+        <p className="contest__submit-disclaimer">Once submitted, your vote cannot be changed.</p>
       )}
 
       {/* Wizard footer */}

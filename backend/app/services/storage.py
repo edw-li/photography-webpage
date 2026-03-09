@@ -213,11 +213,16 @@ async def save_gallery_image(file: UploadFile) -> str:
     return await save_uploaded_image(file, "gallery")
 
 
-async def save_submission_image(contest_id: int, file: UploadFile) -> str:
+async def save_submission_image(contest_month: str, file: UploadFile) -> str:
     """Save uploaded contest submission image, return URL."""
+    from datetime import datetime as dt
+
+    parsed = dt.strptime(contest_month, "%B %Y")
+    folder_name = parsed.strftime("%Y-%m")
+
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
-    category = f"submissions/{contest_id}"
+    category = f"submissions/{folder_name}"
     content = await file.read()
 
     if settings.oci_configured:
