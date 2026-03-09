@@ -466,9 +466,10 @@
 
 .contest__file-input {
   position: absolute;
-  inset: 0;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
 }
 
 /* Form fields */
