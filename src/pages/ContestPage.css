@@ -1298,10 +1298,12 @@
 
 .contest__carousel {
   position: relative;
+  overflow: hidden;
 }
 
 .contest__carousel-slide {
-  animation: carouselFadeIn 0.35s ease;
+  animation: carouselFadeIn 0.45s ease;
+  padding: 0 1rem;
 }
 
 .contest__carousel-category-label {
@@ -1336,11 +1338,11 @@
 }
 
 .contest__carousel-arrow--left {
-  left: -8px;
+  left: 4px;
 }
 
 .contest__carousel-arrow--right {
-  right: -8px;
+  right: 4px;
 }
 
 .contest__carousel-dots {
@@ -1376,8 +1378,8 @@
 }
 
 @keyframes carouselFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 /* =============================================

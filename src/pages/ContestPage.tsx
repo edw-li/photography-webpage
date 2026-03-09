@@ -817,13 +817,10 @@ function TabGallery({ contest }: { contest: Contest }) {
 
 function TabPodium({ contest }: { contest: Contest }) {
   const categories = useMemo<VoteCategory[]>(() => {
-    if (!contest.winners) return [];
-    const cats = new Set<VoteCategory>();
-    for (const w of contest.winners) {
-      cats.add((w.category || 'theme') as VoteCategory);
-    }
-    return [...cats];
-  }, [contest.winners]);
+    const cats: VoteCategory[] = ['theme', 'favorite'];
+    if (contest.wildcardCategory) cats.push('wildcard');
+    return cats;
+  }, [contest.wildcardCategory]);
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -890,12 +887,15 @@ function TabPodium({ contest }: { contest: Contest }) {
           </button>
         )}
 
-        <div className="contest__carousel-slide contest__carousel-slide--active">
+        <div key={currentCat} className="contest__carousel-slide contest__carousel-slide--active">
           <h3 className="contest__carousel-category-label">
             {getCategoryLabel(currentCat, contest.wildcardCategory)}
           </h3>
 
           <div className="contest__podium-stage">
+            {winnersForCat.length === 0 && (
+              <p className="contest__modal-subtitle">No winners announced for this category.</p>
+            )}
             {winnersForCat.map((p) => (
               <div
                 key={p.id}
@@ -910,7 +910,7 @@ function TabPodium({ contest }: { contest: Contest }) {
                 </span>
                 <span className="contest__podium-title">{p.title}</span>
                 <span className="contest__podium-photographer">{p.photographer}</span>
-                <span className="contest__podium-votes">{p.votes ?? 0} votes</span>
+                <span className="contest__podium-votes">{(p.categoryVotes ? p.categoryVotes[currentCat] : (p.votes ?? 0))} votes</span>
               </div>
             ))}
           </div>
