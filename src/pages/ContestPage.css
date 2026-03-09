@@ -362,6 +362,14 @@
   color: var(--color-accent);
 }
 
+.contest__tab--disabled {
+  opacity: 0.5;
+  cursor: default;
+  gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 .contest__tab:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
