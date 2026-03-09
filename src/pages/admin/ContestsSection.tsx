@@ -19,6 +19,10 @@ const nextStatus: Record<string, string> = {
   active: 'voting',
   voting: 'completed',
 };
+const prevStatus: Record<string, string> = {
+  voting: 'active',
+  completed: 'voting',
+};
 
 const emptyForm = {
   month: '',
@@ -212,24 +216,34 @@ export default function ContestsSection() {
                     {c.submissionCount} subs
                   </button>
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {nextStatus[c.status] && (
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    {prevStatus[c.status] && (
+                      <button
+                        className="admin__action-btn"
+                        onClick={() => setStatusTarget({ contest: c, newStatus: prevStatus[c.status] })}
+                      >
+                        &larr; {prevStatus[c.status]}
+                      </button>
+                    )}
+                    {nextStatus[c.status] && (
+                      <button
+                        className="admin__action-btn"
+                        onClick={() => setStatusTarget({ contest: c, newStatus: nextStatus[c.status] })}
+                      >
+                        &rarr; {nextStatus[c.status]}
+                      </button>
+                    )}
                     <button
                       className="admin__action-btn"
-                      onClick={() => setStatusTarget({ contest: c, newStatus: nextStatus[c.status] })}
+                      onClick={() => openEdit(c)}
+                      disabled={loadingId === c.id}
+                      style={loadingId === c.id ? { opacity: 0.6 } : undefined}
                     >
-                      &rarr; {nextStatus[c.status]}
+                      Edit
                     </button>
-                  )}
-                  <button
-                    className="admin__action-btn"
-                    onClick={() => openEdit(c)}
-                    disabled={loadingId === c.id}
-                    style={loadingId === c.id ? { opacity: 0.6 } : undefined}
-                  >
-                    Edit
-                  </button>
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(c)}>Delete</button>
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(c)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -353,10 +367,19 @@ export default function ContestsSection() {
 
       {statusTarget && (
         <ConfirmDialog
-          title="Advance Status"
-          message={statusTarget.newStatus === 'completed'
-            ? `Move "${statusTarget.contest.theme}" to completed? Winners will be auto-calculated from votes.`
-            : `Move "${statusTarget.contest.theme}" to ${statusTarget.newStatus}?`
+          title={
+            prevStatus[statusTarget.contest.status] === statusTarget.newStatus
+              ? 'Revert Status'
+              : 'Advance Status'
+          }
+          message={
+            statusTarget.newStatus === 'completed'
+              ? `Move "${statusTarget.contest.theme}" to completed? Winners will be auto-calculated from votes.`
+              : statusTarget.newStatus === 'active' && statusTarget.contest.status === 'voting'
+                ? `Move "${statusTarget.contest.theme}" back to active (submissions)?`
+                : statusTarget.newStatus === 'voting' && statusTarget.contest.status === 'completed'
+                  ? `Move "${statusTarget.contest.theme}" back to voting? Existing winners will be cleared.`
+                  : `Move "${statusTarget.contest.theme}" to ${statusTarget.newStatus}?`
           }
           confirmLabel={`Move to ${statusTarget.newStatus}`}
           loading={advancing}

@@ -2,7 +2,7 @@ import math
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
-from sqlalchemy import select, func
+from sqlalchemy import case, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -183,7 +183,13 @@ async def list_all_contests(
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
-    result = await db.execute(select(Contest).order_by(Contest.id))
+    status_order = case(
+        (Contest.status == "active", 0),
+        (Contest.status == "voting", 1),
+        (Contest.status == "completed", 2),
+        else_=3,
+    )
+    result = await db.execute(select(Contest).order_by(status_order, Contest.deadline.asc()))
     contests = result.scalars().unique().all()
     return [await _contest_to_response(c, db, user) for c in contests]
 
@@ -197,8 +203,14 @@ async def list_contests(
     count_result = await db.execute(select(func.count()).select_from(Contest))
     total = count_result.scalar_one()
 
+    status_order = case(
+        (Contest.status == "active", 0),
+        (Contest.status == "voting", 1),
+        (Contest.status == "completed", 2),
+        else_=3,
+    )
     result = await db.execute(
-        select(Contest).order_by(Contest.id).offset((page - 1) * page_size).limit(page_size)
+        select(Contest).order_by(status_order, Contest.deadline.asc()).offset((page - 1) * page_size).limit(page_size)
     )
     contests = result.scalars().unique().all()
 
@@ -279,6 +291,13 @@ async def update_contest(
     if old_status == "voting" and contest.status == "completed":
         await _auto_calculate_winners(contest, db)
 
+    # Clear winners when reverting from completed
+    if old_status == "completed" and contest.status in ("voting", "active"):
+        contest.winners = None
+        contest.honorable_mentions = None
+        for sub in contest.submissions:
+            sub.vote_count = 0
+
     await log_activity(db, admin, "update", "contest", str(contest_id), f"Updated contest: {contest.theme}")
     await db.commit()
     await db.refresh(contest)
@@ -338,7 +357,7 @@ async def create_submission(
             detail=f"Maximum {MAX_SUBMISSIONS_PER_USER} submissions per person",
         )
 
-    url = await save_submission_image(contest_id, file)
+    url = await save_submission_image(contest.month, file)
 
     submission = ContestSubmission(
         contest_id=contest_id,
