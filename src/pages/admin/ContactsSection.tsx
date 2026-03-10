@@ -124,19 +124,21 @@ export default function ContactsSection() {
                     {c.replied ? 'Replied' : 'Pending'}
                   </span>
                 </td>
-                <td>
-                  <button
-                    className="admin__action-btn admin__action-btn--accent"
-                    onClick={() => openReply(c)}
-                  >
-                    {c.replied ? 'Reply Again' : 'Reply'}
-                  </button>
-                  <button
-                    className="admin__action-btn admin__action-btn--danger"
-                    onClick={() => setDeleteTarget(c)}
-                  >
-                    Delete
-                  </button>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <button
+                      className="admin__action-btn admin__action-btn--accent"
+                      onClick={() => openReply(c)}
+                    >
+                      {c.replied ? 'Reply Again' : 'Reply'}
+                    </button>
+                    <button
+                      className="admin__action-btn admin__action-btn--danger"
+                      onClick={() => setDeleteTarget(c)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
