@@ -26,6 +26,7 @@ from ..schemas.contest import (
     HonorableMentionSchema,
     SubmissionExifSchema,
 )
+from ..models.gallery import GalleryPhoto
 from ..services.storage import delete_uploaded_image, save_submission_image
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
@@ -175,6 +176,50 @@ async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
         sub.vote_count = total_votes.get(sub.id, 0)
 
 
+async def _populate_gallery_from_contest(contest: Contest, db: AsyncSession) -> None:
+    """Create gallery entries for contest submissions after completion."""
+    # Build winner map: submission_id -> (best_place, category)
+    winner_map: dict[int, tuple[int, str]] = {}
+    if contest.winners:
+        for w in contest.winners:
+            sid = w["submissionId"]
+            place = w["place"]
+            cat = w.get("category", "theme")
+            if sid not in winner_map or place < winner_map[sid][0]:
+                winner_map[sid] = (place, cat)
+
+    # Find existing gallery entries for this contest to avoid duplicates
+    existing_result = await db.execute(
+        select(GalleryPhoto.contest_submission_id).where(
+            GalleryPhoto.contest_id == contest.id,
+            GalleryPhoto.contest_submission_id.isnot(None),
+        )
+    )
+    existing_sub_ids = {row[0] for row in existing_result}
+
+    for sub in contest.submissions:
+        if sub.id in existing_sub_ids:
+            continue
+        is_winner = sub.id in winner_map
+        place, category = winner_map[sub.id] if is_winner else (None, None)
+        photo = GalleryPhoto(
+            url=sub.url,
+            title=sub.title,
+            photographer=sub.photographer,
+            exif_camera=sub.exif_camera,
+            exif_focal_length=sub.exif_focal_length,
+            exif_iso=sub.exif_iso,
+            exif_aperture=sub.exif_aperture,
+            exif_shutter_speed=sub.exif_shutter_speed,
+            contest_id=contest.id,
+            contest_submission_id=sub.id,
+            is_winner=is_winner,
+            winner_place=place,
+            winner_category=category,
+        )
+        db.add(photo)
+
+
 # --- Contest CRUD ---
 
 
@@ -290,6 +335,7 @@ async def update_contest(
     # Auto-calculate winners when advancing from voting to completed
     if old_status == "voting" and contest.status == "completed":
         await _auto_calculate_winners(contest, db)
+        await _populate_gallery_from_contest(contest, db)
 
     # Clear winners when reverting from completed
     if old_status == "completed" and contest.status in ("voting", "active"):
@@ -297,6 +343,12 @@ async def update_contest(
         contest.honorable_mentions = None
         for sub in contest.submissions:
             sub.vote_count = 0
+        # Remove gallery entries for this contest
+        gallery_result = await db.execute(
+            select(GalleryPhoto).where(GalleryPhoto.contest_id == contest.id)
+        )
+        for gp in gallery_result.scalars().all():
+            await db.delete(gp)
 
     await log_activity(db, admin, "update", "contest", str(contest_id), f"Updated contest: {contest.theme}")
     await db.commit()

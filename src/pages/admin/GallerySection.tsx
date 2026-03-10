@@ -4,6 +4,7 @@ import {
   createGalleryPhoto,
   updateGalleryPhoto,
   deleteGalleryPhoto,
+  toggleGalleryVisibility,
 } from '../../api/gallery';
 import { getMembers } from '../../api/members';
 import type { GalleryPhoto } from '../../types/gallery';
@@ -75,7 +76,7 @@ export default function GallerySection() {
   const load = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const data = await getGalleryPhotos(p, pageSize);
+      const data = await getGalleryPhotos(p, pageSize, { winnersOnly: false, includeHidden: true });
       setItems(data.items);
       setTotal(data.total);
       setPages(data.pages);
@@ -176,6 +177,22 @@ export default function GallerySection() {
     setDeleting(false);
   };
 
+  const handleVisibilityToggle = async (photo: GalleryPhoto) => {
+    const originalVisible = photo.visible ?? true;
+    setItems((prev) =>
+      prev.map((p) => (p.id === photo.id ? { ...p, visible: !originalVisible } : p))
+    );
+    try {
+      await toggleGalleryVisibility(photo.id);
+      addToast('success', `Photo ${originalVisible ? 'hidden' : 'shown'}`);
+    } catch {
+      setItems((prev) =>
+        prev.map((p) => (p.id === photo.id ? { ...p, visible: originalVisible } : p))
+      );
+      addToast('error', 'Failed to toggle visibility');
+    }
+  };
+
   const filtered = search
     ? items.filter((p) =>
         p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -194,7 +211,7 @@ export default function GallerySection() {
       <div className="admin__table-wrap">
         <table className="admin__table">
           <thead>
-            <tr><th style={{ width: 60 }}>Thumb</th><th>Title</th><th>Photographer</th><th>EXIF</th><th>Actions</th></tr>
+            <tr><th style={{ width: 60 }}>Thumb</th><th>Title</th><th>Photographer</th><th>Source</th><th>Visible</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {filtered.map((p) => (
@@ -202,8 +219,22 @@ export default function GallerySection() {
                 <td><GalleryThumb src={p.url} alt={p.title} /></td>
                 <td>{p.title}</td>
                 <td>{p.photographer}</td>
-                <td style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  {p.exif?.camera || '—'}
+                <td>
+                  {p.contestId ? (
+                    <span className="admin__badge admin__badge--active">
+                      Contest{p.isWinner && p.winnerPlace ? ` #${p.winnerPlace}` : ''}
+                    </span>
+                  ) : (
+                    <span className="admin__badge admin__badge--member">Manual</span>
+                  )}
+                </td>
+                <td>
+                  <button
+                    className={`admin__visibility-toggle${(p.visible ?? true) ? ' admin__visibility-toggle--on' : ''}`}
+                    onClick={() => handleVisibilityToggle(p)}
+                  >
+                    {(p.visible ?? true) ? 'Shown' : 'Hidden'}
+                  </button>
                 </td>
                 <td style={{ display: 'flex', gap: '0.5rem' }}>
                   <button className="admin__action-btn" onClick={() => openEdit(p)}>Edit</button>
@@ -212,7 +243,7 @@ export default function GallerySection() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No photos yet</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>No photos yet</td></tr>
             )}
           </tbody>
         </table>
