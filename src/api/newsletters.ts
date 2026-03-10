@@ -39,6 +39,15 @@ export interface NewsletterCreateData {
   preview: string;
   featured: boolean;
   bodyMd: string;
+  sendToSubscribers?: boolean;
+}
+
+export interface NewsletterSendResult {
+  newsletterId: string;
+  totalSubscribers: number;
+  sentCount: number;
+  failedCount: number;
+  emailedAt: string;
 }
 
 export async function createNewsletter(data: NewsletterCreateData): Promise<Newsletter> {
@@ -57,6 +66,12 @@ export async function updateNewsletter(id: string, data: Partial<NewsletterCreat
 
 export async function deleteNewsletter(id: string): Promise<void> {
   await apiFetch(`/newsletters/${id}`, { method: 'DELETE' });
+}
+
+export async function sendNewsletter(id: string): Promise<NewsletterSendResult> {
+  return apiFetch<NewsletterSendResult>(`/newsletters/${id}/send`, {
+    method: 'POST',
+  });
 }
 
 interface SubscribeData {

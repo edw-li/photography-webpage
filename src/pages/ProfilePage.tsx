@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updateSamplePhotoCaptions } from '../api/auth';
+import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updateSamplePhotoCaptions, getSubscriptionStatus, updateSubscription } from '../api/auth';
 import type { SocialLinks } from '../types/members';
 import ImageUploadField from '../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
@@ -41,6 +41,11 @@ export default function ProfilePage() {
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
   const [photoItems, setPhotoItems] = useState<ImageWithCaption[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Newsletter subscription state
+  const [subscribed, setSubscribed] = useState(false);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [togglingSubscription, setTogglingSubscription] = useState(false);
 
   // Per-section saving state
   const [savingPersonal, setSavingPersonal] = useState(false);
@@ -127,6 +132,11 @@ export default function ProfilePage() {
         })
         .catch(() => addToast('error', 'Failed to load profile'))
         .finally(() => setLoadingProfile(false));
+
+      getSubscriptionStatus()
+        .then((data) => setSubscribed(data.subscribed))
+        .catch(() => {})
+        .finally(() => setLoadingSubscription(false));
     }
   }, [loading, isAuthenticated, navigate, addToast]);
 
@@ -279,6 +289,20 @@ export default function ProfilePage() {
         return orig !== undefined ? { ...item, caption: orig } : item;
       }),
     );
+  };
+
+  // Newsletter subscription toggle
+  const toggleSubscription = async () => {
+    setTogglingSubscription(true);
+    try {
+      const result = await updateSubscription(!subscribed);
+      setSubscribed(result.subscribed);
+      addToast('success', result.subscribed ? 'Subscribed to newsletter' : 'Unsubscribed from newsletter');
+    } catch {
+      addToast('error', 'Failed to update subscription');
+    } finally {
+      setTogglingSubscription(false);
+    }
   };
 
   // Social link helpers
@@ -475,6 +499,26 @@ export default function ProfilePage() {
               {savingSocial ? 'Saving...' : 'Save'}
             </button>
           </div>
+        </div>
+
+        {/* Newsletter Subscription */}
+        <div className="profile-section">
+          <h2>Newsletter Subscription</h2>
+          <div className="profile-subscription-row">
+            <span>Receive newsletter emails</span>
+            <button
+              type="button"
+              className={`profile-toggle${subscribed ? ' profile-toggle--active' : ''}`}
+              onClick={toggleSubscription}
+              disabled={loadingSubscription || togglingSubscription}
+              aria-label={subscribed ? 'Unsubscribe from newsletter' : 'Subscribe to newsletter'}
+            >
+              <span className="profile-toggle__thumb" />
+            </button>
+          </div>
+          <p className="profile-section__hint">
+            {subscribed ? 'You are subscribed to the newsletter.' : 'You are not subscribed to the newsletter.'}
+          </p>
         </div>
 
         {/* Sample Photos */}

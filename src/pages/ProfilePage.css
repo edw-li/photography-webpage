@@ -234,6 +234,54 @@
   color: var(--color-accent);
 }
 
+/* Newsletter subscription toggle */
+.profile-subscription-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.profile-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--color-border);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.profile-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-toggle--active {
+  background: var(--color-accent);
+}
+
+.profile-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  display: block;
+}
+
+.profile-toggle--active .profile-toggle__thumb {
+  transform: translateX(20px);
+}
+
 /* Per-section actions */
 .profile-section__actions {
   display: flex;

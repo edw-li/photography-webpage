@@ -15,6 +15,7 @@ class NewsletterResponse(CamelModel):
     featured: bool
     html: str
     body_md: str
+    emailed_at: datetime | None = None
 
 
 class NewsletterCreate(CamelModel):
@@ -26,6 +27,15 @@ class NewsletterCreate(CamelModel):
     preview: str
     featured: bool = False
     body_md: str
+    send_to_subscribers: bool = False
+
+
+class NewsletterSendResponse(CamelModel):
+    newsletter_id: str
+    total_subscribers: int
+    sent_count: int
+    failed_count: int
+    emailed_at: datetime
 
 
 class NewsletterUpdate(CamelModel):

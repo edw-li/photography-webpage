@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.user import User
 from ..models.member import Member, SocialLink, SamplePhoto
-from ..schemas.common import PaginatedResponse
+from ..models.subscriber import NewsletterSubscriber
+from ..schemas.common import CamelModel, PaginatedResponse
 from ..schemas.user import (
     ForgotPasswordRequest,
     MessageResponse,
@@ -82,6 +83,21 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
         avatar_url="DEFAULT",
     )
     db.add(member)
+
+    # Auto-subscribe to newsletter
+    sub_result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.email == body.email)
+    )
+    existing_sub = sub_result.scalar_one_or_none()
+    if existing_sub is None:
+        db.add(NewsletterSubscriber(
+            email=body.email,
+            name=f"{body.first_name} {body.last_name}",
+        ))
+    elif not existing_sub.is_active:
+        existing_sub.is_active = True
+        existing_sub.name = f"{body.first_name} {body.last_name}"
+
     await db.commit()
     await db.refresh(user)
     return TokenResponse(
@@ -348,6 +364,50 @@ async def update_sample_photo_captions(
 
     await db.commit()
     return {"detail": "Captions updated"}
+
+
+class SubscriptionToggle(CamelModel):
+    subscribed: bool
+
+
+@router.get("/subscription-status")
+async def get_subscription_status(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email)
+    )
+    subscriber = result.scalar_one_or_none()
+    return {"subscribed": subscriber is not None and subscriber.is_active}
+
+
+@router.put("/subscription")
+async def update_subscription(
+    body: SubscriptionToggle,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email)
+    )
+    subscriber = result.scalar_one_or_none()
+
+    if body.subscribed:
+        if subscriber is None:
+            # Get member name if available
+            member_result = await db.execute(select(Member).where(Member.user_id == user.id))
+            member = member_result.scalar_one_or_none()
+            name = member.name if member else f"{user.first_name} {user.last_name}"
+            db.add(NewsletterSubscriber(email=user.email, name=name))
+        elif not subscriber.is_active:
+            subscriber.is_active = True
+    else:
+        if subscriber is not None and subscriber.is_active:
+            subscriber.is_active = False
+
+    await db.commit()
+    return {"subscribed": body.subscribed}
 
 
 @router.get("/users", response_model=PaginatedResponse[UserResponse])
