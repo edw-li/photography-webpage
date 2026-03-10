@@ -19,5 +19,20 @@ export function useImageLoaded(src: string | undefined) {
     setLoaded(true);
   }, []);
 
-  return { loaded, errored, handleLoad, handleError };
+  const imgRef = useCallback(
+    (el: HTMLImageElement | null) => {
+      if (el?.complete) {
+        if (el.naturalWidth === 0) {
+          setErrored(true);
+          setLoaded(true);
+        } else {
+          setLoaded(true);
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [src],
+  );
+
+  return { loaded, errored, handleLoad, handleError, imgRef };
 }

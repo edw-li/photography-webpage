@@ -49,7 +49,7 @@ function shortenSpecialty(s: string): string {
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const isBroken = !member.avatar || member.avatar === 'DEFAULT';
   const avatarUrl = isBroken ? undefined : member.avatar;
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(avatarUrl);
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(avatarUrl);
   return (
     <div className="members__card members__card--clickable" onClick={onClick}>
       <div className={`members__avatar${!loaded && !isBroken ? ' shimmer-bg' : ''}`}>
@@ -57,6 +57,7 @@ function MemberCard({ member, onClick }: { member: Member; onClick: () => void }
           <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src={avatarUrl}
             alt={member.name}
             loading="lazy"

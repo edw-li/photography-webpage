@@ -67,13 +67,14 @@ const IMAGE_OFF_ICON = (
 );
 
 function CarouselSlide({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(src);
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(src);
   return (
     <div className={`members__carousel-slide${!loaded ? ' shimmer-bg' : ''}`}>
       {errored ? (
         <div className="img-error-fallback" style={{ aspectRatio: '4/3' }}>{IMAGE_OFF_ICON}</div>
       ) : (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
@@ -105,7 +106,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
     }
   };
   const avatarUrl = member?.avatar ? member.avatar : undefined;
-  const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError } = useImageLoaded(avatarUrl);
+  const { loaded: avatarLoaded, errored: avatarErrored, handleLoad: onAvatarLoad, handleError: onAvatarError, imgRef: avatarRef } = useImageLoaded(avatarUrl);
 
   const photos = member?.samplePhotos ?? [];
   const hasPhotos = photos.length > 0;
@@ -206,6 +207,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
               <div className="img-error-fallback">{IMAGE_OFF_ICON}</div>
             ) : (
               <img
+                ref={avatarRef}
                 src={avatarUrl}
                 alt={member.name}
                 className={`img-fade${avatarLoaded ? ' img-fade--loaded' : ''}`}

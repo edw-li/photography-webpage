@@ -36,7 +36,7 @@ function GalleryItem({
   onKeyDown: (e: React.KeyboardEvent) => void;
   ariaLabel: string;
 }) {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(getImageUrl(photo.url, 'medium'));
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(getImageUrl(photo.url, 'medium'));
   return (
     <div
       className={`gallery__item${!loaded ? ' shimmer-bg' : ''}`}
@@ -57,6 +57,7 @@ function GalleryItem({
         </div>
       ) : (
         <img
+          ref={imgRef}
           src={getImageUrl(photo.url, 'medium')}
           alt={photo.title}
           loading="lazy"
@@ -103,7 +104,7 @@ function GalleryLightbox({
       setIsClosing(true);
     }
   };
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(getImageUrl(photo.url, 'full'));
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(getImageUrl(photo.url, 'full'));
 
   const [prevPhoto, setPrevPhoto] = useState<GalleryPhoto | null>(null);
   const prevIndexRef = useRef(index);
@@ -251,6 +252,7 @@ function GalleryLightbox({
             </div>
           ) : (
             <img
+              ref={imgRef}
               key={photo.url}
               className={`gallery__lightbox-img${fadeIn ? ' gallery__lightbox-img--loaded' : ''}`}
               src={getImageUrl(photo.url, 'full')}
