@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import AdminFormModal from '../../components/AdminFormModal';
 import type { ContactItem, Paginated } from './types';
 import { formatDate } from './types';
 import Pagination from './Pagination';
@@ -17,6 +18,9 @@ export default function ContactsSection() {
   const [deleteTarget, setDeleteTarget] = useState<ContactItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [viewItem, setViewItem] = useState<ContactItem | null>(null);
+  const [replyTarget, setReplyTarget] = useState<ContactItem | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+  const [sending, setSending] = useState(false);
   const pageSize = 20;
 
   const load = useCallback(async (p: number) => {
@@ -48,6 +52,33 @@ export default function ContactsSection() {
     setDeleting(false);
   };
 
+  const openReply = (c: ContactItem) => {
+    setReplyTarget(c);
+    setReplyBody(c.replyMessage || '');
+  };
+
+  const handleReply = async () => {
+    if (!replyTarget) return;
+    if (!replyBody.trim()) {
+      addToast('error', 'Reply cannot be empty');
+      return;
+    }
+    setSending(true);
+    try {
+      await apiFetch(`/contact/${replyTarget.id}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ replyBody: replyBody.trim() }),
+      });
+      addToast('success', `Reply sent to ${replyTarget.email}`);
+      setReplyTarget(null);
+      setReplyBody('');
+      load(page);
+    } catch {
+      addToast('error', 'Failed to send reply');
+    }
+    setSending(false);
+  };
+
   const filtered = search
     ? items.filter((c) =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,7 +102,7 @@ export default function ContactsSection() {
       <div className="admin__table-wrap">
         <table className="admin__table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Action</th></tr>
+            <tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {filtered.map((c) => (
@@ -89,6 +120,17 @@ export default function ContactsSection() {
                 </td>
                 <td>{formatDate(c.createdAt)}</td>
                 <td>
+                  <span className={`admin__badge ${c.replied ? 'admin__badge--active' : 'admin__badge--inactive'}`}>
+                    {c.replied ? 'Replied' : 'Pending'}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="admin__action-btn admin__action-btn--accent"
+                    onClick={() => openReply(c)}
+                  >
+                    {c.replied ? 'Reply Again' : 'Reply'}
+                  </button>
                   <button
                     className="admin__action-btn admin__action-btn--danger"
                     onClick={() => setDeleteTarget(c)}
@@ -99,7 +141,7 @@ export default function ContactsSection() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No submissions yet</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>No submissions yet</td></tr>
             )}
           </tbody>
         </table>
@@ -118,6 +160,37 @@ export default function ContactsSection() {
         />
       )}
 
+      {replyTarget && (
+        <AdminFormModal
+          title={`Reply to ${replyTarget.name}`}
+          onClose={() => { setReplyTarget(null); setReplyBody(''); }}
+          onSave={handleReply}
+          saving={sending}
+          saveLabel="Send"
+        >
+          <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: 'var(--color-surface, #f5f5f5)', borderRadius: 6, fontSize: '0.85rem', color: 'var(--color-text-muted, #888)' }}>
+            <strong>Original message:</strong>
+            <p style={{ margin: '0.5rem 0 0', whiteSpace: 'pre-wrap' }}>{replyTarget.message}</p>
+          </div>
+          {replyTarget.replied && replyTarget.repliedAt && (
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #888)', marginBottom: '0.75rem' }}>
+              Previously replied on {formatDate(replyTarget.repliedAt)} by {replyTarget.repliedBy}
+            </p>
+          )}
+          <label className="afm-label">Your reply</label>
+          <textarea
+            className="afm-textarea"
+            rows={6}
+            value={replyBody}
+            onChange={(e) => setReplyBody(e.target.value)}
+            placeholder="Type your reply..."
+          />
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #888)', marginTop: '0.25rem' }}>
+            The visitor's original message will be included below your reply for context.
+          </p>
+        </AdminFormModal>
+      )}
+
       {viewItem && (
         <div className="confirm-overlay" onClick={() => setViewItem(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
@@ -126,6 +199,14 @@ export default function ContactsSection() {
               {viewItem.email} &middot; {formatDate(viewItem.createdAt)}
             </p>
             <p className="confirm-dialog__message" style={{ whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
+            {viewItem.replied && viewItem.replyMessage && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderLeft: '3px solid #e07a2f', background: 'var(--color-surface, #f5f5f5)', borderRadius: 4 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                  Replied on {formatDate(viewItem.repliedAt!)} by {viewItem.repliedBy}
+                </p>
+                <p style={{ fontSize: '0.85rem', whiteSpace: 'pre-wrap', margin: 0 }}>{viewItem.replyMessage}</p>
+              </div>
+            )}
             <div className="confirm-dialog__actions">
               <button className="confirm-dialog__btn confirm-dialog__btn--confirm" onClick={() => setViewItem(null)}>
                 Close

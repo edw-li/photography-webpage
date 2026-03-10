@@ -9,6 +9,7 @@ interface AdminFormModalProps {
   onSave: () => void;
   saving?: boolean;
   wide?: boolean;
+  saveLabel?: string;
 }
 
 export default function AdminFormModal({
@@ -18,6 +19,7 @@ export default function AdminFormModal({
   onSave,
   saving = false,
   wide = false,
+  saveLabel,
 }: AdminFormModalProps) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -52,7 +54,7 @@ export default function AdminFormModal({
           </button>
           <button className="afm-btn afm-btn--save" onClick={onSave} disabled={saving}>
             {saving && <Loader2 size={14} className="afm-spinner" />}
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? (saveLabel ? `${saveLabel}ing...` : 'Saving...') : (saveLabel || 'Save')}
           </button>
         </div>
       </div>
