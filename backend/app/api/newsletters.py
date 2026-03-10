@@ -1,4 +1,7 @@
+import asyncio
+import logging
 import math
+from datetime import datetime, timezone
 
 import markdown
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,18 +15,50 @@ from ..schemas.common import PaginatedResponse
 from ..schemas.newsletter import (
     NewsletterCreate,
     NewsletterResponse,
+    NewsletterSendResponse,
     NewsletterUpdate,
     SubscribeRequest,
     SubscriberResponse,
 )
+from ..services.email_service import send_newsletter_email
 from .activity import log_activity
 from .deps import get_db, require_admin
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
 def _render_md(body_md: str) -> str:
     return markdown.markdown(body_md, extensions=["extra"])
+
+
+async def _send_newsletter_emails(
+    nl: Newsletter, db: AsyncSession, admin: User
+) -> tuple[int, int]:
+    """Send newsletter to all active subscribers. Returns (sent_count, failed_count)."""
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
+    )
+    subscribers = result.scalars().all()
+
+    sem = asyncio.Semaphore(5)
+    sent = 0
+    failed = 0
+
+    async def _send_one(sub: NewsletterSubscriber) -> bool:
+        async with sem:
+            try:
+                await send_newsletter_email(sub.email, sub.name, nl.title, nl.html)
+                return True
+            except Exception:
+                logger.warning("Failed to send newsletter %s to %s", nl.id, sub.email)
+                return False
+
+    results = await asyncio.gather(*[_send_one(s) for s in subscribers])
+    sent = sum(1 for r in results if r)
+    failed = sum(1 for r in results if not r)
+    return sent, failed
 
 
 def _newsletter_to_response(nl: Newsletter) -> NewsletterResponse:
@@ -37,6 +72,7 @@ def _newsletter_to_response(nl: Newsletter) -> NewsletterResponse:
         featured=nl.featured,
         html=nl.html,
         body_md=nl.body_md,
+        emailed_at=nl.emailed_at,
     )
 
 
@@ -201,7 +237,55 @@ async def create_newsletter(
     await log_activity(db, admin, "create", "newsletter", body.id, f"Created newsletter: {body.title}")
     await db.commit()
     await db.refresh(nl)
+
+    if body.send_to_subscribers:
+        sent, failed = await _send_newsletter_emails(nl, db, admin)
+        nl.emailed_at = datetime.now(timezone.utc)
+        await log_activity(
+            db, admin, "send", "newsletter", nl.id,
+            f"Emailed newsletter '{nl.title}' to {sent} subscribers ({failed} failed)",
+        )
+        await db.commit()
+        await db.refresh(nl)
+
     return _newsletter_to_response(nl)
+
+
+@router.post("/{newsletter_id}/send", response_model=NewsletterSendResponse)
+async def send_newsletter(
+    newsletter_id: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Newsletter).where(Newsletter.id == newsletter_id))
+    nl = result.scalar_one_or_none()
+    if nl is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Newsletter not found")
+
+    # Count active subscribers
+    count_result = await db.execute(
+        select(func.count()).select_from(NewsletterSubscriber).where(
+            NewsletterSubscriber.is_active == True  # noqa: E712
+        )
+    )
+    total_subscribers = count_result.scalar_one()
+
+    sent, failed = await _send_newsletter_emails(nl, db, admin)
+    nl.emailed_at = datetime.now(timezone.utc)
+    await log_activity(
+        db, admin, "send", "newsletter", nl.id,
+        f"Emailed newsletter '{nl.title}' to {sent} subscribers ({failed} failed)",
+    )
+    await db.commit()
+    await db.refresh(nl)
+
+    return NewsletterSendResponse(
+        newsletter_id=nl.id,
+        total_subscribers=total_subscribers,
+        sent_count=sent,
+        failed_count=failed,
+        emailed_at=nl.emailed_at,
+    )
 
 
 @router.put("/{newsletter_id}", response_model=NewsletterResponse)

@@ -10,4 +10,5 @@ export interface NewsletterMeta {
 export interface Newsletter extends NewsletterMeta {
   id: string;
   html: string;
+  emailedAt?: string | null;
 }

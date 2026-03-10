@@ -84,6 +84,17 @@ export async function updateSamplePhotoCaptions(
   });
 }
 
+export async function getSubscriptionStatus(): Promise<{ subscribed: boolean }> {
+  return apiFetch<{ subscribed: boolean }>('/auth/subscription-status');
+}
+
+export async function updateSubscription(subscribed: boolean): Promise<{ subscribed: boolean }> {
+  return apiFetch<{ subscribed: boolean }>('/auth/subscription', {
+    method: 'PUT',
+    body: JSON.stringify({ subscribed }),
+  });
+}
+
 export function logout(): void {
   clearTokens();
 }

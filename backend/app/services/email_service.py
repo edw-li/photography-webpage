@@ -32,6 +32,57 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
     )
 
 
+async def send_newsletter_email(
+    to: str, subscriber_name: str, newsletter_title: str, newsletter_html: str
+) -> None:
+    """Build and send a newsletter email to a subscriber."""
+    html_body = f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
+                Bridgeway Photography
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              <p style="margin:0 0 16px;font-size:14px;color:#666;">
+                Hi {subscriber_name},
+              </p>
+              <h2 style="margin:0 0 20px;font-size:20px;color:#1a1a1a;">
+                {newsletter_title}
+              </h2>
+              <div style="font-size:14px;color:#333;line-height:1.6;">
+                {newsletter_html}
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
+              <p style="margin:0;font-size:12px;color:#999;text-align:center;">
+                You received this because you're subscribed to Bridgeway Photography newsletters.
+                Manage your subscription in your profile settings.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    await send_email(to, f"{newsletter_title} — Bridgeway Photography", html_body)
+
+
 async def send_password_reset_email(to: str, reset_token: str) -> None:
     """Build and send a password-reset email with a link to the frontend."""
     reset_url = f"{settings.frontend_url}/#/reset-password?token={reset_token}"

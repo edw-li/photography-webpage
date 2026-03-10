@@ -7,6 +7,7 @@ import {
   createNewsletter,
   updateNewsletter,
   deleteNewsletter,
+  sendNewsletter,
 } from '../../api/newsletters';
 import type { Newsletter } from '../../types/newsletter';
 import { useToast } from '../../contexts/ToastContext';
@@ -29,6 +30,7 @@ const emptyForm = {
   preview: '',
   featured: false,
   bodyMd: '',
+  sendToSubscribers: false,
 };
 
 export default function NewslettersSection() {
@@ -46,6 +48,8 @@ export default function NewslettersSection() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Newsletter | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sendTarget, setSendTarget] = useState<Newsletter | null>(null);
+  const [sending, setSending] = useState(false);
   const pageSize = 20;
 
   const load = useCallback(async (p: number) => {
@@ -85,6 +89,7 @@ export default function NewslettersSection() {
         preview: full.preview,
         featured: full.featured || false,
         bodyMd: full.bodyMd || '',
+        sendToSubscribers: false,
       });
       setShowForm(true);
     } catch {
@@ -104,8 +109,9 @@ export default function NewslettersSection() {
         addToast('success', 'Newsletter updated');
       } else {
         const id = slugify(form.title) + '-' + form.date;
-        await createNewsletter({ ...form, id });
-        addToast('success', 'Newsletter created');
+        const { sendToSubscribers, ...createData } = form;
+        await createNewsletter({ ...createData, id, sendToSubscribers });
+        addToast('success', sendToSubscribers ? 'Newsletter created and sent' : 'Newsletter created');
       }
       setShowForm(false);
       load(page);
@@ -127,6 +133,23 @@ export default function NewslettersSection() {
       addToast('error', 'Failed to delete newsletter');
     }
     setDeleting(false);
+  };
+
+  const handleSend = async () => {
+    if (!sendTarget) return;
+    setSending(true);
+    try {
+      const result = await sendNewsletter(sendTarget.id);
+      addToast(
+        'success',
+        `Newsletter sent to ${result.sentCount} subscriber${result.sentCount !== 1 ? 's' : ''}${result.failedCount > 0 ? ` (${result.failedCount} failed)` : ''}`,
+      );
+      setSendTarget(null);
+      load(page);
+    } catch {
+      addToast('error', 'Failed to send newsletter');
+    }
+    setSending(false);
   };
 
   const filtered = search
@@ -153,7 +176,7 @@ export default function NewslettersSection() {
       <div className="admin__table-wrap">
         <table className="admin__table">
           <thead>
-            <tr><th>Title</th><th>Category</th><th>Author</th><th>Date</th><th>Featured</th><th>Actions</th></tr>
+            <tr><th>Title</th><th>Category</th><th>Author</th><th>Date</th><th>Featured</th><th>Emailed</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {filtered.map((nl) => (
@@ -163,14 +186,20 @@ export default function NewslettersSection() {
                 <td>{nl.author}</td>
                 <td>{formatDate(nl.date)}</td>
                 <td>{nl.featured ? '\u2605' : '\u2606'}</td>
+                <td>
+                  {nl.emailedAt
+                    ? <span className="admin__badge admin__badge--success">{formatDate(nl.emailedAt.slice(0, 10))}</span>
+                    : <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>Not sent</span>}
+                </td>
                 <td style={{ display: 'flex', gap: '0.5rem' }}>
                   <button className="admin__action-btn" onClick={() => openEdit(nl)}>Edit</button>
+                  <button className="admin__action-btn admin__action-btn--accent" onClick={() => setSendTarget(nl)}>Send</button>
                   <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(nl)}>Delete</button>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center' }}>No newsletters yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center' }}>No newsletters yet</td></tr>
             )}
           </tbody>
         </table>
@@ -221,6 +250,12 @@ export default function NewslettersSection() {
             <input type="checkbox" id="nl-featured" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />
             <label htmlFor="nl-featured">Featured</label>
           </div>
+          {!editingId && (
+            <div className="afm-checkbox-row">
+              <input type="checkbox" id="nl-send" checked={form.sendToSubscribers} onChange={(e) => setForm({ ...form, sendToSubscribers: e.target.checked })} />
+              <label htmlFor="nl-send">Email to subscribers on create</label>
+            </div>
+          )}
           <div className="afm-field">
             <label className="afm-label">Content (Markdown) *</label>
             <div className="admin__split-pane">
@@ -248,6 +283,21 @@ export default function NewslettersSection() {
           loading={deleting}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {sendTarget && (
+        <ConfirmDialog
+          title="Send Newsletter"
+          message={
+            sendTarget.emailedAt
+              ? `This newsletter was already emailed on ${formatDate(sendTarget.emailedAt.slice(0, 10))}. Send again to all active subscribers?`
+              : `Email "${sendTarget.title}" to all active subscribers?`
+          }
+          confirmLabel="Send"
+          loading={sending}
+          onConfirm={handleSend}
+          onCancel={() => setSendTarget(null)}
         />
       )}
     </>
