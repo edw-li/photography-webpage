@@ -32,7 +32,7 @@ const USER_PLACEHOLDER_ICON = (
 );
 
 function MissionContent() {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1025/600/700');
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded('https://picsum.photos/id/1025/600/700');
   return (
     <div className="about__grid">
       <div className="about__text">
@@ -54,6 +54,7 @@ function MissionContent() {
           <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src="https://picsum.photos/id/1025/600/700"
             alt="Photography club members on a photo walk"
             loading="lazy"
@@ -68,7 +69,7 @@ function MissionContent() {
 }
 
 function StoryContent() {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1067/600/700');
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded('https://picsum.photos/id/1067/600/700');
   return (
     <div className="about__grid about__grid--reversed">
       <div className="about__text">
@@ -92,6 +93,7 @@ function StoryContent() {
           <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src="https://picsum.photos/id/1067/600/700"
             alt="Club members at a gallery exhibition"
             loading="lazy"
@@ -115,7 +117,7 @@ const BENEFITS = [
 ];
 
 function BenefitsContent() {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1073/600/700');
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded('https://picsum.photos/id/1073/600/700');
   return (
     <div className="about__grid about__grid--reversed">
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
@@ -123,6 +125,7 @@ function BenefitsContent() {
           <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src="https://picsum.photos/id/1073/600/700"
             alt="Members collaborating during a workshop"
             loading="lazy"
@@ -152,7 +155,7 @@ function BenefitsContent() {
 function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const isBroken = !member.avatar || member.avatar === 'DEFAULT';
   const avatarUrl = isBroken ? undefined : member.avatar;
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded(avatarUrl);
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(avatarUrl);
   return (
     <div
       className="about__leader-card about__leader-card--clickable"
@@ -163,6 +166,7 @@ function LeaderCard({ member, onClick }: { member: Member; onClick: () => void }
           <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src={avatarUrl}
             alt={member.name}
             loading="lazy"
@@ -185,7 +189,7 @@ function LeadershipContent({
   members: Member[];
   onMemberClick: (member: Member) => void;
 }) {
-  const { loaded, errored, handleLoad, handleError } = useImageLoaded('https://picsum.photos/id/1060/600/700');
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded('https://picsum.photos/id/1060/600/700');
   return (
     <div className="about__grid">
       <div className="about__leadership-cards">
@@ -202,6 +206,7 @@ function LeadershipContent({
           <div className="img-error-fallback" style={{ aspectRatio: '6/7' }}>{IMAGE_OFF_ICON}</div>
         ) : (
           <img
+            ref={imgRef}
             src="https://picsum.photos/id/1060/600/700"
             alt="Leadership team at a club event"
             loading="lazy"
