@@ -282,6 +282,14 @@
   color: white;
 }
 
+.admin__table td:last-child {
+  white-space: nowrap;
+}
+
+.admin__table td:nth-last-child(2) {
+  white-space: nowrap;
+}
+
 /* ─── Badges ─── */
 
 .admin__badge {
