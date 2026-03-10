@@ -35,6 +35,12 @@ def _photo_to_response(photo: GalleryPhoto) -> GalleryPhotoResponse:
         title=photo.title,
         photographer=photo.photographer,
         exif=exif,
+        visible=photo.visible,
+        contest_id=photo.contest_id,
+        contest_submission_id=photo.contest_submission_id,
+        is_winner=photo.is_winner,
+        winner_place=photo.winner_place,
+        winner_category=photo.winner_category,
     )
 
 
@@ -42,13 +48,24 @@ def _photo_to_response(photo: GalleryPhoto) -> GalleryPhotoResponse:
 async def list_gallery(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    winners_only: bool = Query(True),
+    include_hidden: bool = Query(False),
     db: AsyncSession = Depends(get_db),
 ):
-    count_result = await db.execute(select(func.count()).select_from(GalleryPhoto))
+    query = select(GalleryPhoto)
+
+    if not include_hidden:
+        query = query.where(GalleryPhoto.visible == True)  # noqa: E712
+
+    if winners_only:
+        query = query.where(GalleryPhoto.is_winner == True)  # noqa: E712
+
+    count_query = select(func.count()).select_from(query.subquery())
+    count_result = await db.execute(count_query)
     total = count_result.scalar_one()
 
     result = await db.execute(
-        select(GalleryPhoto).order_by(GalleryPhoto.id).offset((page - 1) * page_size).limit(page_size)
+        query.order_by(GalleryPhoto.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     )
     photos = result.scalars().all()
 
@@ -156,6 +173,24 @@ async def update_gallery_photo(
         photo.exif_iso = body.exif.iso
         photo.exif_aperture = body.exif.aperture
         photo.exif_shutter_speed = body.exif.shutter_speed
+    if body.visible is not None:
+        photo.visible = body.visible
+    await db.commit()
+    await db.refresh(photo)
+    return _photo_to_response(photo)
+
+
+@router.patch("/{photo_id}/visibility", response_model=GalleryPhotoResponse)
+async def toggle_gallery_visibility(
+    photo_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(GalleryPhoto).where(GalleryPhoto.id == photo_id))
+    photo = result.scalar_one_or_none()
+    if photo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
+    photo.visible = not photo.visible
     await db.commit()
     await db.refresh(photo)
     return _photo_to_response(photo)

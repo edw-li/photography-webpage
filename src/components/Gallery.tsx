@@ -18,6 +18,13 @@ function formatExif(photo: GalleryPhoto): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+function winnerLabel(place: number): string {
+  if (place === 1) return '1st';
+  if (place === 2) return '2nd';
+  if (place === 3) return '3rd';
+  return `${place}th`;
+}
+
 function GalleryItem({
   photo,
   onClick,
@@ -57,6 +64,9 @@ function GalleryItem({
           onLoad={handleLoad}
           onError={handleError}
         />
+      )}
+      {photo.isWinner && photo.winnerPlace != null && (
+        <span className="gallery__winner-badge">{winnerLabel(photo.winnerPlace)}</span>
       )}
       <div className="gallery__overlay">
         <h3>{photo.title}</h3>
@@ -274,8 +284,13 @@ function GalleryLightbox({
   );
 }
 
+type ViewMode = 'winners' | 'all';
+
 export default function Gallery() {
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [winnersPhotos, setWinnersPhotos] = useState<GalleryPhoto[]>([]);
+  const [allPhotos, setAllPhotos] = useState<GalleryPhoto[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('winners');
+  const [switching, setSwitching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -284,12 +299,18 @@ export default function Gallery() {
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
   const [pendingPage, setPendingPage] = useState<number | null>(null);
 
+  const photos = viewMode === 'winners' ? winnersPhotos : allPhotos;
+
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
-    getGalleryPhotos(1, 100)
-      .then((res) => {
-        setPhotos(res.items);
+    Promise.all([
+      getGalleryPhotos(1, 100, { winnersOnly: true }),
+      getGalleryPhotos(1, 100, { winnersOnly: false }),
+    ])
+      .then(([winnersRes, allRes]) => {
+        setWinnersPhotos(winnersRes.items);
+        setAllPhotos(allRes.items);
         setLoading(false);
       })
       .catch(() => {
@@ -301,6 +322,24 @@ export default function Gallery() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleToggle = useCallback((mode: ViewMode) => {
+    if (mode === viewMode || switching) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      setViewMode(mode);
+      setCurrentPage(0);
+      setSelectedIndex(null);
+    } else {
+      setSwitching(true);
+      setTimeout(() => {
+        setViewMode(mode);
+        setCurrentPage(0);
+        setSelectedIndex(null);
+        setSwitching(false);
+      }, 300);
+    }
+  }, [viewMode, switching]);
 
   const totalPages = Math.ceil(photos.length / PAGE_SIZE);
   const hasPrev = currentPage > 0;
@@ -382,6 +421,22 @@ export default function Gallery() {
         <div className="section-title fade-in-up">
           <h2>Gallery</h2>
           <p>A showcase of our members' best work</p>
+          {!loading && !error && (
+            <div className="gallery__toggle">
+              <button
+                className={`gallery__toggle-btn${viewMode === 'winners' ? ' gallery__toggle-btn--active' : ''}`}
+                onClick={() => handleToggle('winners')}
+              >
+                Contest Winners
+              </button>
+              <button
+                className={`gallery__toggle-btn${viewMode === 'all' ? ' gallery__toggle-btn--active' : ''}`}
+                onClick={() => handleToggle('all')}
+              >
+                All Photos
+              </button>
+            </div>
+          )}
         </div>
 
         {loading && (
@@ -399,8 +454,23 @@ export default function Gallery() {
           </div>
         )}
 
-        {!loading && !error && (
-          <div className="gallery__carousel fade-in-up">
+        {!loading && !error && photos.length === 0 && (
+          <div className="gallery__empty fade-in-up">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <p>
+              {viewMode === 'winners'
+                ? 'Contest winners will be showcased here. Stay tuned!'
+                : 'No submissions yet. Check back soon!'}
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && photos.length > 0 && (
+          <div className={`gallery__carousel fade-in-up${switching ? ' gallery__carousel--switching' : ''}`}>
             {hasPrev && (
               <button
                 className="gallery__nav gallery__nav--prev"

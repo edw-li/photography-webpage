@@ -17,6 +17,12 @@ class GalleryPhotoResponse(CamelModel):
     title: str
     photographer: str
     exif: PhotoExifSchema | None = None
+    visible: bool = True
+    contest_id: int | None = None
+    contest_submission_id: int | None = None
+    is_winner: bool = False
+    winner_place: int | None = None
+    winner_category: str | None = None
 
 
 class GalleryPhotoUpdate(CamelModel):
@@ -25,3 +31,4 @@ class GalleryPhotoUpdate(CamelModel):
     photographer: str | None = None
     member_id: int | None = None
     exif: PhotoExifSchema | None = None
+    visible: bool | None = None

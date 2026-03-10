@@ -9,12 +9,28 @@ interface PaginatedResponse<T> {
   pages: number;
 }
 
+export interface GalleryFetchOptions {
+  winnersOnly?: boolean;
+  includeHidden?: boolean;
+}
+
 export async function getGalleryPhotos(
   page = 1,
   pageSize = 100,
+  options?: GalleryFetchOptions,
 ): Promise<PaginatedResponse<GalleryPhoto>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (options?.winnersOnly !== undefined) {
+    params.set('winners_only', String(options.winnersOnly));
+  }
+  if (options?.includeHidden !== undefined) {
+    params.set('include_hidden', String(options.includeHidden));
+  }
   return apiFetch<PaginatedResponse<GalleryPhoto>>(
-    `/gallery?page=${page}&page_size=${pageSize}`,
+    `/gallery?${params.toString()}`,
   );
 }
 
@@ -46,4 +62,10 @@ export async function updateGalleryPhoto(id: number, data: Partial<GalleryPhotoC
 
 export async function deleteGalleryPhoto(id: number): Promise<void> {
   await apiFetch(`/gallery/${id}`, { method: 'DELETE' });
+}
+
+export async function toggleGalleryVisibility(id: number): Promise<GalleryPhoto> {
+  return apiFetch<GalleryPhoto>(`/gallery/${id}/visibility`, {
+    method: 'PATCH',
+  });
 }

@@ -12,6 +12,12 @@ export interface GalleryPhoto {
   title: string;
   photographer: string;
   exif?: PhotoExif;
+  visible?: boolean;
+  contestId?: number | null;
+  contestSubmissionId?: number | null;
+  isWinner?: boolean;
+  winnerPlace?: number | null;
+  winnerCategory?: string | null;
 }
 
 export interface GalleryConfig {
