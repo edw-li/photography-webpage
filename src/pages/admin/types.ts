@@ -12,6 +12,10 @@ export interface ContactItem {
   email: string;
   message: string;
   createdAt: string;
+  replied: boolean;
+  repliedAt: string | null;
+  repliedBy: string | null;
+  replyMessage: string | null;
 }
 
 export interface SubscriberItem {
