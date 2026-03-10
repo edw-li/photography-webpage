@@ -183,9 +183,11 @@ export default function EventsSection() {
                     {getRecurrenceLabel(ev)}
                   </span>
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="admin__action-btn" onClick={() => openEdit(ev)}>Edit</button>
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(ev)}>Delete</button>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <button className="admin__action-btn" onClick={() => openEdit(ev)}>Edit</button>
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(ev)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}

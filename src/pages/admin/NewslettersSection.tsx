@@ -191,10 +191,12 @@ export default function NewslettersSection() {
                     ? <span className="admin__badge admin__badge--success">{formatDate(nl.emailedAt.slice(0, 10))}</span>
                     : <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>Not sent</span>}
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="admin__action-btn" onClick={() => openEdit(nl)}>Edit</button>
-                  <button className="admin__action-btn admin__action-btn--accent" onClick={() => setSendTarget(nl)}>Send</button>
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(nl)}>Delete</button>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <button className="admin__action-btn" onClick={() => openEdit(nl)}>Edit</button>
+                    <button className="admin__action-btn admin__action-btn--accent" onClick={() => setSendTarget(nl)}>Send</button>
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(nl)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
