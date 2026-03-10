@@ -472,7 +472,8 @@ export default function Gallery() {
         )}
 
         {!loading && !error && photos.length > 0 && (
-          <div className={`gallery__carousel fade-in-up${switching ? ' gallery__carousel--switching' : ''}`}>
+          <div className="fade-in-up">
+          <div className={`gallery__carousel${switching ? ' gallery__carousel--switching' : ''}`}>
             {hasPrev && (
               <button
                 className="gallery__nav gallery__nav--prev"
@@ -526,6 +527,7 @@ export default function Gallery() {
                 Page {currentPage + 1} of {totalPages}
               </p>
             )}
+          </div>
           </div>
         )}
       </div>
