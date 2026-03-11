@@ -16,15 +16,14 @@ export function useTurnstile(
   const appearance = options?.appearance ?? 'always';
 
   useEffect(() => {
-    if (!SITE_KEY || !containerRef.current) return;
+    if (!SITE_KEY) return;
 
     let interval: ReturnType<typeof setInterval> | null = null;
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
-    const renderWidget = () => {
-      if (!window.turnstile || !containerRef.current) return;
-      // Avoid double-render
-      if (widgetIdRef.current !== null) return;
+    const tryRender = (): boolean => {
+      if (!window.turnstile || !containerRef.current) return false;
+      if (widgetIdRef.current !== null) return true; // already rendered
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
@@ -46,19 +45,15 @@ export function useTurnstile(
           setIsInteractive(false);
         },
       });
+      return true;
     };
 
-    // Turnstile script may load asynchronously
-    if (window.turnstile) {
-      renderWidget();
-    } else {
+    // Try immediately, then poll until both deps are ready
+    if (!tryRender()) {
       interval = setInterval(() => {
-        if (window.turnstile) {
-          if (interval) clearInterval(interval);
-          renderWidget();
-        }
+        if (tryRender() && interval) clearInterval(interval);
       }, 200);
-      timeout = setTimeout(() => { if (interval) clearInterval(interval); }, 10000);
+      timeout = setTimeout(() => { if (interval) clearInterval(interval); }, 10_000);
     }
 
     return () => {
