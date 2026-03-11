@@ -26,7 +26,7 @@ export default function Footer() {
             </h3>
             <p>
               A community of passionate photographers dedicated to the art of
-              capturing God's creation — one frame at a time. <br>
+              capturing God's creation — one frame at a time. <br />
               Join us and capture the world together.
             </p>
           </div>
