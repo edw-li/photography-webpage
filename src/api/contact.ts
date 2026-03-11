@@ -4,6 +4,8 @@ interface ContactSubmission {
   name: string;
   email: string;
   message: string;
+  website?: string;
+  turnstileToken?: string | null;
 }
 
 export async function submitContact(data: ContactSubmission): Promise<void> {

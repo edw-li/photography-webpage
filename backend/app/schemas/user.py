@@ -3,19 +3,23 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+from pydantic import EmailStr, Field
+
 from .common import CamelModel
 
 
 class UserRegister(CamelModel):
-    email: str
-    password: str
-    first_name: str
-    last_name: str
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    company: str = ""  # honeypot field
+    turnstile_token: str | None = None
 
 
 class UserLogin(CamelModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
 
 
 class TokenResponse(CamelModel):
@@ -61,12 +65,13 @@ class ProfileUpdate(CamelModel):
 
 
 class ForgotPasswordRequest(CamelModel):
-    email: str
+    email: EmailStr
+    turnstile_token: str | None = None
 
 
 class ResetPasswordRequest(CamelModel):
-    token: str
-    new_password: str
+    token: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class MessageResponse(CamelModel):

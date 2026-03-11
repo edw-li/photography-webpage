@@ -1,9 +1,11 @@
 import math
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..rate_limit import limiter, PUBLIC_POST
 
 from ..models.contact import ContactSubmission
 from ..models.user import User
@@ -11,7 +13,7 @@ from ..schemas.common import PaginatedResponse
 from ..schemas.contact import ContactReplyRequest, ContactSubmissionCreate, ContactSubmissionResponse
 from ..services.email_service import send_contact_reply_email
 from .activity import log_activity
-from .deps import get_db, require_admin
+from .deps import get_db, require_admin, verify_turnstile_token
 
 router = APIRouter()
 
@@ -31,7 +33,15 @@ def _submission_to_response(s: ContactSubmission) -> ContactSubmissionResponse:
 
 
 @router.post("", response_model=ContactSubmissionResponse, status_code=status.HTTP_201_CREATED)
-async def create_contact(body: ContactSubmissionCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit(PUBLIC_POST)
+async def create_contact(request: Request, body: ContactSubmissionCreate, db: AsyncSession = Depends(get_db)):
+    # Honeypot: if filled, return fake success
+    if body.website:
+        return ContactSubmissionResponse(
+            id=0, name=body.name, email=body.email, message=body.message,
+            created_at=datetime.now(timezone.utc), replied=False,
+        )
+    await verify_turnstile_token(body.turnstile_token)
     submission = ContactSubmission(name=body.name, email=body.email, message=body.message)
     db.add(submission)
     await db.commit()

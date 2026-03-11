@@ -2,9 +2,11 @@ import logging
 import math
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..rate_limit import limiter, PUBLIC_POST, AUTH_ATTEMPT, EMAIL_TRIGGER
 
 from ..models.user import User
 from ..models.member import Member, SocialLink, SamplePhoto
@@ -36,7 +38,7 @@ from ..services.auth_service import (
     verify_reset_token,
 )
 from ..services.email_service import send_password_reset_email
-from .deps import get_current_user, get_db, require_admin
+from .deps import get_current_user, get_db, require_admin, verify_turnstile_token
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,12 @@ def _member_to_response(member: Member) -> MemberResponse:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
+@limiter.limit(PUBLIC_POST)
+async def register(request: Request, body: UserRegister, db: AsyncSession = Depends(get_db)):
+    # Honeypot: if filled, return fake success
+    if body.company:
+        return TokenResponse(access_token="ok", refresh_token="ok")
+    await verify_turnstile_token(body.turnstile_token)
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -107,7 +114,8 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
+@limiter.limit(AUTH_ATTEMPT)
+async def login(request: Request, body: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user is None or not verify_password(body.password, user.hashed_password):
@@ -140,7 +148,9 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit(EMAIL_TRIGGER)
+async def forgot_password(request: Request, body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    await verify_turnstile_token(body.turnstile_token)
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user is not None and user.is_active:
@@ -153,12 +163,8 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depend
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
-    if len(body.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters.",
-        )
+@limiter.limit(AUTH_ATTEMPT)
+async def reset_password(request: Request, body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     payload = verify_reset_token(body.token)
     if payload is None:
         raise HTTPException(

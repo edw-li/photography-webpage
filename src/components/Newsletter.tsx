@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, type FormEvent } fro
 import type { Newsletter as NewsletterType } from '../types/newsletter';
 import { getNewsletters, subscribeToNewsletter } from '../api/newsletters';
 import { ApiError } from '../api/client';
+import { useTurnstile } from '../hooks/useTurnstile';
 import './Newsletter.css';
 
 const MONTH_NAMES = [
@@ -105,9 +106,12 @@ export default function Newsletter() {
   const [filterVersion, setFilterVersion] = useState(0);
   const [subName, setSubName] = useState('');
   const [subEmail, setSubEmail] = useState('');
+  const [subPhone, setSubPhone] = useState('');
   const [subscribing, setSubscribing] = useState(false);
   const [subSuccess, setSubSuccess] = useState(false);
   const [subError, setSubError] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const { getToken, resetWidget } = useTurnstile(turnstileRef);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -164,10 +168,16 @@ export default function Newsletter() {
     setSubscribing(true);
     setSubError('');
     try {
-      await subscribeToNewsletter({ name: subName.trim(), email: subEmail.trim() });
+      await subscribeToNewsletter({
+        name: subName.trim(),
+        email: subEmail.trim(),
+        phone: subPhone,
+        turnstileToken: getToken(),
+      });
       setSubSuccess(true);
       setSubName('');
       setSubEmail('');
+      resetWidget();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setSubError('This email is already subscribed.');
@@ -321,6 +331,20 @@ export default function Newsletter() {
                     value={subEmail}
                     onChange={(e) => setSubEmail(e.target.value)}
                   />
+                  {/* Honeypot */}
+                  <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+                    <label htmlFor="sub-phone">Phone</label>
+                    <input
+                      type="text"
+                      id="sub-phone"
+                      name="phone"
+                      value={subPhone}
+                      onChange={(e) => setSubPhone(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div ref={turnstileRef} />
                   <button
                     type="submit"
                     className="btn btn-primary newsletter__signup-btn"

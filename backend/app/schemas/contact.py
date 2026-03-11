@@ -1,12 +1,16 @@
 from datetime import datetime
 
+from pydantic import EmailStr, Field
+
 from .common import CamelModel
 
 
 class ContactSubmissionCreate(CamelModel):
-    name: str
-    email: str
-    message: str
+    name: str = Field(min_length=1, max_length=200)
+    email: EmailStr
+    message: str = Field(min_length=1, max_length=5000)
+    website: str = ""  # honeypot field
+    turnstile_token: str | None = None
 
 
 class ContactReplyRequest(CamelModel):

@@ -32,10 +32,15 @@ export async function register(
   password: string,
   firstName: string,
   lastName: string,
+  options?: { company?: string; turnstileToken?: string | null },
 ): Promise<AuthUser> {
   const tokens = await apiFetch<TokenResponse>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, firstName, lastName }),
+    body: JSON.stringify({
+      email, password, firstName, lastName,
+      company: options?.company ?? '',
+      turnstileToken: options?.turnstileToken ?? null,
+    }),
   });
   setTokens(tokens.accessToken, tokens.refreshToken);
   return getCurrentUser();
@@ -103,10 +108,10 @@ interface MessageResponse {
   message: string;
 }
 
-export async function forgotPassword(email: string): Promise<MessageResponse> {
+export async function forgotPassword(email: string, turnstileToken?: string | null): Promise<MessageResponse> {
   return apiFetch<MessageResponse>('/auth/forgot-password', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, turnstileToken: turnstileToken ?? null }),
   });
 }
 

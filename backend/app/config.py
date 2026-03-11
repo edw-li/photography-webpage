@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     reset_token_expire_minutes: int = 30
     frontend_url: str = "http://localhost:5173"
 
+    # Cloudflare Turnstile (optional — CAPTCHA disabled when empty)
+    turnstile_site_key: str = ""
+    turnstile_secret_key: str = ""
+
+    @property
+    def turnstile_enabled(self) -> bool:
+        return bool(self.turnstile_site_key and self.turnstile_secret_key)
+
     # OCI Object Storage (S3-compatible)
     oci_access_key: str = ""
     oci_secret_key: str = ""
