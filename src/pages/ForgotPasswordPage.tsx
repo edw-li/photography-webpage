@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword } from '../api/auth';
+import { useTurnstile } from '../hooks/useTurnstile';
 import './AuthPage.css';
 
 export default function ForgotPasswordPage() {
@@ -8,6 +9,8 @@ export default function ForgotPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const { getToken } = useTurnstile(turnstileRef);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -15,7 +18,7 @@ export default function ForgotPasswordPage() {
     setSubmitting(true);
     setError('');
     try {
-      await forgotPassword(email.trim());
+      await forgotPassword(email.trim(), getToken());
       setSent(true);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -53,6 +56,7 @@ export default function ForgotPasswordPage() {
                   placeholder="you@example.com"
                 />
               </div>
+              <div ref={turnstileRef} />
               {error && <p className="auth-card__error">{error}</p>}
               <button type="submit" className="btn btn-primary" disabled={submitting}>
                 {submitting ? 'Sending...' : 'Send Reset Link'}

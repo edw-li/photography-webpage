@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+import io
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, status
+from PIL import Image
 
 from ..config import settings
 from ..models.user import User
+from ..rate_limit import limiter, AUTH_ATTEMPT
 from ..schemas.common import CamelModel
 from ..services.storage import save_uploaded_image
 from .deps import get_current_user
@@ -17,8 +21,23 @@ class UploadResponse(CamelModel):
     url: str
 
 
+def _validate_image_magic_bytes(content: bytes) -> bool:
+    """Validate file content starts with known image magic bytes."""
+    if content[:3] == b'\xff\xd8\xff':  # JPEG
+        return True
+    if content[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+        return True
+    if content[:6] in (b'GIF87a', b'GIF89a'):  # GIF
+        return True
+    if content[:4] == b'RIFF' and content[8:12] == b'WEBP':  # WebP
+        return True
+    return False
+
+
 @router.post("", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(AUTH_ATTEMPT)
 async def upload_file(
+    request: Request,
     file: UploadFile,
     category: str = Form("general"),
     user: User = Depends(get_current_user),
@@ -43,6 +62,24 @@ async def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB",
         )
+
+    # Validate magic bytes
+    if not _validate_image_magic_bytes(content):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not a valid image (magic bytes check failed)",
+        )
+
+    # Validate parseable image with Pillow
+    try:
+        img = Image.open(io.BytesIO(content))
+        img.verify()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not a valid image",
+        )
+
     # Seek back so save_uploaded_image can read it
     await file.seek(0)
 

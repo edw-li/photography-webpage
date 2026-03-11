@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTurnstile } from '../hooks/useTurnstile';
 import './AuthPage.css';
 
 export default function RegisterPage() {
@@ -9,10 +10,13 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [company, setCompany] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const { getToken } = useTurnstile(turnstileRef);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -31,7 +35,10 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError('');
     try {
-      await register(email.trim(), password, firstName.trim(), lastName.trim());
+      await register(email.trim(), password, firstName.trim(), lastName.trim(), {
+        company,
+        turnstileToken: getToken(),
+      });
       navigate('/');
     } catch {
       setError('Registration failed. Email may already be in use.');
@@ -98,6 +105,20 @@ export default function RegisterPage() {
               placeholder="Repeat password"
             />
           </div>
+          {/* Honeypot */}
+          <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+            <label htmlFor="reg-company">Company</label>
+            <input
+              type="text"
+              id="reg-company"
+              name="company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+          <div ref={turnstileRef} />
           {error && <p className="auth-card__error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Creating account...' : 'Register'}

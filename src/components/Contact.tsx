@@ -1,14 +1,18 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { submitContact } from '../api/contact';
+import { useTurnstile } from '../hooks/useTurnstile';
 import './Contact.css';
 
 export default function Contact() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const { getToken, resetWidget } = useTurnstile(turnstileRef);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,11 +23,18 @@ export default function Contact() {
     setSubmitting(true);
     setError('');
     try {
-      await submitContact({ name: name.trim(), email: email.trim(), message: message.trim() });
+      await submitContact({
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        website,
+        turnstileToken: getToken(),
+      });
       setSuccess(true);
       setName('');
       setEmail('');
       setMessage('');
+      resetWidget();
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -82,6 +93,20 @@ export default function Contact() {
                   onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
+              {/* Honeypot */}
+              <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+                <label htmlFor="contact-website">Website</label>
+                <input
+                  type="text"
+                  id="contact-website"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+              <div ref={turnstileRef} />
               {error && <p className="contact__error">{error}</p>}
               <button
                 type="submit"

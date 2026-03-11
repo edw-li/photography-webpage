@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from pydantic import EmailStr, Field
+
 from .common import CamelModel
 
 
@@ -49,8 +51,10 @@ class NewsletterUpdate(CamelModel):
 
 
 class SubscribeRequest(CamelModel):
-    name: str
-    email: str
+    name: str = Field(min_length=1, max_length=200)
+    email: EmailStr
+    phone: str = ""  # honeypot field
+    turnstile_token: str | None = None
 
 
 class SubscriberResponse(CamelModel):

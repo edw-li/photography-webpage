@@ -65,6 +65,10 @@ export async function apiFetch<T>(
     }
   }
 
+  if (res.status === 429) {
+    throw new ApiError(429, 'Too many requests. Please wait and try again.');
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body.detail || res.statusText);

@@ -4,9 +4,11 @@ import math
 from datetime import datetime, timezone
 
 import markdown
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..rate_limit import limiter, PUBLIC_POST
 
 from ..models.newsletter import Newsletter
 from ..models.subscriber import NewsletterSubscriber
@@ -22,7 +24,7 @@ from ..schemas.newsletter import (
 )
 from ..services.email_service import send_newsletter_email
 from .activity import log_activity
-from .deps import get_db, require_admin
+from .deps import get_db, require_admin, verify_turnstile_token
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +87,15 @@ async def list_categories(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/subscribe", response_model=SubscriberResponse, status_code=status.HTTP_201_CREATED)
-async def subscribe(body: SubscribeRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit(PUBLIC_POST)
+async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession = Depends(get_db)):
+    # Honeypot: if filled, return fake success
+    if body.phone:
+        return SubscriberResponse(
+            id=0, email=body.email, name=body.name,
+            is_active=True, subscribed_at=datetime.now(timezone.utc),
+        )
+    await verify_turnstile_token(body.turnstile_token)
     result = await db.execute(
         select(NewsletterSubscriber).where(NewsletterSubscriber.email == body.email)
     )
