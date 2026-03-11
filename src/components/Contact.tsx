@@ -106,7 +106,7 @@ export default function Contact() {
                   autoComplete="off"
                 />
               </div>
-              <div ref={turnstileRef} />
+              <div ref={turnstileRef} className="contact__turnstile" />
               {error && <p className="contact__error">{error}</p>}
               <button
                 type="submit"

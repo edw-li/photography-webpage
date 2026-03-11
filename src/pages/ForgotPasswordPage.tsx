@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
                   placeholder="you@example.com"
                 />
               </div>
-              <div ref={turnstileRef} />
+              <div ref={turnstileRef} className="auth-card__turnstile" />
               {error && <p className="auth-card__error">{error}</p>}
               <button type="submit" className="btn btn-primary" disabled={submitting}>
                 {submitting ? 'Sending...' : 'Send Reset Link'}

@@ -368,7 +368,7 @@ export default function Newsletter() {
                       autoComplete="off"
                     />
                   </div>
-                  <div ref={turnstileRef} />
+                  <div ref={turnstileRef} className="newsletter__turnstile" />
                   <button
                     type="submit"
                     className="btn btn-primary newsletter__signup-btn"
