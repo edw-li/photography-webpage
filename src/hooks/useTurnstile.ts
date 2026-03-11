@@ -19,7 +19,7 @@ export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) 
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
-        size: 'invisible',
+        size: 'normal',
         callback: (token: string) => {
           tokenRef.current = token;
         },
