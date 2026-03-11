@@ -206,6 +206,22 @@ async def toggle_subscriber(
     )
 
 
+@router.delete("/subscribers/{subscriber_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_subscriber(
+    subscriber_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.id == subscriber_id)
+    )
+    subscriber = result.scalar_one_or_none()
+    if subscriber is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscriber not found")
+    await db.delete(subscriber)
+    await db.commit()
+
+
 @router.get("", response_model=PaginatedResponse[NewsletterResponse])
 async def list_newsletters(
     page: int = Query(1, ge=1),
