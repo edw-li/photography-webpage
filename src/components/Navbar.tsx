@@ -113,7 +113,7 @@ export default function Navbar() {
     <nav className={`navbar${scrolled ? ' navbar--scrolled' : ''}`}>
       <div className="navbar__inner container">
         <a href="#" className="navbar__logo" onClick={handleLogoClick}>
-          Bridgeway <span>Photography</span>
+          Selah <span>Photography</span>
         </a>
 
         <button

@@ -120,22 +120,20 @@ export default function Contact() {
           <div className="contact__info">
             <div className="contact__info-item">
               <h3>Location</h3>
-              <p>123 Camera Lane<br />Photography District, PH 90210</p>
+              <p>2490 Middlefield Rd<br />Palo Alto, CA 94301</p>
             </div>
             <div className="contact__info-item">
               <h3>Email</h3>
-              <p>hello@aperturecollective.com</p>
+              <p>selahphotographyclub@gmail.com</p>
             </div>
             <div className="contact__info-item">
               <h3>Meetings</h3>
-              <p>Every Saturday, 10:00 AM<br />Community Arts Center, Room 204</p>
+              <p>Schedule TBD — check back soon!</p>
             </div>
             <div className="contact__info-item">
               <h3>Follow Us</h3>
               <div className="contact__socials">
-                <a href="#" aria-label="Instagram">Instagram</a>
-                <a href="#" aria-label="Facebook">Facebook</a>
-                <a href="#" aria-label="Twitter">Twitter</a>
+                <a href="https://instagram.com/selahphotographyclub" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
               </div>
             </div>
           </div>

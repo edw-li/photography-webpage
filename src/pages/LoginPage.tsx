@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Log In</h1>
-        <p>Welcome back to Bridgeway Photography</p>
+        <p>Welcome back to Selah Photography</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>
           <div className="auth-card__field">
             <label htmlFor="login-email">Email</label>

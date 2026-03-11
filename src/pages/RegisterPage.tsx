@@ -51,7 +51,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Register</h1>
-        <p>Join Bridgeway Photography</p>
+        <p>Join Selah Photography Club</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>
           <div className="auth-card__row">
             <div className="auth-card__field">

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, GraduationCap, Handshake, Image, Trophy, Users } from 'lucide-react';
+import { Handshake, Heart, Image, MapPin, Trophy, Users } from 'lucide-react';
 import type { Member } from '../types/members';
 import { getLeaders } from '../api/members';
 import { useImageLoaded } from '../hooks/useImageLoaded';
@@ -38,15 +38,17 @@ function MissionContent() {
       <div className="about__text">
         <h3>Our Mission</h3>
         <p>
-          At Bridgeway Photography, we believe photography is more than just
-          capturing images — it's about telling stories, preserving memories,
-          and seeing the world through a creative lens. Founded in 2018, our
-          club brings together photographers of all skill levels to learn,
-          share, and grow together.
+          At Selah Photography Club, we believe photography is more than just
+          capturing images — it's a way to pause, see the world with fresh
+          eyes, and reflect on the beauty around us. Like the musical term{' '}
+          <em>selah</em>, which invites us to stop and meditate on what we
+          just heard, every photograph is an invitation to take a breath and
+          treasure what we just saw.
         </p>
         <p>
-          Whether you're picking up a camera for the first time or you've
-          been shooting for decades, there's a place for you here.
+          Our goal is simple: have fun, promote healthy challenge, build
+          fellowship, and encourage one another — all while experiencing
+          God's creation through the lens.
         </p>
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
@@ -75,17 +77,15 @@ function StoryContent() {
       <div className="about__text">
         <h3>Our Story</h3>
         <p>
-          What started as a small group of five friends meeting at a local
-          coffee shop has grown into a thriving community of over 50 active
-          members. From weekend photo walks to gallery exhibitions, we've
-          built a space where creativity flourishes and lasting friendships
-          are formed.
+          Selah Photography Club began with four friends who shared a passion
+          for photography and a home church — Bridgeway Church in Palo Alto.
+          In early 2026, what started as casual conversations about cameras
+          and composition turned into something more: the idea for a
+          photography club rooted in community, creativity, and faith.
         </p>
         <p>
-          Over the years, our members have been featured in local galleries,
-          won regional photography contests, and collaborated on community
-          projects that showcase the beauty of our neighborhoods and the
-          stories of the people who live in them.
+          In March 2026, we made it official. Our story is still being
+          written, and we'd love for you to be part of the next chapter.
         </p>
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>
@@ -108,8 +108,8 @@ function StoryContent() {
 }
 
 const BENEFITS = [
-  { icon: Camera, title: 'Equipment Access', description: 'Borrow lenses, lighting, and accessories from our collection.' },
-  { icon: GraduationCap, title: 'Workshops & Tutorials', description: 'Monthly workshops on composition, editing, and lighting.' },
+  { icon: Heart, title: 'Fellowship & Community', description: 'Share life together through a shared love of photography and faith.' },
+  { icon: MapPin, title: 'Photo Events & Trips', description: 'Group outings, photo walks, and trips to capture God\'s creation together.' },
   { icon: Image, title: 'Gallery Features', description: 'Showcase your work in our gallery and exhibitions.' },
   { icon: Users, title: 'Community & Networking', description: 'Connect with photographers and build lasting friendships.' },
   { icon: Trophy, title: 'Photo Contests', description: 'Compete in monthly themed challenges and win prizes.' },
