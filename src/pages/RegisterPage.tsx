@@ -124,7 +124,7 @@ export default function RegisterPage() {
               autoComplete="off"
             />
           </div>
-          <div ref={turnstileRef} />
+          <div ref={turnstileRef} className="auth-card__turnstile" />
           {error && <p className="auth-card__error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Creating account...' : 'Register'}

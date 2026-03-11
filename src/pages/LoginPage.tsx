@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="auth-card__forgot">
             <Link to="/forgot-password">Forgot password?</Link>
           </div>
-          <div ref={turnstileRef} />
+          <div ref={turnstileRef} className="auth-card__turnstile" />
           {error && <p className="auth-card__error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Logging in...' : 'Log In'}
