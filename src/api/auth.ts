@@ -18,10 +18,18 @@ interface TokenResponse {
   refreshToken: string;
 }
 
-export async function login(email: string, password: string): Promise<AuthUser> {
+export async function login(
+  email: string,
+  password: string,
+  options?: { turnstileToken?: string | null },
+): Promise<AuthUser> {
   const tokens = await apiFetch<TokenResponse>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email,
+      password,
+      turnstileToken: options?.turnstileToken ?? null,
+    }),
   });
   setTokens(tokens.accessToken, tokens.refreshToken);
   return getCurrentUser();
@@ -98,6 +106,21 @@ export async function updateSubscription(subscribed: boolean): Promise<{ subscri
     method: 'PUT',
     body: JSON.stringify({ subscribed }),
   });
+}
+
+export async function apiLogout(): Promise<void> {
+  const storedRefresh = localStorage.getItem('refresh_token');
+  if (storedRefresh) {
+    try {
+      await apiFetch<void>('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: storedRefresh }),
+      });
+    } catch {
+      // Best-effort: clear tokens even if the server call fails
+    }
+  }
+  clearTokens();
 }
 
 export function logout(): void {

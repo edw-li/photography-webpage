@@ -1,11 +1,15 @@
+import io
 import math
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
+from PIL import Image
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..models.gallery import GalleryPhoto
 from ..models.user import User
+from ..rate_limit import limiter, AUTH_ATTEMPT
 from ..schemas.common import PaginatedResponse
 from ..schemas.gallery import (
     GalleryPhotoResponse,
@@ -15,6 +19,56 @@ from ..schemas.gallery import (
 from ..services.storage import delete_uploaded_image, save_gallery_image
 from .activity import log_activity
 from .deps import get_db, require_admin
+
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+
+
+async def validate_image_upload(file: UploadFile) -> bytes:
+    """Validate an uploaded image: content type, magic bytes, file size. Returns validated bytes."""
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be an image (JPEG, PNG, GIF, or WebP)",
+        )
+
+    max_bytes = settings.max_upload_size_mb * 1024 * 1024
+    content = await file.read()
+    if len(content) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB",
+        )
+
+    # Validate magic bytes
+    valid = False
+    if content[:3] == b'\xff\xd8\xff':  # JPEG
+        valid = True
+    elif content[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+        valid = True
+    elif content[:6] in (b'GIF87a', b'GIF89a'):  # GIF
+        valid = True
+    elif content[:4] == b'RIFF' and len(content) >= 12 and content[8:12] == b'WEBP':  # WebP
+        valid = True
+
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not a valid image (magic bytes check failed)",
+        )
+
+    # Validate parseable image with Pillow
+    try:
+        img = Image.open(io.BytesIO(content))
+        img.verify()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not a valid image",
+        )
+
+    # Seek back so downstream can read the file
+    await file.seek(0)
+    return content
 
 router = APIRouter()
 
@@ -88,7 +142,9 @@ async def get_gallery_photo(photo_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/upload", response_model=GalleryPhotoResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(AUTH_ATTEMPT)
 async def upload_gallery_photo(
+    request: Request,
     file: UploadFile,
     title: str = Form(...),
     photographer: str = Form(...),
@@ -101,6 +157,7 @@ async def upload_gallery_photo(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    await validate_image_upload(file)
     url = await save_gallery_image(file)
     photo = GalleryPhoto(
         url=url,

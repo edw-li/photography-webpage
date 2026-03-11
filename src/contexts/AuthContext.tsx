@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { type AuthUser, login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from '../api/auth';
+import { type AuthUser, login as apiLogin, register as apiRegister, getCurrentUser, apiLogout, logout as apiLogoutSync } from '../api/auth';
 import { getAccessToken } from '../api/client';
 
 interface AuthContextValue {
@@ -8,7 +8,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isAdmin: boolean;
   logoutKey: number;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, options?: { turnstileToken?: string | null }) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string, options?: { company?: string; turnstileToken?: string | null }) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => void;
@@ -33,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const u = await apiLogin(email, password);
+  const login = useCallback(async (email: string, password: string, options?: { turnstileToken?: string | null }) => {
+    const u = await apiLogin(email, password, options);
     setUser(u);
   }, []);
 
@@ -49,7 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    apiLogout();
+    // Fire server-side logout (best-effort), then clear local state
+    apiLogout().catch(() => {});
+    // Also clear synchronously for immediate UI response
+    apiLogoutSync();
     setUser(null);
     setLogoutKey(k => k + 1);
   }, []);

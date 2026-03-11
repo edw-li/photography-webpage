@@ -5,6 +5,7 @@ import './App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ToastContainer from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import ContestPage from './pages/ContestPage';
@@ -14,6 +15,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function AppRoutes() {
   const { logoutKey } = useAuth();
@@ -27,6 +29,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/admin" element={<AdminPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
@@ -35,6 +38,7 @@ function App() {
   const { theme, toggleTheme } = useTheme();
 
   return (
+    <ErrorBoundary>
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
@@ -51,6 +55,7 @@ function App() {
         </ToastProvider>
       </AuthProvider>
     </HashRouter>
+    </ErrorBoundary>
   );
 }
 

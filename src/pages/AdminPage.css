@@ -413,6 +413,21 @@
   color: var(--color-text-muted);
 }
 
+.admin__stat-card--error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.admin__stat-card--error .admin__stat-count {
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
+.admin__stat-error {
+  font-size: 0.7rem;
+  color: #ef4444;
+  margin-top: 0.15rem;
+}
+
 .admin__dashboard-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -590,6 +605,16 @@
   color: var(--color-text-muted);
 }
 
+/* ─── Sidebar Toggle (hidden on desktop) ─── */
+
+.admin__sidebar-toggle {
+  display: none;
+}
+
+.admin__sidebar-overlay {
+  display: none;
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 1024px) {
@@ -616,24 +641,64 @@
     grid-template-columns: 1fr;
   }
 
-  .admin__sidebar {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 0.5rem;
-    flex-wrap: nowrap;
+  /* Hamburger toggle */
+  .admin__sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-top: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
   }
 
-  .admin__sidebar > div {
-    display: contents;
+  .admin__sidebar-toggle:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* Overlay backdrop */
+  .admin__sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+  }
+
+  /* Slide-out sidebar */
+  .admin__sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: 1.5rem 1rem;
+    z-index: 100;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .admin__sidebar--open {
+    transform: translateX(0);
   }
 
   .admin__sidebar-header {
-    display: none;
+    display: block;
   }
 
   .admin__tab {
     white-space: nowrap;
-    padding: 0.4rem 0.75rem;
+    padding: 0.6rem 0 0.6rem 0.75rem;
     font-size: 0.85rem;
   }
 
@@ -651,6 +716,12 @@
 
   .admin__search {
     min-width: 0;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .admin__sidebar {
+    transition: none;
   }
 }
 

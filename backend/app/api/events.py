@@ -31,8 +31,11 @@ def _event_to_response(event: Event) -> EventResponse:
 
 
 @router.get("/all", response_model=list[EventResponse])
-async def list_all_events(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Event).order_by(Event.date))
+async def list_all_events(
+    limit: int = Query(200, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Event).order_by(Event.date).limit(limit))
     events = result.scalars().all()
     return [_event_to_response(e) for e in events]
 

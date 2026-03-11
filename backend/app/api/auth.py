@@ -1,6 +1,7 @@
 import logging
 import math
 import uuid
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..rate_limit import limiter, PUBLIC_POST, AUTH_ATTEMPT, EMAIL_TRIGGER
 
+from ..config import settings
+from ..models.revoked_token import RevokedToken
 from ..models.user import User
 from ..models.member import Member, SocialLink, SamplePhoto
 from ..models.subscriber import NewsletterSubscriber
@@ -34,6 +37,7 @@ from ..services.auth_service import (
     create_reset_token,
     decode_token,
     hash_password,
+    hash_token,
     verify_password,
     verify_reset_token,
 )
@@ -70,7 +74,7 @@ def _member_to_response(member: Member) -> MemberResponse:
 async def register(request: Request, body: UserRegister, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
     if body.company:
-        return TokenResponse(access_token="ok", refresh_token="ok")
+        return TokenResponse(access_token=uuid4().hex, refresh_token=uuid4().hex)
     await verify_turnstile_token(body.turnstile_token)
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none() is not None:
@@ -116,6 +120,8 @@ async def register(request: Request, body: UserRegister, db: AsyncSession = Depe
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit(AUTH_ATTEMPT)
 async def login(request: Request, body: UserLogin, db: AsyncSession = Depends(get_db)):
+    if settings.turnstile_enabled:
+        await verify_turnstile_token(body.turnstile_token)
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user is None or not verify_password(body.password, user.hashed_password):
@@ -129,10 +135,20 @@ async def login(request: Request, body: UserLogin, db: AsyncSession = Depends(ge
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit(AUTH_ATTEMPT)
+async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    # Check if the refresh token has been revoked
+    token_hash = hash_token(body.refresh_token)
+    revoked = await db.execute(
+        select(RevokedToken).where(RevokedToken.token_hash == token_hash)
+    )
+    if revoked.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
     try:
         user_id = uuid.UUID(payload["sub"])
     except (KeyError, ValueError):
@@ -145,6 +161,20 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
         access_token=create_access_token(str(user.id)),
         refresh_token=create_refresh_token(str(user.id)),
     )
+
+
+@router.post("/logout", response_model=MessageResponse)
+@limiter.limit(AUTH_ATTEMPT)
+async def logout(request: Request, body: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    token_hash = hash_token(body.refresh_token)
+    # Only store if not already revoked
+    existing = await db.execute(
+        select(RevokedToken).where(RevokedToken.token_hash == token_hash)
+    )
+    if existing.scalar_one_or_none() is None:
+        db.add(RevokedToken(token_hash=token_hash))
+        await db.commit()
+    return MessageResponse(message="Logged out successfully.")
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import math
+import random
 from datetime import datetime, timezone
 
+import bleach
 import markdown
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
@@ -31,8 +33,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+_BLEACH_ALLOWED_TAGS = [
+    "p", "h1", "h2", "h3", "h4", "h5", "h6",
+    "a", "strong", "em", "ul", "ol", "li", "br", "img",
+    "blockquote", "code", "pre", "hr",
+    "table", "thead", "tbody", "tr", "th", "td",
+]
+_BLEACH_ALLOWED_ATTRS = {
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "title", "width", "height"],
+    "th": ["align"],
+    "td": ["align"],
+}
+
+
 def _render_md(body_md: str) -> str:
-    return markdown.markdown(body_md, extensions=["extra"])
+    raw_html = markdown.markdown(body_md, extensions=["extra"])
+    return bleach.clean(
+        raw_html,
+        tags=_BLEACH_ALLOWED_TAGS,
+        attributes=_BLEACH_ALLOWED_ATTRS,
+        strip=True,
+    )
 
 
 async def _send_newsletter_emails(
@@ -45,21 +67,19 @@ async def _send_newsletter_emails(
     subscribers = result.scalars().all()
 
     sem = asyncio.Semaphore(5)
-    sent = 0
-    failed = 0
 
-    async def _send_one(sub: NewsletterSubscriber) -> bool:
+    async def _send_one(sub: NewsletterSubscriber) -> tuple[str, bool]:
         async with sem:
             try:
                 await send_newsletter_email(sub.email, sub.name, nl.title, nl.html)
-                return True
+                return (sub.email, True)
             except Exception:
-                logger.warning("Failed to send newsletter %s to %s", nl.id, sub.email)
-                return False
+                logger.error("Failed to send newsletter %s to %s", nl.id, sub.email, exc_info=True)
+                return (sub.email, False)
 
     results = await asyncio.gather(*[_send_one(s) for s in subscribers])
-    sent = sum(1 for r in results if r)
-    failed = sum(1 for r in results if not r)
+    sent = sum(1 for _, ok in results if ok)
+    failed = sum(1 for _, ok in results if not ok)
     return sent, failed
 
 
@@ -92,7 +112,7 @@ async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession =
     # Honeypot: if filled, return fake success
     if body.phone:
         return SubscriberResponse(
-            id=0, email=body.email, name=body.name,
+            id=random.randint(100, 99999), email=body.email, name=body.name,
             is_active=True, subscribed_at=datetime.now(timezone.utc),
         )
     await verify_turnstile_token(body.turnstile_token)

@@ -7,6 +7,7 @@ from .contest import Contest, ContestSubmission, ContestVote
 from .contact import ContactSubmission
 from .subscriber import NewsletterSubscriber
 from .activity import ActivityLog
+from .revoked_token import RevokedToken
 
 __all__ = [
     "User", "Member", "SocialLink", "SamplePhoto", "GalleryPhoto",
@@ -14,4 +15,5 @@ __all__ = [
     "Contest", "ContestSubmission", "ContestVote",
     "ContactSubmission", "NewsletterSubscriber",
     "ActivityLog",
+    "RevokedToken",
 ]

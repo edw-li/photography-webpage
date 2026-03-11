@@ -1,11 +1,12 @@
 import math
 from collections import defaultdict
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import case, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .gallery import validate_image_upload
 from ..models.contest import (
     Contest,
     ContestSubmission,
@@ -27,6 +28,7 @@ from ..schemas.contest import (
     SubmissionExifSchema,
 )
 from ..models.gallery import GalleryPhoto
+from ..rate_limit import limiter, AUTH_ATTEMPT
 from ..services.storage import delete_uploaded_image, save_submission_image
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
@@ -225,6 +227,7 @@ async def _populate_gallery_from_contest(contest: Contest, db: AsyncSession) -> 
 
 @router.get("/all", response_model=list[ContestResponse])
 async def list_all_contests(
+    limit: int = Query(200, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
@@ -234,7 +237,7 @@ async def list_all_contests(
         (Contest.status == "completed", 2),
         else_=3,
     )
-    result = await db.execute(select(Contest).order_by(status_order, Contest.deadline.asc()))
+    result = await db.execute(select(Contest).order_by(status_order, Contest.deadline.asc()).limit(limit))
     contests = result.scalars().unique().all()
     return [await _contest_to_response(c, db, user) for c in contests]
 
@@ -377,7 +380,9 @@ async def delete_contest(
 
 
 @router.post("/{contest_id}/submissions", response_model=ContestSubmissionResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(AUTH_ATTEMPT)
 async def create_submission(
+    request: Request,
     contest_id: int,
     file: UploadFile,
     title: str = Form(...),
@@ -411,6 +416,7 @@ async def create_submission(
             detail=f"Maximum {MAX_SUBMISSIONS_PER_USER} submissions per person",
         )
 
+    await validate_image_upload(file)
     url = await save_submission_image(contest.month, file)
 
     submission = ContestSubmission(

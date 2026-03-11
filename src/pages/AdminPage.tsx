@@ -48,6 +48,7 @@ export default function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -55,12 +56,26 @@ export default function AdminPage() {
     }
   }, [loading, isAdmin, navigate]);
 
+  // Close sidebar on resize above mobile breakpoint
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) setSidebarOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   if (loading) return <div className="admin"><div className="container admin__loading">Loading...</div></div>;
   if (!isAdmin) return null;
 
+  const handleTabSelect = (tab: Tab) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
+
   const renderSection = () => {
     switch (activeTab) {
-      case 'dashboard': return <DashboardSection onNavigate={(tab) => setActiveTab(tab as Tab)} />;
+      case 'dashboard': return <DashboardSection onNavigate={(tab) => handleTabSelect(tab as Tab)} />;
       case 'events': return <EventsSection />;
       case 'newsletters': return <NewslettersSection />;
       case 'gallery': return <GallerySection />;
@@ -89,8 +104,22 @@ export default function AdminPage() {
       </div>
 
       <div className="container">
+        <button
+          className="admin__sidebar-toggle"
+          onClick={() => setSidebarOpen((o) => !o)}
+          aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={sidebarOpen}
+        >
+          &#9776;
+        </button>
         <div className="admin__layout">
-          <div className="admin__sidebar">
+          {sidebarOpen && (
+            <div
+              className="admin__sidebar-overlay"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <nav className={`admin__sidebar${sidebarOpen ? ' admin__sidebar--open' : ''}`}>
             {TAB_GROUPS.map((group, gi) => (
               <div key={gi}>
                 {group.header && (
@@ -100,14 +129,14 @@ export default function AdminPage() {
                   <button
                     key={tab.key}
                     className={`admin__tab${activeTab === tab.key ? ' admin__tab--active' : ''}`}
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabSelect(tab.key)}
                   >
                     {tab.label}
                   </button>
                 ))}
               </div>
             ))}
-          </div>
+          </nav>
           <div className="admin__content" key={activeTab}>
             {renderSection()}
           </div>
