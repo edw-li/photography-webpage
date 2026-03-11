@@ -7,7 +7,7 @@ export default function Contact() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  const [website, setWebsite] = useState('');
+  const [hp, setHp] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export default function Contact() {
         name: name.trim(),
         email: email.trim(),
         message: message.trim(),
-        website,
+        hp,
         turnstileToken: getToken(),
       });
       setSuccess(true);
@@ -95,15 +95,15 @@ export default function Contact() {
               </div>
               {/* Honeypot */}
               <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
-                <label htmlFor="contact-website">Website</label>
+                <label htmlFor="ct-hp">Website</label>
                 <input
                   type="text"
-                  id="contact-website"
-                  name="website"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
+                  id="ct-hp"
+                  name="hp_x3k"
+                  value={hp}
+                  onChange={(e) => setHp(e.target.value)}
                   tabIndex={-1}
-                  autoComplete="off"
+                  autoComplete="nope"
                 />
               </div>
               <div ref={turnstileRef} className="contact__turnstile" />

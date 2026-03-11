@@ -110,7 +110,7 @@ async def list_categories(db: AsyncSession = Depends(get_db)):
 @limiter.limit(PUBLIC_POST)
 async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
-    if body.phone:
+    if body.hp:
         return SubscriberResponse(
             id=random.randint(100, 99999), email=body.email, name=body.name,
             is_active=True, subscribed_at=datetime.now(timezone.utc),

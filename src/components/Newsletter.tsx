@@ -130,12 +130,12 @@ export default function Newsletter() {
   const [filterVersion, setFilterVersion] = useState(0);
   const [subName, setSubName] = useState('');
   const [subEmail, setSubEmail] = useState('');
-  const [subPhone, setSubPhone] = useState('');
+  const [subHp, setSubHp] = useState('');
   const [subscribing, setSubscribing] = useState(false);
   const [subSuccess, setSubSuccess] = useState(false);
   const [subError, setSubError] = useState('');
   const turnstileRef = useRef<HTMLDivElement>(null);
-  const { getToken, resetWidget } = useTurnstile(turnstileRef);
+  const { getToken, resetWidget, isInteractive } = useTurnstile(turnstileRef, { appearance: 'interaction-only' });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -195,7 +195,7 @@ export default function Newsletter() {
       await subscribeToNewsletter({
         name: subName.trim(),
         email: subEmail.trim(),
-        phone: subPhone,
+        hp: subHp,
         turnstileToken: getToken(),
       });
       setSubSuccess(true);
@@ -338,7 +338,7 @@ export default function Newsletter() {
               {subSuccess ? (
                 <p className="newsletter__signup-success">You're subscribed!</p>
               ) : (
-                <form className="newsletter__signup-form" onSubmit={handleSubmit}>
+                <form className={`newsletter__signup-form${isInteractive ? ' newsletter__signup-form--expanded' : ''}`} onSubmit={handleSubmit}>
                   <input
                     type="text"
                     placeholder="Your name"
@@ -357,15 +357,15 @@ export default function Newsletter() {
                   />
                   {/* Honeypot */}
                   <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
-                    <label htmlFor="sub-phone">Phone</label>
+                    <label htmlFor="nl-hp">Phone</label>
                     <input
                       type="text"
-                      id="sub-phone"
-                      name="phone"
-                      value={subPhone}
-                      onChange={(e) => setSubPhone(e.target.value)}
+                      id="nl-hp"
+                      name="hp_zq9"
+                      value={subHp}
+                      onChange={(e) => setSubHp(e.target.value)}
                       tabIndex={-1}
-                      autoComplete="off"
+                      autoComplete="nope"
                     />
                   </div>
                   <div ref={turnstileRef} className="newsletter__turnstile" />

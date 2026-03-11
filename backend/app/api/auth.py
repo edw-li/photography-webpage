@@ -73,7 +73,7 @@ def _member_to_response(member: Member) -> MemberResponse:
 @limiter.limit(PUBLIC_POST)
 async def register(request: Request, body: UserRegister, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
-    if body.company:
+    if body.hp:
         return TokenResponse(access_token=uuid4().hex, refresh_token=uuid4().hex)
     await verify_turnstile_token(body.turnstile_token)
     existing = await db.execute(select(User).where(User.email == body.email))

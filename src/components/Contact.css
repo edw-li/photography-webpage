@@ -120,6 +120,10 @@
   width: 100%;
 }
 
+.contact__turnstile:empty {
+  display: none;
+}
+
 .contact__error {
   color: #ef4444;
   font-size: 0.9rem;

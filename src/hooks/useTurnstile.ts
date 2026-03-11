@@ -1,10 +1,19 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
-export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) {
+interface UseTurnstileOptions {
+  appearance?: 'always' | 'interaction-only';
+}
+
+export function useTurnstile(
+  containerRef: React.RefObject<HTMLElement | null>,
+  options?: UseTurnstileOptions,
+) {
   const widgetIdRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null>(null);
+  const [isInteractive, setIsInteractive] = useState(false);
+  const appearance = options?.appearance ?? 'always';
 
   useEffect(() => {
     if (!SITE_KEY || !containerRef.current) return;
@@ -20,6 +29,7 @@ export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
         size: 'flexible',
+        appearance,
         callback: (token: string) => {
           tokenRef.current = token;
         },
@@ -28,6 +38,12 @@ export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) 
         },
         'error-callback': () => {
           tokenRef.current = null;
+        },
+        'before-interactive-callback': () => {
+          setIsInteractive(true);
+        },
+        'after-interactive-callback': () => {
+          setIsInteractive(false);
         },
       });
     };
@@ -53,7 +69,7 @@ export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) 
         widgetIdRef.current = null;
       }
     };
-  }, [containerRef]);
+  }, [containerRef, appearance]);
 
   const getToken = useCallback((): string | null => {
     if (!SITE_KEY) return null; // Turnstile not configured — skip
@@ -70,5 +86,5 @@ export function useTurnstile(containerRef: React.RefObject<HTMLElement | null>) 
     }
   }, []);
 
-  return { getToken, resetWidget };
+  return { getToken, resetWidget, isInteractive };
 }

@@ -77,7 +77,7 @@ export async function sendNewsletter(id: string): Promise<NewsletterSendResult> 
 interface SubscribeData {
   name: string;
   email: string;
-  phone?: string;
+  hp?: string;
   turnstileToken?: string | null;
 }
 

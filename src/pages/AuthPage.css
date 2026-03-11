@@ -146,6 +146,10 @@
   width: 100%;
 }
 
+.auth-card__turnstile:empty {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-card {
     animation: none;

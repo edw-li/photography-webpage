@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [company, setCompany] = useState('');
+  const [hp, setHp] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
@@ -42,7 +42,7 @@ export default function RegisterPage() {
     setError('');
     try {
       await register(email.trim(), password, firstName.trim(), lastName.trim(), {
-        company,
+        hp,
         turnstileToken: getToken(),
       });
       navigate('/');
@@ -113,15 +113,15 @@ export default function RegisterPage() {
           </div>
           {/* Honeypot */}
           <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
-            <label htmlFor="reg-company">Company</label>
+            <label htmlFor="rg-hp">Company</label>
             <input
               type="text"
-              id="reg-company"
-              name="company"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              id="rg-hp"
+              name="hp_r7m"
+              value={hp}
+              onChange={(e) => setHp(e.target.value)}
               tabIndex={-1}
-              autoComplete="off"
+              autoComplete="nope"
             />
           </div>
           <div ref={turnstileRef} className="auth-card__turnstile" />

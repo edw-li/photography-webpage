@@ -249,12 +249,38 @@
 
 .newsletter__signup-form {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.75rem;
+  align-items: center;
   flex-shrink: 0;
 }
 
 .newsletter__turnstile {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+/* Expanded state — when Turnstile shows a visible challenge */
+.newsletter__signup-form--expanded {
+  flex-wrap: wrap;
+}
+
+.newsletter__signup-form--expanded .newsletter__signup-input {
+  flex: 1;
+  min-width: 150px;
+  width: auto;
+}
+
+.newsletter__signup-form--expanded .newsletter__turnstile {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.newsletter__signup-form--expanded .newsletter__signup-btn {
   width: 100%;
 }
 
@@ -493,6 +519,7 @@
   }
 
   .newsletter__signup-form {
+    flex-wrap: wrap;
     justify-content: center;
   }
 }

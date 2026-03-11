@@ -22,7 +22,7 @@ class UserRegister(CamelModel):
     password: str = Field(min_length=8, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    company: str = ""  # honeypot field
+    hp: str = ""  # honeypot field
     turnstile_token: str | None = None
 
     @field_validator("password")

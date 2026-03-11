@@ -4,7 +4,7 @@ interface ContactSubmission {
   name: string;
   email: string;
   message: string;
-  website?: string;
+  hp?: string;
   turnstileToken?: string | null;
 }
 
