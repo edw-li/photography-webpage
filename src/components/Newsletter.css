@@ -252,14 +252,14 @@
   gap: 0.75rem;
   align-items: center;
   flex-shrink: 0;
+  position: relative;
 }
 
 .newsletter__turnstile {
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: 100%;
 }
 
 /* Expanded state — when Turnstile shows a visible challenge */
@@ -274,6 +274,7 @@
 }
 
 .newsletter__signup-form--expanded .newsletter__turnstile {
+  position: static;
   width: 100%;
   height: auto;
   overflow: visible;
