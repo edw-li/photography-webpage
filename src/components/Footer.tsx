@@ -25,7 +25,9 @@ export default function Footer() {
               Selah <span>Photography</span>
             </h3>
             <p>
-              Pause, see, and capture God's creation — one frame at a time.
+              A community of passionate photographers dedicated to the art of
+              capturing God's creation — one frame at a time. <br>
+              Join us and capture the world together.
             </p>
           </div>
           <div className="footer__links">
