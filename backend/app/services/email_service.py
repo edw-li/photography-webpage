@@ -48,7 +48,7 @@ async def send_newsletter_email(
           <tr>
             <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
               <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Bridgeway Photography
+                Selah Photography Club
               </h1>
             </td>
           </tr>
@@ -68,7 +68,7 @@ async def send_newsletter_email(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
               <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-                You received this because you're subscribed to Bridgeway Photography newsletters.
+                You received this because you're subscribed to Selah Photography Club newsletters.
                 Manage your subscription in your profile settings.
               </p>
             </td>
@@ -80,7 +80,7 @@ async def send_newsletter_email(
 </body>
 </html>"""
 
-    await send_email(to, f"{newsletter_title} — Bridgeway Photography", html_body)
+    await send_email(to, f"{newsletter_title} — Selah Photography Club", html_body)
 
 
 async def send_contact_reply_email(
@@ -105,7 +105,7 @@ async def send_contact_reply_email(
           <tr>
             <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
               <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Bridgeway Photography
+                Selah Photography Club
               </h1>
             </td>
           </tr>
@@ -133,7 +133,7 @@ async def send_contact_reply_email(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
               <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-                This is a reply to the message you sent via the Bridgeway Photography website.
+                This is a reply to the message you sent via the Selah Photography Club website.
               </p>
             </td>
           </tr>
@@ -144,7 +144,7 @@ async def send_contact_reply_email(
 </body>
 </html>"""
 
-    await send_email(to, "Re: Your Message — Bridgeway Photography", html_body)
+    await send_email(to, "Re: Your Message — Selah Photography Club", html_body)
 
 
 async def send_password_reset_email(to: str, reset_token: str) -> None:
@@ -167,7 +167,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
               </h1>
               <p style="margin:0 0 24px;font-size:14px;color:#666;">
                 We received a request to reset your password for your
-                Bridgeway Photography account.
+                Selah Photography Club account.
               </p>
               <a href="{reset_url}"
                  style="display:inline-block;padding:12px 32px;background:#e07a2f;
@@ -194,4 +194,4 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
         logger.info("Reset URL: %s", reset_url)
         logger.info("=== END RESET LINK ===")
 
-    await send_email(to, "Reset Your Password — Bridgeway Photography", html_body)
+    await send_email(to, "Reset Your Password — Selah Photography Club", html_body)

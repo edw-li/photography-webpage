@@ -40,7 +40,7 @@ export default function Hero() {
       <div className="hero__overlay" />
       <div className="hero__content container">
         <h1 className="hero__title">Selah Photography</h1>
-        <p className="hero__tagline">Pause. See. Capture.</p>
+        <p className="hero__tagline">Capturing Moments, Building Community</p>
         <a href="#contact" className="btn btn-primary hero__cta">
           Join Us
         </a>

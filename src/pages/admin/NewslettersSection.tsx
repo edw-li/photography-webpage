@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import MarkdownIt from 'markdown-it';
 import {
   getNewsletters,
@@ -269,7 +270,7 @@ export default function NewslettersSection() {
               />
               <div
                 className="admin__md-preview"
-                dangerouslySetInnerHTML={{ __html: md.render(form.bodyMd || '') }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(md.render(form.bodyMd || '')) }}
               />
             </div>
           </div>

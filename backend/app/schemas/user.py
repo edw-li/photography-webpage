@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime
 
-from pydantic import EmailStr, Field
+from pydantic import EmailStr, Field, field_validator
 
 from .common import CamelModel
+
+_PASSWORD_PATTERN = re.compile(
+    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$"
+)
+_PASSWORD_ERROR = (
+    "Password must be at least 8 characters and include an uppercase letter, "
+    "a lowercase letter, a digit, and a special character."
+)
 
 
 class UserRegister(CamelModel):
@@ -16,10 +25,18 @@ class UserRegister(CamelModel):
     company: str = ""  # honeypot field
     turnstile_token: str | None = None
 
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if not _PASSWORD_PATTERN.match(v):
+            raise ValueError(_PASSWORD_ERROR)
+        return v
+
 
 class UserLogin(CamelModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+    turnstile_token: str | None = None
 
 
 class TokenResponse(CamelModel):
@@ -72,6 +89,13 @@ class ForgotPasswordRequest(CamelModel):
 class ResetPasswordRequest(CamelModel):
     token: str = Field(min_length=1)
     new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if not _PASSWORD_PATTERN.match(v):
+            raise ValueError(_PASSWORD_ERROR)
+        return v
 
 
 class MessageResponse(CamelModel):

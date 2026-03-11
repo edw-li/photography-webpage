@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type FormEvent } from 'react';
+import DOMPurify from 'dompurify';
 import type { Newsletter as NewsletterType } from '../types/newsletter';
 import { getNewsletters, subscribeToNewsletter } from '../api/newsletters';
 import { ApiError } from '../api/client';
@@ -26,6 +27,7 @@ function NewsletterModal({
 }) {
   const [closing, setClosing] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const beginClose = useCallback(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -39,12 +41,34 @@ function NewsletterModal({
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
 
+    const FOCUSABLE_SELECTOR =
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const getFocusableElements = (): HTMLElement[] => {
+      if (!modalRef.current) return [];
+      return Array.from(modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    };
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') beginClose();
+      if (e.key === 'Escape') { beginClose(); return; }
       if (e.key === 'Tab') {
-        // Simple focus trap: keep focus on close button
-        e.preventDefault();
-        closeRef.current?.focus();
+        const focusable = getFocusableElements();
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -65,7 +89,7 @@ function NewsletterModal({
       aria-modal="true"
       aria-label={newsletter.title}
     >
-      <div className="newsletter__modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="newsletter__modal" onClick={(e) => e.stopPropagation()}>
         <button
           ref={closeRef}
           className="newsletter__modal-close"
@@ -86,7 +110,7 @@ function NewsletterModal({
 
         <div
           className="newsletter__modal-body"
-          dangerouslySetInnerHTML={{ __html: newsletter.html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newsletter.html) }}
         />
       </div>
     </div>

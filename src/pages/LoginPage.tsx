@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTurnstile } from '../hooks/useTurnstile';
 import './AuthPage.css';
 
 export default function LoginPage() {
@@ -12,6 +13,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const { getToken } = useTurnstile(turnstileRef);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,7 +22,7 @@ export default function LoginPage() {
     setSubmitting(true);
     setError('');
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password, { turnstileToken: getToken() });
       addToast('success', 'Logged in successfully');
       navigate('/');
     } catch {
@@ -58,6 +61,7 @@ export default function LoginPage() {
           <div className="auth-card__forgot">
             <Link to="/forgot-password">Forgot password?</Link>
           </div>
+          <div ref={turnstileRef} />
           {error && <p className="auth-card__error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Logging in...' : 'Log In'}

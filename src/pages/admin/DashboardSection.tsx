@@ -8,6 +8,7 @@ interface StatCard {
   label: string;
   count: number;
   tab: string;
+  error?: boolean;
 }
 
 interface Props {
@@ -18,17 +19,31 @@ export default function DashboardSection({ onNavigate }: Props) {
   const [stats, setStats] = useState<StatCard[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [recentContacts, setRecentContacts] = useState<ContactItem[]>([]);
+  const [activityError, setActivityError] = useState(false);
+  const [contactsError, setContactsError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      const fetchCount = async (path: string): Promise<number> => {
+      setActivityError(false);
+      setContactsError(false);
+
+      const fetchCount = async (path: string): Promise<{ count: number; error: boolean }> => {
         try {
           const data = await apiFetch<Paginated<unknown>>(`${path}?page=1&page_size=1`);
-          return data.total;
+          return { count: data.total, error: false };
         } catch {
-          return 0;
+          return { count: 0, error: true };
+        }
+      };
+
+      const fetchArrayCount = async (path: string): Promise<{ count: number; error: boolean }> => {
+        try {
+          const data = await apiFetch<unknown[]>(path);
+          return { count: data.length, error: false };
+        } catch {
+          return { count: 0, error: true };
         }
       };
 
@@ -36,33 +51,37 @@ export default function DashboardSection({ onNavigate }: Props) {
         const [members, gallery, events, newsletters, contests, subscribers, contacts] = await Promise.all([
           fetchCount('/members'),
           fetchCount('/gallery'),
-          apiFetch<unknown[]>('/events/all').then((a) => a.length).catch(() => 0),
+          fetchArrayCount('/events/all'),
           fetchCount('/newsletters'),
-          apiFetch<unknown[]>('/contests/all').then((a) => a.length).catch(() => 0),
+          fetchArrayCount('/contests/all'),
           fetchCount('/newsletters/subscribers'),
           fetchCount('/contact'),
         ]);
 
         setStats([
-          { label: 'Members', count: members, tab: 'members' },
-          { label: 'Gallery Photos', count: gallery, tab: 'gallery' },
-          { label: 'Events', count: events, tab: 'events' },
-          { label: 'Newsletters', count: newsletters, tab: 'newsletters' },
-          { label: 'Contests', count: contests, tab: 'contests' },
-          { label: 'Subscribers', count: subscribers, tab: 'subscribers' },
-          { label: 'Contacts', count: contacts, tab: 'contacts' },
+          { label: 'Members', count: members.count, tab: 'members', error: members.error },
+          { label: 'Gallery Photos', count: gallery.count, tab: 'gallery', error: gallery.error },
+          { label: 'Events', count: events.count, tab: 'events', error: events.error },
+          { label: 'Newsletters', count: newsletters.count, tab: 'newsletters', error: newsletters.error },
+          { label: 'Contests', count: contests.count, tab: 'contests', error: contests.error },
+          { label: 'Subscribers', count: subscribers.count, tab: 'subscribers', error: subscribers.error },
+          { label: 'Contacts', count: contacts.count, tab: 'contacts', error: contacts.error },
         ]);
       } catch { /* stats failed gracefully */ }
 
       try {
         const activityData = await getActivityLog(1, 10);
         setActivities(activityData.items);
-      } catch { /* no activity yet */ }
+      } catch {
+        setActivityError(true);
+      }
 
       try {
         const contactData = await apiFetch<Paginated<ContactItem>>('/contact?page=1&page_size=5');
         setRecentContacts(contactData.items);
-      } catch { /* no contacts */ }
+      } catch {
+        setContactsError(true);
+      }
 
       setLoading(false);
     };
@@ -78,11 +97,16 @@ export default function DashboardSection({ onNavigate }: Props) {
         {stats.map((s) => (
           <button
             key={s.tab}
-            className="admin__stat-card"
+            className={`admin__stat-card${s.error ? ' admin__stat-card--error' : ''}`}
             onClick={() => onNavigate(s.tab)}
           >
-            <span className="admin__stat-count">{s.count}</span>
+            <span className="admin__stat-count">
+              {s.error ? 'N/A' : s.count}
+            </span>
             <span className="admin__stat-label">{s.label}</span>
+            {s.error && (
+              <span className="admin__stat-error">Failed to load</span>
+            )}
           </button>
         ))}
       </div>
@@ -90,7 +114,9 @@ export default function DashboardSection({ onNavigate }: Props) {
       <div className="admin__dashboard-row">
         <div className="admin__dashboard-col">
           <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--color-text)' }}>Recent Activity</h3>
-          {activities.length === 0 ? (
+          {activityError ? (
+            <p style={{ fontSize: '0.85rem', color: '#ef4444' }}>Failed to load activity data.</p>
+          ) : activities.length === 0 ? (
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No activity yet</p>
           ) : (
             <div className="admin__activity-feed">
@@ -113,7 +139,9 @@ export default function DashboardSection({ onNavigate }: Props) {
 
         <div className="admin__dashboard-col">
           <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--color-text)' }}>Recent Contacts</h3>
-          {recentContacts.length === 0 ? (
+          {contactsError ? (
+            <p style={{ fontSize: '0.85rem', color: '#ef4444' }}>Failed to load contact data.</p>
+          ) : recentContacts.length === 0 ? (
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No contact submissions</p>
           ) : (
             <div className="admin__activity-feed">

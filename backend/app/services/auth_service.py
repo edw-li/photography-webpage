@@ -63,3 +63,8 @@ def verify_reset_token(token: str) -> dict | None:
     if payload is None or payload.get("type") != "reset":
         return None
     return payload
+
+
+def hash_token(token: str) -> str:
+    """Return the SHA-256 hex digest of a token (used for revocation tracking)."""
+    return hashlib.sha256(token.encode()).hexdigest()

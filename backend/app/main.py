@@ -5,7 +5,7 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,8 +16,16 @@ from .rate_limit import limiter
 from .api import auth, members, gallery, events, newsletters, contests, contact, activity, uploads
 
 
+logger = logging.getLogger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    if not settings.turnstile_enabled:
+        logger.warning(
+            "Cloudflare Turnstile CAPTCHA is DISABLED. "
+            "Set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to enable."
+        )
     yield
 
 
@@ -35,6 +43,10 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
+# CSRF: Accepted risk. All state-changing endpoints use Bearer token auth (not
+# cookies), so CSRF attacks cannot forge requests. Cloudflare provides an
+# additional protection layer. If cookie-based auth is ever added, CSRF tokens
+# must be introduced.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -42,6 +54,25 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next) -> Response:
+    response: Response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' https://challenges.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https: blob:; "
+        "connect-src 'self' https://challenges.cloudflare.com; "
+        "frame-src https://challenges.cloudflare.com;"
+    )
+    return response
+
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(members.router, prefix="/api/v1/members", tags=["members"])

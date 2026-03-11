@@ -1,4 +1,5 @@
 import math
+import random
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -38,7 +39,7 @@ async def create_contact(request: Request, body: ContactSubmissionCreate, db: As
     # Honeypot: if filled, return fake success
     if body.website:
         return ContactSubmissionResponse(
-            id=0, name=body.name, email=body.email, message=body.message,
+            id=random.randint(100, 99999), name=body.name, email=body.email, message=body.message,
             created_at=datetime.now(timezone.utc), replied=False,
         )
     await verify_turnstile_token(body.turnstile_token)
