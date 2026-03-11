@@ -9,7 +9,7 @@ class ContactSubmissionCreate(CamelModel):
     name: str = Field(min_length=1, max_length=200)
     email: EmailStr
     message: str = Field(min_length=1, max_length=5000)
-    website: str = ""  # honeypot field
+    hp: str = ""  # honeypot field
     turnstile_token: str | None = None
 
 

@@ -37,7 +37,7 @@ def _submission_to_response(s: ContactSubmission) -> ContactSubmissionResponse:
 @limiter.limit(PUBLIC_POST)
 async def create_contact(request: Request, body: ContactSubmissionCreate, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
-    if body.website:
+    if body.hp:
         return ContactSubmissionResponse(
             id=random.randint(100, 99999), name=body.name, email=body.email, message=body.message,
             created_at=datetime.now(timezone.utc), replied=False,

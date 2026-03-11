@@ -40,13 +40,13 @@ export async function register(
   password: string,
   firstName: string,
   lastName: string,
-  options?: { company?: string; turnstileToken?: string | null },
+  options?: { hp?: string; turnstileToken?: string | null },
 ): Promise<AuthUser> {
   const tokens = await apiFetch<TokenResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       email, password, firstName, lastName,
-      company: options?.company ?? '',
+      hp: options?.hp ?? '',
       turnstileToken: options?.turnstileToken ?? null,
     }),
   });

@@ -9,7 +9,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   logoutKey: number;
   login: (email: string, password: string, options?: { turnstileToken?: string | null }) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, options?: { company?: string; turnstileToken?: string | null }) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, options?: { hp?: string; turnstileToken?: string | null }) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => void;
 }
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   }, []);
 
-  const register = useCallback(async (email: string, password: string, firstName: string, lastName: string, options?: { company?: string; turnstileToken?: string | null }) => {
+  const register = useCallback(async (email: string, password: string, firstName: string, lastName: string, options?: { hp?: string; turnstileToken?: string | null }) => {
     const u = await apiRegister(email, password, firstName, lastName, options);
     setUser(u);
   }, []);
