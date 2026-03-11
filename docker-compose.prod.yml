@@ -35,7 +35,10 @@ services:
       - ./src/newsletters:/src/newsletters:ro
 
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
     restart: unless-stopped
     depends_on:
       - backend
