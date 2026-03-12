@@ -40,6 +40,7 @@ class MemberAdminResponse(MemberResponse):
     email: str | None = None
     user_role: str | None = None
     is_active: bool | None = None
+    is_email_verified: bool | None = None
 
 
 class SamplePhotoCaptionUpdate(CamelModel):

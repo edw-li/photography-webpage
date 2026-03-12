@@ -37,3 +37,6 @@ class User(Base):
     email_verification_token: Mapped[str | None] = mapped_column(
         String(64), unique=True, nullable=True
     )
+    subscription_was_active: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True, default=None
+    )
