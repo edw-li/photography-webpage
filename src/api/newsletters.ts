@@ -87,3 +87,11 @@ export async function subscribeToNewsletter(data: SubscribeData): Promise<void> 
     body: JSON.stringify(data),
   });
 }
+
+export async function verifySubscription(token: string): Promise<{ message: string }> {
+  return apiFetch(`/newsletters/verify?token=${encodeURIComponent(token)}`);
+}
+
+export async function unsubscribeNewsletter(token: string): Promise<{ message: string }> {
+  return apiFetch(`/newsletters/unsubscribe?token=${encodeURIComponent(token)}`);
+}

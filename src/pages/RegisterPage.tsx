@@ -1,5 +1,5 @@
 import { useState, useRef, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTurnstile } from '../hooks/useTurnstile';
 import './AuthPage.css';
@@ -13,8 +13,8 @@ export default function RegisterPage() {
   const [hp, setHp] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const { register } = useAuth();
-  const navigate = useNavigate();
   const turnstileRef = useRef<HTMLDivElement>(null);
   const { getToken } = useTurnstile(turnstileRef);
 
@@ -41,17 +41,31 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError('');
     try {
-      await register(email.trim(), password, firstName.trim(), lastName.trim(), {
+      const result = await register(email.trim(), password, firstName.trim(), lastName.trim(), {
         hp,
         turnstileToken: getToken(),
       });
-      navigate('/');
+      setSuccessMessage(result.message);
     } catch {
       setError('Registration failed. Email may already be in use.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (successMessage) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <h1>Check Your Email</h1>
+          <p>{successMessage}</p>
+          <div className="auth-card__footer">
+            <Link to="/login">Go to Log In</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">

@@ -23,6 +23,7 @@ export interface SubscriberItem {
   email: string;
   name: string;
   isActive: boolean;
+  isVerified: boolean;
   subscribedAt: string;
 }
 

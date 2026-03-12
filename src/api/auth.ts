@@ -8,6 +8,7 @@ export interface AuthUser {
   lastName: string;
   role: string;
   isActive: boolean;
+  isEmailVerified: boolean;
   createdAt: string;
   updatedAt: string;
   member?: Member;
@@ -41,8 +42,8 @@ export async function register(
   firstName: string,
   lastName: string,
   options?: { hp?: string; turnstileToken?: string | null },
-): Promise<AuthUser> {
-  const tokens = await apiFetch<TokenResponse>('/auth/register', {
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       email, password, firstName, lastName,
@@ -50,8 +51,6 @@ export async function register(
       turnstileToken: options?.turnstileToken ?? null,
     }),
   });
-  setTokens(tokens.accessToken, tokens.refreshToken);
-  return getCurrentUser();
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
@@ -142,5 +141,16 @@ export async function resetPassword(token: string, newPassword: string): Promise
   return apiFetch<MessageResponse>('/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify({ token, newPassword }),
+  });
+}
+
+export async function verifyEmail(token: string): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resendVerification(email: string, turnstileToken?: string | null): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email, turnstileToken: turnstileToken ?? null }),
   });
 }

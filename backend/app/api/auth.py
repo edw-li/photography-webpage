@@ -20,6 +20,8 @@ from ..schemas.user import (
     MessageResponse,
     ProfileUpdate,
     RefreshRequest,
+    RegisterResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UserLogin,
@@ -41,7 +43,7 @@ from ..services.auth_service import (
     verify_password,
     verify_reset_token,
 )
-from ..services.email_service import send_password_reset_email
+from ..services.email_service import send_account_verification_email, send_password_reset_email
 from .deps import get_current_user, get_db, require_admin, verify_turnstile_token
 
 logger = logging.getLogger(__name__)
@@ -69,21 +71,24 @@ def _member_to_response(member: Member) -> MemberResponse:
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit(PUBLIC_POST)
 async def register(request: Request, body: UserRegister, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
     if body.hp:
-        return TokenResponse(access_token=uuid4().hex, refresh_token=uuid4().hex)
+        return RegisterResponse(message="Please check your email to verify your account")
     await verify_turnstile_token(body.turnstile_token)
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    verification_token = uuid4().hex
     user = User(
         email=body.email,
         hashed_password=hash_password(body.password),
         first_name=body.first_name,
         last_name=body.last_name,
+        is_email_verified=False,
+        email_verification_token=verification_token,
     )
     db.add(user)
     await db.flush()
@@ -95,7 +100,7 @@ async def register(request: Request, body: UserRegister, db: AsyncSession = Depe
     )
     db.add(member)
 
-    # Auto-subscribe to newsletter
+    # Auto-subscribe to newsletter (unverified until account is verified)
     sub_result = await db.execute(
         select(NewsletterSubscriber).where(NewsletterSubscriber.email == body.email)
     )
@@ -104,17 +109,24 @@ async def register(request: Request, body: UserRegister, db: AsyncSession = Depe
         db.add(NewsletterSubscriber(
             email=body.email,
             name=f"{body.first_name} {body.last_name}",
+            is_verified=False,
         ))
     elif not existing_sub.is_active:
         existing_sub.is_active = True
+        existing_sub.is_verified = False
         existing_sub.name = f"{body.first_name} {body.last_name}"
+        existing_sub.unsubscribe_token = uuid4().hex
 
     await db.commit()
-    await db.refresh(user)
-    return TokenResponse(
-        access_token=create_access_token(str(user.id)),
-        refresh_token=create_refresh_token(str(user.id)),
-    )
+
+    # Send account verification email
+    verify_url = f"{settings.frontend_url}/#/verify-email?token={verification_token}"
+    try:
+        await send_account_verification_email(body.email, body.first_name, verify_url)
+    except Exception:
+        logger.exception("Failed to send account verification email to %s", body.email)
+
+    return RegisterResponse(message="Please check your email to verify your account")
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -128,6 +140,8 @@ async def login(request: Request, body: UserLogin, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
+    if not user.is_email_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="email_not_verified")
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
         refresh_token=create_refresh_token(str(user.id)),
@@ -225,6 +239,51 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: Async
     return MessageResponse(message="Your password has been reset successfully.")
 
 
+@router.get("/verify-email")
+async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(User).where(User.email_verification_token == token)
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired verification link",
+        )
+    user.is_email_verified = True
+    user.email_verification_token = None
+
+    # Also verify linked newsletter subscriber
+    sub_result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email)
+    )
+    subscriber = sub_result.scalar_one_or_none()
+    if subscriber is not None:
+        subscriber.is_verified = True
+        subscriber.verification_token = None
+
+    await db.commit()
+    return {"message": "Email verified successfully. You can now log in."}
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+@limiter.limit(EMAIL_TRIGGER)
+async def resend_verification(request: Request, body: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    # No turnstile check — endpoint is rate-limited by EMAIL_TRIGGER and called
+    # from LoginPage where no fresh turnstile widget is available.
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if user is not None and not user.is_email_verified:
+        user.email_verification_token = uuid4().hex
+        await db.commit()
+        verify_url = f"{settings.frontend_url}/#/verify-email?token={user.email_verification_token}"
+        try:
+            await send_account_verification_email(user.email, user.first_name, verify_url)
+        except Exception:
+            logger.exception("Failed to send verification email to %s", body.email)
+    return MessageResponse(message="If an account exists with this email, a verification link has been sent.")
+
+
 @router.get("/me", response_model=UserWithMember)
 async def get_me(
     user: User = Depends(get_current_user),
@@ -240,6 +299,7 @@ async def get_me(
         last_name=user.last_name,
         role=user.role,
         is_active=user.is_active,
+        is_email_verified=user.is_email_verified,
         created_at=user.created_at,
         updated_at=user.updated_at,
         member=member_resp,
@@ -313,6 +373,7 @@ async def update_profile(
         last_name=user.last_name,
         role=user.role,
         is_active=user.is_active,
+        is_email_verified=user.is_email_verified,
         created_at=user.created_at,
         updated_at=user.updated_at,
         member=member_resp,
@@ -415,7 +476,7 @@ async def get_subscription_status(
         select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email)
     )
     subscriber = result.scalar_one_or_none()
-    return {"subscribed": subscriber is not None and subscriber.is_active}
+    return {"subscribed": subscriber is not None and subscriber.is_active and subscriber.is_verified}
 
 
 @router.put("/subscription")
@@ -435,7 +496,10 @@ async def update_subscription(
             member_result = await db.execute(select(Member).where(Member.user_id == user.id))
             member = member_result.scalar_one_or_none()
             name = member.name if member else f"{user.first_name} {user.last_name}"
-            db.add(NewsletterSubscriber(email=user.email, name=name))
+            db.add(NewsletterSubscriber(
+                email=user.email, name=name,
+                is_active=True, is_verified=True,
+            ))
         elif not subscriber.is_active:
             subscriber.is_active = True
     else:
@@ -465,7 +529,7 @@ async def list_users(
         items=[
             UserResponse(
                 id=u.id, email=u.email, first_name=u.first_name, last_name=u.last_name,
-                role=u.role, is_active=u.is_active,
+                role=u.role, is_active=u.is_active, is_email_verified=u.is_email_verified,
                 created_at=u.created_at, updated_at=u.updated_at,
             )
             for u in users
@@ -497,5 +561,6 @@ async def update_user(
     return UserResponse(
         id=target.id, email=target.email, first_name=target.first_name,
         last_name=target.last_name, role=target.role, is_active=target.is_active,
+        is_email_verified=target.is_email_verified,
         created_at=target.created_at, updated_at=target.updated_at,
     )

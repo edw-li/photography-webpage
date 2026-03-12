@@ -82,7 +82,7 @@ export default function SubscribersSection() {
       <div className="admin__table-wrap">
         <table className="admin__table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Status</th><th>Subscribed</th><th>Actions</th></tr>
+            <tr><th>Name</th><th>Email</th><th>Status</th><th>Verified</th><th>Subscribed</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {filtered.map((s) => (
@@ -92,6 +92,11 @@ export default function SubscribersSection() {
                 <td>
                   <span className={`admin__badge admin__badge--${s.isActive ? 'active' : 'inactive'}`}>
                     {s.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td>
+                  <span className={`admin__badge admin__badge--${s.isVerified ? 'active' : 'inactive'}`}>
+                    {s.isVerified ? 'Verified' : 'Unverified'}
                   </span>
                 </td>
                 <td>{formatDate(s.subscribedAt)}</td>
@@ -116,7 +121,7 @@ export default function SubscribersSection() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No subscribers yet</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>No subscribers yet</td></tr>
             )}
           </tbody>
         </table>

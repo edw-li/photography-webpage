@@ -62,4 +62,5 @@ class SubscriberResponse(CamelModel):
     email: str
     name: str
     is_active: bool
+    is_verified: bool
     subscribed_at: datetime
