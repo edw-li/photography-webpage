@@ -32,6 +32,7 @@ export interface MemberAdmin extends Member {
   email?: string;
   userRole?: string;
   isActive?: boolean;
+  isEmailVerified?: boolean;
 }
 
 export interface MembersConfig {

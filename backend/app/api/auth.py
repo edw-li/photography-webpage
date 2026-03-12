@@ -555,6 +555,23 @@ async def update_user(
     if body.role is not None:
         target.role = body.role
     if body.is_active is not None:
+        # Cascade to newsletter subscriber
+        sub_result = await db.execute(
+            select(NewsletterSubscriber).where(NewsletterSubscriber.email == target.email)
+        )
+        subscriber = sub_result.scalar_one_or_none()
+
+        if not body.is_active and target.is_active:
+            # Deactivating: save subscription state before deactivating
+            if subscriber:
+                target.subscription_was_active = subscriber.is_active
+                subscriber.is_active = False
+        elif body.is_active and not target.is_active:
+            # Reactivating: restore subscription state if it was active before
+            if subscriber and target.subscription_was_active is True:
+                subscriber.is_active = True
+            target.subscription_was_active = None
+
         target.is_active = body.is_active
     await db.commit()
     await db.refresh(target)

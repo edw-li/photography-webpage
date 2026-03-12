@@ -206,9 +206,11 @@ export default function MembersSection() {
                 </td>
                 <td>
                   {m.userId
-                    ? <span className={`admin__badge admin__badge--${m.isActive ? 'active' : 'inactive'}`}>
-                        {m.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                    ? m.isEmailVerified === false
+                      ? <span className="admin__badge admin__badge--warning">Pending</span>
+                      : <span className={`admin__badge admin__badge--${m.isActive ? 'active' : 'inactive'}`}>
+                          {m.isActive ? 'Active' : 'Inactive'}
+                        </span>
                     : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No account</span>}
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>

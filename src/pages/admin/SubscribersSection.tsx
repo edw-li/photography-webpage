@@ -90,8 +90,8 @@ export default function SubscribersSection() {
                 <td>{s.name}</td>
                 <td>{s.email}</td>
                 <td>
-                  <span className={`admin__badge admin__badge--${s.isActive ? 'active' : 'inactive'}`}>
-                    {s.isActive ? 'Active' : 'Inactive'}
+                  <span className={`admin__badge admin__badge--${s.isActive && !s.isVerified ? 'warning' : s.isActive ? 'active' : 'inactive'}`}>
+                    {s.isActive && !s.isVerified ? 'Pending' : s.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td>

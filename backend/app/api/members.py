@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.member import Member, SamplePhoto, SocialLink
+from ..models.subscriber import NewsletterSubscriber
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.member import (
@@ -64,6 +65,7 @@ def _member_to_admin_response(member: Member, user: User | None) -> MemberAdminR
         email=user.email if user else None,
         user_role=user.role if user else None,
         is_active=user.is_active if user else None,
+        is_email_verified=user.is_email_verified if user else None,
     )
 
 
@@ -275,6 +277,13 @@ async def delete_member(
         user_result = await db.execute(select(User).where(User.id == member.user_id))
         linked_user = user_result.scalar_one_or_none()
         if linked_user:
+            # Cascade-delete linked newsletter subscriber
+            sub_result = await db.execute(
+                select(NewsletterSubscriber).where(NewsletterSubscriber.email == linked_user.email)
+            )
+            linked_sub = sub_result.scalar_one_or_none()
+            if linked_sub:
+                await db.delete(linked_sub)
             await db.delete(linked_user)
 
     if member.avatar_url and member.avatar_url != "DEFAULT":
