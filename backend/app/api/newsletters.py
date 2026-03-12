@@ -3,6 +3,7 @@ import logging
 import math
 import random
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import bleach
 import markdown
@@ -24,7 +25,8 @@ from ..schemas.newsletter import (
     SubscribeRequest,
     SubscriberResponse,
 )
-from ..services.email_service import send_newsletter_email
+from ..config import settings
+from ..services.email_service import send_newsletter_email, send_verification_email
 from .activity import log_activity
 from .deps import get_db, require_admin, verify_turnstile_token
 
@@ -60,9 +62,12 @@ def _render_md(body_md: str) -> str:
 async def _send_newsletter_emails(
     nl: Newsletter, db: AsyncSession, admin: User
 ) -> tuple[int, int]:
-    """Send newsletter to all active subscribers. Returns (sent_count, failed_count)."""
+    """Send newsletter to all active+verified subscribers. Returns (sent_count, failed_count)."""
     result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
+        select(NewsletterSubscriber).where(
+            NewsletterSubscriber.is_active == True,  # noqa: E712
+            NewsletterSubscriber.is_verified == True,  # noqa: E712
+        )
     )
     subscribers = result.scalars().all()
 
@@ -71,7 +76,11 @@ async def _send_newsletter_emails(
     async def _send_one(sub: NewsletterSubscriber) -> tuple[str, bool]:
         async with sem:
             try:
-                await send_newsletter_email(sub.email, sub.name, nl.title, nl.html)
+                unsub_url = f"{settings.frontend_url}/#/unsubscribe?token={sub.unsubscribe_token}"
+                await send_newsletter_email(
+                    sub.email, sub.name, nl.title, nl.html,
+                    unsubscribe_url=unsub_url,
+                )
                 return (sub.email, True)
             except Exception:
                 logger.error("Failed to send newsletter %s to %s", nl.id, sub.email, exc_info=True)
@@ -106,14 +115,14 @@ async def list_categories(db: AsyncSession = Depends(get_db)):
     return list(result.scalars().all())
 
 
-@router.post("/subscribe", response_model=SubscriberResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/subscribe", response_model=SubscriberResponse)
 @limiter.limit(PUBLIC_POST)
 async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession = Depends(get_db)):
     # Honeypot: if filled, return fake success
     if body.hp:
         return SubscriberResponse(
             id=random.randint(100, 99999), email=body.email, name=body.name,
-            is_active=True, subscribed_at=datetime.now(timezone.utc),
+            is_active=True, is_verified=True, subscribed_at=datetime.now(timezone.utc),
         )
     await verify_turnstile_token(body.turnstile_token)
     result = await db.execute(
@@ -121,33 +130,93 @@ async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession =
     )
     existing = result.scalar_one_or_none()
     if existing is not None:
-        if existing.is_active:
+        if existing.is_active and existing.is_verified:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Email already subscribed"
             )
+        if existing.is_active and not existing.is_verified:
+            # Resend verification email with new token
+            existing.verification_token = uuid4().hex
+            await db.commit()
+            await db.refresh(existing)
+            verify_url = f"{settings.frontend_url}/#/verify-subscription?token={existing.verification_token}"
+            try:
+                await send_verification_email(existing.email, existing.name, verify_url)
+            except Exception:
+                logger.error("Failed to send verification email to %s", existing.email, exc_info=True)
+            return SubscriberResponse(
+                id=existing.id, email=existing.email, name=existing.name,
+                is_active=existing.is_active, is_verified=existing.is_verified,
+                subscribed_at=existing.subscribed_at,
+            )
         # Re-activate inactive subscriber
         existing.is_active = True
+        existing.is_verified = False
         existing.name = body.name
+        existing.unsubscribe_token = uuid4().hex
+        existing.verification_token = uuid4().hex
         await db.commit()
         await db.refresh(existing)
+        verify_url = f"{settings.frontend_url}/#/verify-subscription?token={existing.verification_token}"
+        try:
+            await send_verification_email(existing.email, existing.name, verify_url)
+        except Exception:
+            logger.error("Failed to send verification email to %s", existing.email, exc_info=True)
         return SubscriberResponse(
-            id=existing.id,
-            email=existing.email,
-            name=existing.name,
-            is_active=existing.is_active,
+            id=existing.id, email=existing.email, name=existing.name,
+            is_active=existing.is_active, is_verified=existing.is_verified,
             subscribed_at=existing.subscribed_at,
         )
-    subscriber = NewsletterSubscriber(email=body.email, name=body.name)
+    subscriber = NewsletterSubscriber(
+        email=body.email, name=body.name,
+        is_verified=False, verification_token=uuid4().hex,
+    )
     db.add(subscriber)
     await db.commit()
     await db.refresh(subscriber)
+    verify_url = f"{settings.frontend_url}/#/verify-subscription?token={subscriber.verification_token}"
+    try:
+        await send_verification_email(subscriber.email, subscriber.name, verify_url)
+    except Exception:
+        logger.error("Failed to send verification email to %s", subscriber.email, exc_info=True)
     return SubscriberResponse(
-        id=subscriber.id,
-        email=subscriber.email,
-        name=subscriber.name,
-        is_active=subscriber.is_active,
+        id=subscriber.id, email=subscriber.email, name=subscriber.name,
+        is_active=subscriber.is_active, is_verified=subscriber.is_verified,
         subscribed_at=subscriber.subscribed_at,
     )
+
+
+@router.get("/verify")
+async def verify_subscription(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.verification_token == token)
+    )
+    subscriber = result.scalar_one_or_none()
+    if subscriber is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired verification link",
+        )
+    subscriber.is_verified = True
+    subscriber.verification_token = None
+    await db.commit()
+    return {"message": "Email verified successfully"}
+
+
+@router.get("/unsubscribe")
+async def unsubscribe(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.unsubscribe_token == token)
+    )
+    subscriber = result.scalar_one_or_none()
+    if subscriber is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid unsubscribe link",
+        )
+    subscriber.is_active = False
+    await db.commit()
+    return {"message": "You have been unsubscribed"}
 
 
 @router.get("/subscribers", response_model=PaginatedResponse[SubscriberResponse])
@@ -171,7 +240,8 @@ async def list_subscribers(
     return PaginatedResponse(
         items=[
             SubscriberResponse(
-                id=s.id, email=s.email, name=s.name, is_active=s.is_active, subscribed_at=s.subscribed_at
+                id=s.id, email=s.email, name=s.name, is_active=s.is_active,
+                is_verified=s.is_verified, subscribed_at=s.subscribed_at,
             )
             for s in subscribers
         ],
@@ -202,6 +272,7 @@ async def toggle_subscriber(
         email=subscriber.email,
         name=subscriber.name,
         is_active=subscriber.is_active,
+        is_verified=subscriber.is_verified,
         subscribed_at=subscriber.subscribed_at,
     )
 
@@ -308,10 +379,11 @@ async def send_newsletter(
     if nl is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Newsletter not found")
 
-    # Count active subscribers
+    # Count active+verified subscribers
     count_result = await db.execute(
         select(func.count()).select_from(NewsletterSubscriber).where(
-            NewsletterSubscriber.is_active == True  # noqa: E712
+            NewsletterSubscriber.is_active == True,  # noqa: E712
+            NewsletterSubscriber.is_verified == True,  # noqa: E712
         )
     )
     total_subscribers = count_result.scalar_one()

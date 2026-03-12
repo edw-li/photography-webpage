@@ -56,6 +56,7 @@ class UserResponse(CamelModel):
     last_name: str
     role: str
     is_active: bool
+    is_email_verified: bool
     created_at: datetime
     updated_at: datetime
 
@@ -96,6 +97,15 @@ class ResetPasswordRequest(CamelModel):
         if not _PASSWORD_PATTERN.match(v):
             raise ValueError(_PASSWORD_ERROR)
         return v
+
+
+class RegisterResponse(CamelModel):
+    message: str
+
+
+class ResendVerificationRequest(CamelModel):
+    email: EmailStr
+    turnstile_token: str | None = None
 
 
 class MessageResponse(CamelModel):

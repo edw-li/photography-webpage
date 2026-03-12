@@ -336,7 +336,7 @@ export default function Newsletter() {
                 <p>Get club updates, photography tips, and challenge announcements delivered to your inbox.</p>
               </div>
               {subSuccess ? (
-                <p className="newsletter__signup-success">You're subscribed!</p>
+                <p className="newsletter__signup-success">Check your email to confirm your subscription.</p>
               ) : (
                 <form className={`newsletter__signup-form${isInteractive ? ' newsletter__signup-form--expanded' : ''}`} onSubmit={handleSubmit}>
                   <input

@@ -1,3 +1,4 @@
+import html
 import logging
 
 import aiosmtplib
@@ -8,7 +9,9 @@ from ..config import settings
 logger = logging.getLogger(__name__)
 
 
-async def send_email(to: str, subject: str, html_body: str) -> None:
+async def send_email(
+    to: str, subject: str, html_body: str, headers: dict[str, str] | None = None
+) -> None:
     """Send an email via SMTP if configured, otherwise log to console."""
     if not settings.smtp_configured:
         logger.info("SMTP not configured — email would be sent to %s", to)
@@ -20,6 +23,9 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
     msg["From"] = settings.smtp_from_email
     msg["To"] = to
     msg["Subject"] = subject
+    if headers:
+        for key, value in headers.items():
+            msg[key] = value
     msg.set_content(html_body, subtype="html")
 
     await aiosmtplib.send(
@@ -33,9 +39,11 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
 
 
 async def send_newsletter_email(
-    to: str, subscriber_name: str, newsletter_title: str, newsletter_html: str
+    to: str, subscriber_name: str, newsletter_title: str, newsletter_html: str,
+    unsubscribe_url: str = "",
 ) -> None:
     """Build and send a newsletter email to a subscriber."""
+    subscriber_name = html.escape(subscriber_name)
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -69,7 +77,7 @@ async def send_newsletter_email(
             <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
               <p style="margin:0;font-size:12px;color:#999;text-align:center;">
                 You received this because you're subscribed to Selah Photography Club newsletters.
-                Manage your subscription in your profile settings.
+                <a href="{unsubscribe_url}" style="color:#999;">Unsubscribe</a> from these emails.
               </p>
             </td>
           </tr>
@@ -80,7 +88,15 @@ async def send_newsletter_email(
 </body>
 </html>"""
 
-    await send_email(to, f"{newsletter_title} — Selah Photography Club", html_body)
+    headers = {}
+    if unsubscribe_url:
+        headers["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+        headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+
+    await send_email(
+        to, f"{newsletter_title} — Selah Photography Club", html_body,
+        headers=headers if headers else None,
+    )
 
 
 async def send_contact_reply_email(
@@ -195,3 +211,112 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
         logger.info("=== END RESET LINK ===")
 
     await send_email(to, "Reset Your Password — Selah Photography Club", html_body)
+
+
+async def send_verification_email(to: str, name: str, verify_url: str) -> None:
+    """Send a subscription verification (double opt-in) email."""
+    name = html.escape(name)
+    html_body = f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
+                Selah Photography Club
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 24px;text-align:center;">
+              <p style="margin:0 0 16px;font-size:14px;color:#666;">
+                Hi {name},
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#333;">
+                Please confirm your newsletter subscription by clicking the button below.
+              </p>
+              <a href="{verify_url}"
+                 style="display:inline-block;padding:12px 32px;background:#e07a2f;
+                        color:#ffffff;text-decoration:none;border-radius:6px;
+                        font-weight:600;font-size:14px;">
+                Confirm Subscription
+              </a>
+              <p style="margin:24px 0 0;font-size:12px;color:#999;">
+                If you didn't subscribe, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    if not settings.smtp_configured:
+        logger.info("=== SUBSCRIPTION VERIFICATION LINK (no SMTP configured) ===")
+        logger.info("Recipient: %s", to)
+        logger.info("Verify URL: %s", verify_url)
+        logger.info("=== END VERIFICATION LINK ===")
+
+    await send_email(to, "Confirm Your Subscription — Selah Photography Club", html_body)
+
+
+async def send_account_verification_email(to: str, first_name: str, verify_url: str) -> None:
+    """Send an account email verification email."""
+    first_name = html.escape(first_name)
+    html_body = f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
+                Selah Photography Club
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 24px;text-align:center;">
+              <p style="margin:0 0 16px;font-size:14px;color:#666;">
+                Hi {first_name},
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#333;">
+                Welcome to Selah Photography Club! Please verify your email address
+                by clicking the button below.
+              </p>
+              <a href="{verify_url}"
+                 style="display:inline-block;padding:12px 32px;background:#e07a2f;
+                        color:#ffffff;text-decoration:none;border-radius:6px;
+                        font-weight:600;font-size:14px;">
+                Verify Email
+              </a>
+              <p style="margin:24px 0 0;font-size:12px;color:#999;">
+                If you didn't create an account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    if not settings.smtp_configured:
+        logger.info("=== ACCOUNT VERIFICATION LINK (no SMTP configured) ===")
+        logger.info("Recipient: %s", to)
+        logger.info("Verify URL: %s", verify_url)
+        logger.info("=== END VERIFICATION LINK ===")
+
+    await send_email(to, "Verify Your Email — Selah Photography Club", html_body)

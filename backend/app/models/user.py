@@ -33,3 +33,7 @@ class User(Base):
         server_default=text("now()"),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    email_verification_token: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True
+    )
