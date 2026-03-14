@@ -29,7 +29,7 @@ from ..schemas.contest import (
 )
 from ..models.gallery import GalleryPhoto
 from ..rate_limit import limiter, AUTH_ATTEMPT
-from ..services.storage import delete_uploaded_image, save_submission_image
+from ..services.storage import delete_uploaded_image, save_submission_image, make_user_slug
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
 
@@ -417,7 +417,8 @@ async def create_submission(
         )
 
     await validate_image_upload(file)
-    url = await save_submission_image(contest.month, file)
+    slug = make_user_slug(user.id, user.first_name, user.last_name)
+    url = await save_submission_image(contest.month, file, user_slug=slug)
 
     submission = ContestSubmission(
         contest_id=contest_id,

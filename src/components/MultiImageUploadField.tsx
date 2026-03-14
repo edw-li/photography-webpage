@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
 import { getImageUrl } from '../utils/imageUrl';
+import { compressImage } from '../utils/compressImage';
 import { X } from 'lucide-react';
 
 export interface ImageWithCaption {
@@ -29,6 +30,7 @@ export default function MultiImageUploadField({
   maxItems = 10,
 }: MultiImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,19 +41,27 @@ export default function MultiImageUploadField({
       return;
     }
     setError('');
-    setUploading(true);
+    setCompressing(true);
     try {
-      const url = await uploadImage(file, category);
-      if (onAdd) {
-        const result = await onAdd(url);
-        onChange([...items, { id: result.id, url, caption: '' }]);
-      } else {
-        onChange([...items, { url, caption: '' }]);
+      const { file: compressed } = await compressImage(file);
+      setCompressing(false);
+      setUploading(true);
+      try {
+        const url = await uploadImage(compressed, category);
+        if (onAdd) {
+          const result = await onAdd(url);
+          onChange([...items, { id: result.id, url, caption: '' }]);
+        } else {
+          onChange([...items, { url, caption: '' }]);
+        }
+      } finally {
+        setUploading(false);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setCompressing(false);
     }
-    setUploading(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,10 +141,10 @@ export default function MultiImageUploadField({
           type="button"
           className="admin__action-btn"
           onClick={() => inputRef.current?.click()}
-          disabled={uploading}
+          disabled={compressing || uploading}
           style={{ marginTop: items.length > 0 ? '0.25rem' : 0 }}
         >
-          {uploading ? 'Uploading...' : '+ Add Photo'}
+          {compressing ? 'Compressing...' : uploading ? 'Uploading...' : '+ Add Photo'}
         </button>
       )}
 
