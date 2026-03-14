@@ -16,7 +16,7 @@ from ..schemas.gallery import (
     GalleryPhotoUpdate,
     PhotoExifSchema,
 )
-from ..services.storage import delete_uploaded_image, save_gallery_image
+from ..services.storage import delete_uploaded_image, save_gallery_image, make_user_slug
 from .activity import log_activity
 from .deps import get_db, require_admin
 
@@ -158,7 +158,8 @@ async def upload_gallery_photo(
     db: AsyncSession = Depends(get_db),
 ):
     await validate_image_upload(file)
-    url = await save_gallery_image(file)
+    slug = make_user_slug(admin.id, admin.first_name, admin.last_name)
+    url = await save_gallery_image(file, user_slug=slug)
     photo = GalleryPhoto(
         url=url,
         title=title,

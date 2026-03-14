@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
+import { compressImage } from '../utils/compressImage';
 
 interface ImageUploadFieldProps {
   value: string;
@@ -19,6 +20,7 @@ export default function ImageUploadField({
   required = false,
 }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,14 +31,22 @@ export default function ImageUploadField({
       return;
     }
     setError('');
-    setUploading(true);
+    setCompressing(true);
     try {
-      const url = await uploadImage(file, category);
-      onChange(url);
+      const { file: compressed } = await compressImage(file);
+      setCompressing(false);
+      setUploading(true);
+      try {
+        const url = await uploadImage(compressed, category);
+        onChange(url);
+      } finally {
+        setUploading(false);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setCompressing(false);
     }
-    setUploading(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -112,7 +122,9 @@ export default function ImageUploadField({
           onClick={() => inputRef.current?.click()}
           style={{ padding: '1.5rem' }}
         >
-          {uploading ? (
+          {compressing ? (
+            <p style={{ margin: 0, fontSize: '0.85rem' }}>Compressing...</p>
+          ) : uploading ? (
             <p style={{ margin: 0, fontSize: '0.85rem' }}>Uploading...</p>
           ) : (
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>

@@ -1,5 +1,8 @@
 import io
 import logging
+import re
+import unicodedata
+import uuid
 from pathlib import Path
 from uuid import uuid4
 
@@ -9,6 +12,17 @@ from fastapi import UploadFile
 from PIL import Image, ImageOps
 
 from ..config import settings
+
+
+def make_user_slug(user_id: str | uuid.UUID, first_name: str, last_name: str) -> str:
+    """Filesystem-safe slug: '{8-hex-prefix}-{name}', e.g. 'a1b2c3d4-john-doe'."""
+    hex8 = uuid.UUID(str(user_id)).hex[:8]
+    raw = f"{first_name} {last_name}"
+    normalized = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
+    if not slug:
+        slug = "user"
+    return f"{hex8}-{slug[:60].rstrip('-')}"
 
 logger = logging.getLogger(__name__)
 
@@ -136,25 +150,26 @@ def _save_local(content: bytes, category: str, unique_name: str) -> str:
 # Public API (unchanged signatures)
 # ---------------------------------------------------------------------------
 
-async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool = True) -> str:
+async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool = True, user_slug: str | None = None) -> str:
     """Save uploaded image, optionally with thumbnails. Return URL path."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
     content = await file.read()
+    effective_category = f"{category}/{user_slug}" if user_slug else category
 
     if settings.oci_configured:
         if thumbnails:
-            return _upload_with_thumbnails_oci(content, category, unique_name, ext)
-        object_key = f"uploads/{category}/{unique_name}"
+            return _upload_with_thumbnails_oci(content, effective_category, unique_name, ext)
+        object_key = f"uploads/{effective_category}/{unique_name}"
         return _upload_to_oci(content, object_key, ext)
 
     if thumbnails:
-        return _save_local(content, category, unique_name)
-    dest_dir = UPLOAD_DIR / category
+        return _save_local(content, effective_category, unique_name)
+    dest_dir = UPLOAD_DIR / effective_category
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / unique_name
     dest.write_bytes(content)
-    return f"/uploads/{category}/{unique_name}"
+    return f"/uploads/{effective_category}/{unique_name}"
 
 
 def delete_uploaded_image(url: str, thumbnails: bool = True) -> None:
@@ -208,16 +223,18 @@ def _delete_local(url: str) -> None:
         file.unlink(missing_ok=True)
 
 
-async def save_gallery_image(file: UploadFile) -> str:
+async def save_gallery_image(file: UploadFile, user_slug: str | None = None) -> str:
     """Save uploaded gallery image, return URL."""
-    return await save_uploaded_image(file, "gallery")
+    return await save_uploaded_image(file, "gallery", user_slug=user_slug)
 
 
-async def save_submission_image(contest_month: str, file: UploadFile) -> str:
+async def save_submission_image(contest_month: str, file: UploadFile, user_slug: str | None = None) -> str:
     """Save uploaded contest submission image, return URL."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     unique_name = f"{uuid4().hex}{ext}"
     category = f"submissions/{contest_month}"
+    if user_slug:
+        category = f"{category}/{user_slug}"
     content = await file.read()
 
     if settings.oci_configured:

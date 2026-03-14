@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getContests, submitPhoto, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
+import { compressImage } from '../utils/compressImage';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
@@ -287,6 +288,7 @@ function TabSubmit({
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -319,26 +321,34 @@ function TabSubmit({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !file) return;
-    setSubmitting(true);
+    setCompressing(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title.trim());
-      formData.append('photographer', `${user!.firstName} ${user!.lastName}`);
-      if (camera.trim()) formData.append('exif_camera', camera.trim());
-      if (focalLength.trim()) formData.append('exif_focal_length', focalLength.trim());
-      if (aperture.trim()) formData.append('exif_aperture', aperture.trim());
-      if (shutterSpeed.trim()) formData.append('exif_shutter_speed', shutterSpeed.trim());
-      if (iso.trim()) formData.append('exif_iso', iso.trim());
-      await submitPhoto(contest.id, formData);
-      setSubmitted(true);
-      onContestRefresh();
+      const { file: compressed } = await compressImage(file);
+      setCompressing(false);
+      setSubmitting(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', compressed);
+        formData.append('title', title.trim());
+        formData.append('photographer', `${user!.firstName} ${user!.lastName}`);
+        if (camera.trim()) formData.append('exif_camera', camera.trim());
+        if (focalLength.trim()) formData.append('exif_focal_length', focalLength.trim());
+        if (aperture.trim()) formData.append('exif_aperture', aperture.trim());
+        if (shutterSpeed.trim()) formData.append('exif_shutter_speed', shutterSpeed.trim());
+        if (iso.trim()) formData.append('exif_iso', iso.trim());
+        await submitPhoto(contest.id, formData);
+        setSubmitted(true);
+        onContestRefresh();
+      } finally {
+        setSubmitting(false);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to submit photo';
       setError(msg);
+    } finally {
+      setCompressing(false);
     }
-    setSubmitting(false);
   };
 
   if (!isAuthenticated) {
@@ -436,9 +446,9 @@ function TabSubmit({
           <button
             type="submit"
             className="contest__modal-btn contest__modal-btn--submit"
-            disabled={!canSubmit || submitting}
+            disabled={!canSubmit || compressing || submitting}
           >
-            {submitting ? 'Submitting...' : atLimit ? 'Submission Limit Reached' : 'Submit Photo'}
+            {compressing ? 'Compressing...' : submitting ? 'Submitting...' : atLimit ? 'Submission Limit Reached' : 'Submit Photo'}
           </button>
           <p className="contest__submit-disclaimer">Submissions cannot be changed once submitted.</p>
         </form>

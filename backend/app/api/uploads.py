@@ -7,7 +7,7 @@ from ..config import settings
 from ..models.user import User
 from ..rate_limit import limiter, AUTH_ATTEMPT
 from ..schemas.common import CamelModel
-from ..services.storage import save_uploaded_image
+from ..services.storage import save_uploaded_image, make_user_slug
 from .deps import get_current_user
 
 router = APIRouter()
@@ -83,5 +83,6 @@ async def upload_file(
     # Seek back so save_uploaded_image can read it
     await file.seek(0)
 
-    url = await save_uploaded_image(file, category, thumbnails=(category not in NO_THUMBNAIL_CATEGORIES))
+    slug = make_user_slug(user.id, user.first_name, user.last_name)
+    url = await save_uploaded_image(file, category, thumbnails=(category not in NO_THUMBNAIL_CATEGORIES), user_slug=slug)
     return UploadResponse(url=url)
