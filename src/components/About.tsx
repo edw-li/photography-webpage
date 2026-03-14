@@ -39,7 +39,7 @@ function MissionContent() {
         <h3>Our Mission</h3>
         <p>
           At Selah Photography Club, we believe photography is more than just
-          capturing images — it's a way to pause, see the world with fresh
+          capturing images—it's a way to pause, see the world with fresh
           eyes, and reflect on the beauty around us. Like the musical term{' '}
           <em>selah</em>, which invites us to stop and meditate on what we
           just heard, every photograph is an invitation to take a breath and
@@ -47,7 +47,7 @@ function MissionContent() {
         </p>
         <p>
           Our goal is simple: have fun, promote healthy challenge, build
-          fellowship, and encourage one another — all while experiencing
+          fellowship, and encourage one another—all while experiencing
           God's creation through the lens.
         </p>
       </div>
@@ -78,14 +78,16 @@ function StoryContent() {
         <h3>Our Story</h3>
         <p>
           Selah Photography Club began with four friends who shared a passion
-          for photography and a home church — Bridgeway Church in Palo Alto.
+          for photography and a home church: Bridgeway Church in Palo Alto.
           In early 2026, what started as casual conversations about cameras
           and composition turned into something more: the idea for a
           photography club rooted in community, creativity, and faith.
         </p>
         <p>
-          In March 2026, we made it official. Our story is still being
-          written, and we'd love for you to be part of the next chapter.
+          In March 2026, we made it official. Every month, we pick a photography
+          theme that inspires us to get out there, take some photos, and see
+          something new. Join us in the fun and we can't wait to see what you'll
+          capture.
         </p>
       </div>
       <div className={`about__image${!loaded ? ' shimmer-bg' : ''}`}>

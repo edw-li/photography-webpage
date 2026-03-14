@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="example@domain.com"
                 />
               </div>
               <div ref={turnstileRef} className="auth-card__turnstile" />

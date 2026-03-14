@@ -349,7 +349,7 @@ export default function Newsletter() {
                   />
                   <input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="example@domain.com"
                     aria-label="Email"
                     className="newsletter__signup-input"
                     value={subEmail}

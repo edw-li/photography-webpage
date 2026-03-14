@@ -78,7 +78,7 @@ export default function Contact() {
                 <input
                   type="email"
                   id="email"
-                  placeholder="you@example.com"
+                  placeholder="example@domain.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -128,7 +128,7 @@ export default function Contact() {
             </div>
             <div className="contact__info-item">
               <h3>Meetings</h3>
-              <p>Schedule TBD — check back soon!</p>
+              <p>Schedule TBD. Check back soon!</p>
             </div>
             <div className="contact__info-item">
               <h3>Follow Us</h3>
