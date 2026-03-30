@@ -258,7 +258,7 @@
 }
 
 .events__day-cell--has-events:hover {
-  background: rgba(247, 148, 29, 0.06);
+  background: rgba(205, 146, 57, 0.06);
 }
 
 .events__day-number {

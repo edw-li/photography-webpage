@@ -4,11 +4,13 @@
 
 :root {
   /* Colors */
-  --color-accent: #F7941D;
-  --color-accent-light: #F9AB4A;
-  --color-accent-dark: #D97B0A;
-  --color-dark-900: #1A1A1A;
-  --color-dark-800: #2D2D2D;
+  --color-accent: #CD9239;
+  --color-accent-light: #D9A84F;
+  --color-accent-dark: #B47D2A;
+  --color-dark-900: #1A2937;
+  --color-dark-800: #284054;
+  --color-dark-100: #E4E9ED;
+  --color-dark-300: #8FA0AF;
   --color-light-100: #FFFFFF;
   --color-light-200: #F5F5F5;
   --color-light-300: #E8E8E8;
@@ -49,28 +51,28 @@
   --color-border: #E8E8E8;
 
   /* Dark accent sections (Contact, Footer, Calendar header) */
-  --color-dark-bg: #1A1A1A;
-  --color-dark-surface: #2D2D2D;
-  --color-dark-text: #ccc;
-  --color-dark-text-muted: #aaa;
-  --color-dark-border: #444;
+  --color-dark-bg: #1A2937;
+  --color-dark-surface: #284054;
+  --color-dark-text: #C5D0D9;
+  --color-dark-text-muted: #8FA0AF;
+  --color-dark-border: #3A5468;
 }
 
 [data-theme="dark"] {
-  --color-bg: #121212;
-  --color-bg-alt: #1A1A1A;
-  --color-surface: #1E1E1E;
-  --color-surface-alt: #2A2A2A;
-  --color-text: #E8E8E8;
-  --color-text-secondary: #AAAAAA;
-  --color-text-muted: #777;
-  --color-border: #333;
+  --color-bg: #0F1A22;
+  --color-bg-alt: #152330;
+  --color-surface: #1A2937;
+  --color-surface-alt: #213545;
+  --color-text: #E4E9ED;
+  --color-text-secondary: #A8B5C0;
+  --color-text-muted: #6E8090;
+  --color-border: #2E4456;
 
-  --color-dark-bg: #0D0D0D;
-  --color-dark-surface: #161616;
-  --color-dark-text: #bbb;
-  --color-dark-text-muted: #888;
-  --color-dark-border: #333;
+  --color-dark-bg: #0A1319;
+  --color-dark-surface: #111E28;
+  --color-dark-text: #B4C1CB;
+  --color-dark-text-muted: #7A8D9C;
+  --color-dark-border: #2E4456;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -244,7 +246,7 @@ p {
 .btn-primary:hover {
   background: var(--color-accent-light);
   transform: scale(1.05);
-  box-shadow: 0 4px 20px rgba(247, 148, 29, 0.4);
+  box-shadow: 0 4px 20px rgba(205, 146, 57, 0.4);
 }
 
 .btn-primary:active {

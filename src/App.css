@@ -33,7 +33,7 @@
 
 .back-to-top:hover {
   background: var(--color-accent-light);
-  box-shadow: 0 4px 20px rgba(247, 148, 29, 0.4);
+  box-shadow: 0 4px 20px rgba(205, 146, 57, 0.4);
 }
 
 .back-to-top:active {
