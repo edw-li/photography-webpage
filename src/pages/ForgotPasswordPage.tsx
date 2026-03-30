@@ -2,6 +2,7 @@ import { useState, useRef, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword } from '../api/auth';
 import { useTurnstile } from '../hooks/useTurnstile';
+import authIcon from '../assets/icon-selah-white.png';
 import './AuthPage.css';
 
 export default function ForgotPasswordPage() {
@@ -30,6 +31,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
         {sent ? (
           <>
             <h1>Check Your Email</h1>

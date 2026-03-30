@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
+import footerIcon from '../assets/icon-selah-white.png';
 import './Footer.css';
 
 export default function Footer() {
@@ -22,6 +23,7 @@ export default function Footer() {
         <div className="footer__grid">
           <div className="footer__brand">
             <h3>
+              <img src={footerIcon} alt="" className="footer__brand-icon" width="36" height="36" />
               Selah <span>Photography</span>
             </h3>
             <p>

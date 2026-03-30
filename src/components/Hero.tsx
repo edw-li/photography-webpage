@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import heroLogo from '../assets/logo-selah-white.png';
 import './Hero.css';
 
 export default function Hero() {
@@ -39,7 +40,10 @@ export default function Hero() {
       <div className={`hero__bg${bgLoaded ? ' hero__bg--loaded' : ''}`} ref={bgRef} />
       <div className="hero__overlay" />
       <div className="hero__content container">
-        <h1 className="hero__title">Selah Photography</h1>
+        <h1 className="hero__title">
+          <img src={heroLogo} alt="Selah" className="hero__title-logo" />
+          {' '}Photography
+        </h1>
         <p className="hero__tagline">Capturing Moments, Building Community</p>
         <a href="#contact" className="btn btn-primary hero__cta">
           Join Us

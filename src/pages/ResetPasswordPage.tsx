@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../api/auth';
+import authIcon from '../assets/icon-selah-white.png';
 import './AuthPage.css';
 
 export default function ResetPasswordPage() {
@@ -17,6 +18,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
+          <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
           <h1>Invalid Link</h1>
           <p>This password reset link is invalid or has expired.</p>
           <Link to="/forgot-password" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>
@@ -62,6 +64,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
+          <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
           <h1>Password Updated</h1>
           <p>Your password has been reset successfully. You can now log in with your new password.</p>
           <Link to="/login" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>
@@ -75,6 +78,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
         <h1>Reset Password</h1>
         <p>Enter your new password below.</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>

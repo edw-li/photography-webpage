@@ -48,6 +48,14 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+.auth-card__icon {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  object-fit: contain;
+}
+
 .auth-card h1 {
   color: var(--color-light-100);
   font-size: 1.75rem;
