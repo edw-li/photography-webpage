@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { resendVerification } from '../api/auth';
 import { ApiError } from '../api/client';
 import { useTurnstile } from '../hooks/useTurnstile';
+import authIcon from '../assets/icon-selah-white.png';
 import './AuthPage.css';
 
 export default function LoginPage() {
@@ -57,6 +58,7 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
         <h1>Log In</h1>
         <p>Welcome back to Selah Photography</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>

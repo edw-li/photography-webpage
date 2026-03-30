@@ -2,6 +2,7 @@ import { useState, useRef, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTurnstile } from '../hooks/useTurnstile';
+import authIcon from '../assets/icon-selah-white.png';
 import './AuthPage.css';
 
 export default function RegisterPage() {
@@ -57,6 +58,7 @@ export default function RegisterPage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
+          <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
           <h1>Check Your Email</h1>
           <p>{successMessage}</p>
           <div className="auth-card__footer">
@@ -70,6 +72,7 @@ export default function RegisterPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <img src={authIcon} alt="Selah Photography Club" className="auth-card__icon" />
         <h1>Register</h1>
         <p>Join Selah Photography Club</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>

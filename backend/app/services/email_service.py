@@ -44,6 +44,7 @@ async def send_newsletter_email(
 ) -> None:
     """Build and send a newsletter email to a subscriber."""
     subscriber_name = html.escape(subscriber_name)
+    banner_url = f"{settings.frontend_url}/og-banner.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -54,10 +55,9 @@ async def send_newsletter_email(
         <table width="600" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
-              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Selah Photography Club
-              </h1>
+            <td style="background:#1A2937;text-align:center;">
+              <img src="{banner_url}" alt="Selah Photography Club"
+                   width="600" style="display:block;width:100%;height:auto;" />
             </td>
           </tr>
           <tr>
@@ -65,7 +65,7 @@ async def send_newsletter_email(
               <p style="margin:0 0 16px;font-size:14px;color:#666;">
                 Hi {subscriber_name},
               </p>
-              <h2 style="margin:0 0 20px;font-size:20px;color:#1a1a1a;">
+              <h2 style="margin:0 0 20px;font-size:20px;color:#1A2937;">
                 {newsletter_title}
               </h2>
               <div style="font-size:14px;color:#333;line-height:1.6;">
@@ -109,6 +109,7 @@ async def send_contact_reply_email(
     safe_reply = html.escape(reply_text).replace("\n", "<br>")
     safe_original = html.escape(original_message).replace("\n", "<br>")
 
+    banner_url = f"{settings.frontend_url}/og-banner.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -119,10 +120,9 @@ async def send_contact_reply_email(
         <table width="600" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
-              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Selah Photography Club
-              </h1>
+            <td style="background:#1A2937;text-align:center;">
+              <img src="{banner_url}" alt="Selah Photography Club"
+                   width="600" style="display:block;width:100%;height:auto;" />
             </td>
           </tr>
           <tr>
@@ -133,8 +133,8 @@ async def send_contact_reply_email(
               <p style="margin:0 0 16px;font-size:14px;color:#333;">
                 Thank you for reaching out. Here is our reply:
               </p>
-              <div style="margin:0 0 24px;padding:16px 20px;border-left:4px solid #e07a2f;
-                          background:#fdf6ef;font-size:14px;color:#333;line-height:1.6;">
+              <div style="margin:0 0 24px;padding:16px 20px;border-left:4px solid #CD9239;
+                          background:#fdf8f0;font-size:14px;color:#333;line-height:1.6;">
                 {safe_reply}
               </div>
               <p style="margin:0 0 8px;font-size:12px;color:#999;font-weight:600;text-transform:uppercase;">
@@ -167,6 +167,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
     """Build and send a password-reset email with a link to the frontend."""
     reset_url = f"{settings.frontend_url}/#/reset-password?token={reset_token}"
 
+    banner_url = f"{settings.frontend_url}/og-banner.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -177,8 +178,14 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
+            <td style="background:#1A2937;text-align:center;">
+              <img src="{banner_url}" alt="Selah Photography Club"
+                   width="480" style="display:block;width:100%;height:auto;" />
+            </td>
+          </tr>
+          <tr>
             <td style="padding:32px 32px 24px;text-align:center;">
-              <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">
+              <h1 style="margin:0 0 8px;font-size:22px;color:#1A2937;">
                 Reset Your Password
               </h1>
               <p style="margin:0 0 24px;font-size:14px;color:#666;">
@@ -186,7 +193,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
                 Selah Photography Club account.
               </p>
               <a href="{reset_url}"
-                 style="display:inline-block;padding:12px 32px;background:#e07a2f;
+                 style="display:inline-block;padding:12px 32px;background:#CD9239;
                         color:#ffffff;text-decoration:none;border-radius:6px;
                         font-weight:600;font-size:14px;">
                 Reset Password
@@ -216,6 +223,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
 async def send_verification_email(to: str, name: str, verify_url: str) -> None:
     """Send a subscription verification (double opt-in) email."""
     name = html.escape(name)
+    banner_url = f"{settings.frontend_url}/og-banner.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -226,10 +234,9 @@ async def send_verification_email(to: str, name: str, verify_url: str) -> None:
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
-              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Selah Photography Club
-              </h1>
+            <td style="background:#1A2937;text-align:center;">
+              <img src="{banner_url}" alt="Selah Photography Club"
+                   width="480" style="display:block;width:100%;height:auto;" />
             </td>
           </tr>
           <tr>
@@ -241,7 +248,7 @@ async def send_verification_email(to: str, name: str, verify_url: str) -> None:
                 Please confirm your newsletter subscription by clicking the button below.
               </p>
               <a href="{verify_url}"
-                 style="display:inline-block;padding:12px 32px;background:#e07a2f;
+                 style="display:inline-block;padding:12px 32px;background:#CD9239;
                         color:#ffffff;text-decoration:none;border-radius:6px;
                         font-weight:600;font-size:14px;">
                 Confirm Subscription
@@ -270,6 +277,7 @@ async def send_verification_email(to: str, name: str, verify_url: str) -> None:
 async def send_account_verification_email(to: str, first_name: str, verify_url: str) -> None:
     """Send an account email verification email."""
     first_name = html.escape(first_name)
+    banner_url = f"{settings.frontend_url}/og-banner.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -280,10 +288,9 @@ async def send_account_verification_email(to: str, first_name: str, verify_url: 
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1a1a1a;padding:24px 32px;text-align:center;">
-              <h1 style="margin:0;font-size:20px;color:#e07a2f;">
-                Selah Photography Club
-              </h1>
+            <td style="background:#1A2937;text-align:center;">
+              <img src="{banner_url}" alt="Selah Photography Club"
+                   width="480" style="display:block;width:100%;height:auto;" />
             </td>
           </tr>
           <tr>
@@ -296,7 +303,7 @@ async def send_account_verification_email(to: str, first_name: str, verify_url: 
                 by clicking the button below.
               </p>
               <a href="{verify_url}"
-                 style="display:inline-block;padding:12px 32px;background:#e07a2f;
+                 style="display:inline-block;padding:12px 32px;background:#CD9239;
                         color:#ffffff;text-decoration:none;border-radius:6px;
                         font-weight:600;font-size:14px;">
                 Verify Email

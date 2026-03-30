@@ -202,7 +202,7 @@ export default function ContactsSection() {
             </p>
             <p className="confirm-dialog__message" style={{ whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
             {viewItem.replied && viewItem.replyMessage && (
-              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderLeft: '3px solid #e07a2f', background: 'var(--color-surface, #f5f5f5)', borderRadius: 4 }}>
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderLeft: '3px solid var(--color-accent)', background: 'var(--color-surface, #f5f5f5)', borderRadius: 4 }}>
                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
                   Replied on {formatDate(viewItem.repliedAt!)} by {viewItem.repliedBy}
                 </p>

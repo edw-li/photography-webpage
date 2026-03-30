@@ -26,10 +26,26 @@
 }
 
 .navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-light-100);
+}
+
+.navbar__logo-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: width var(--transition-base), height var(--transition-base);
+}
+
+.navbar--scrolled .navbar__logo-icon {
+  width: 28px;
+  height: 28px;
 }
 
 .navbar__logo span {
