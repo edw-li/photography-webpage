@@ -13,6 +13,8 @@ import { compressImage } from '../utils/compressImage';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 function formatDeadline(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -310,12 +312,27 @@ function TabSubmit({
     setDragging(false);
     if (atLimit) return;
     const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) setFile(f);
+    if (f && f.type.startsWith('image/')) {
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
+        return;
+      }
+      setError(null);
+      setFile(f);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) setFile(f);
+    if (f) {
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
+        e.target.value = '';
+        return;
+      }
+      setError(null);
+      setFile(f);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -324,7 +341,7 @@ function TabSubmit({
     setCompressing(true);
     setError(null);
     try {
-      const { file: compressed } = await compressImage(file);
+      const { file: compressed } = await compressImage(file, { maxSizeMB: MAX_FILE_SIZE_MB });
       setCompressing(false);
       setSubmitting(true);
       try {
@@ -393,6 +410,7 @@ function TabSubmit({
               <div className="contest__dropzone-placeholder">
                 <Camera size={32} />
                 <p>{atLimit ? 'Submission limit reached' : 'Drag & drop your photo here, or click to browse'}</p>
+                {!atLimit && <p className="contest__dropzone-hint">Max {MAX_FILE_SIZE_MB}MB</p>}
               </div>
             )}
             <input

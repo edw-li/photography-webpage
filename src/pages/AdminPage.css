@@ -31,9 +31,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(26, 26, 26, 0.95) 0%,
-    rgba(26, 26, 26, 0.6) 50%,
-    rgba(26, 26, 26, 0.3) 100%
+    rgba(26, 41, 55, 0.95) 0%,
+    rgba(26, 41, 55, 0.6) 50%,
+    rgba(26, 41, 55, 0.3) 100%
   );
 }
 
@@ -311,7 +311,7 @@
 }
 
 .admin__badge--admin {
-  background: rgba(247, 148, 29, 0.15);
+  background: rgba(205, 146, 57, 0.15);
   color: var(--color-accent);
 }
 
@@ -560,7 +560,7 @@
 .admin__drop-zone:hover,
 .admin__drop-zone--active {
   border-color: var(--color-accent);
-  background: rgba(247, 148, 29, 0.05);
+  background: rgba(205, 146, 57, 0.05);
 }
 
 /* ─── Visibility Toggle ─── */

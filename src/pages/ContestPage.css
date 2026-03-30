@@ -50,9 +50,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(26, 26, 26, 0.95) 0%,
-    rgba(26, 26, 26, 0.6) 50%,
-    rgba(26, 26, 26, 0.3) 100%
+    rgba(26, 41, 55, 0.95) 0%,
+    rgba(26, 41, 55, 0.6) 50%,
+    rgba(26, 41, 55, 0.3) 100%
   );
 }
 
@@ -67,7 +67,7 @@
   display: inline-block;
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
-  background: rgba(247, 148, 29, 0.2);
+  background: rgba(205, 146, 57, 0.2);
   color: var(--color-accent);
   font-size: 0.8rem;
   font-weight: 600;
@@ -441,7 +441,7 @@
 .contest__dropzone:hover,
 .contest__dropzone--active {
   border-color: var(--color-accent);
-  background: rgba(247, 148, 29, 0.04);
+  background: rgba(205, 146, 57, 0.04);
 }
 
 .contest__dropzone--has-preview {
@@ -463,6 +463,12 @@
 
 .contest__dropzone-placeholder p {
   font-size: 0.9rem;
+}
+
+.contest__dropzone-hint {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin: 0;
 }
 
 .contest__dropzone-preview {
@@ -1089,8 +1095,8 @@
   justify-content: center;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
-  background: rgba(247, 148, 29, 0.08);
-  border: 1px solid rgba(247, 148, 29, 0.2);
+  background: rgba(205, 146, 57, 0.08);
+  border: 1px solid rgba(205, 146, 57, 0.2);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-accent);
@@ -1173,7 +1179,7 @@
 
 .contest__wizard-step--active .contest__wizard-step-dot {
   border-color: var(--color-accent);
-  background: rgba(247, 148, 29, 0.15);
+  background: rgba(205, 146, 57, 0.15);
   color: var(--color-accent);
 }
 
@@ -1372,7 +1378,7 @@
 }
 
 .contest__carousel-dot--active {
-  background: rgba(247, 148, 29, 0.15);
+  background: rgba(205, 146, 57, 0.15);
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
@@ -1412,7 +1418,7 @@
 }
 
 .contest__category-pill--active {
-  background: rgba(247, 148, 29, 0.15);
+  background: rgba(205, 146, 57, 0.15);
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
