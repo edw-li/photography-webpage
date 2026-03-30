@@ -44,15 +44,19 @@
 }
 
 .hero__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em;
   font-size: clamp(3rem, 7vw, 5.5rem);
   margin-bottom: 1rem;
   letter-spacing: -1px;
 }
 
 .hero__title-logo {
-  height: 1em;
+  height: 3em;
   width: auto;
-  vertical-align: baseline;
+  margin: -0.7em 0;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
