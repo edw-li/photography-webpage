@@ -545,6 +545,18 @@
   margin-bottom: 0.75rem;
 }
 
+.admin__md-preview a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  transition: opacity var(--transition-fast);
+}
+
+.admin__md-preview a:hover {
+  opacity: 0.8;
+}
+
 /* ─── Drop Zone (Gallery Upload) ─── */
 
 .admin__drop-zone {

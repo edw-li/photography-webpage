@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
 import { getMembersAdmin, createMember, deleteMember } from '../../api/members';
 import { apiFetch, ApiError } from '../../api/client';
 import type { MemberAdmin, SocialLinks, SamplePhoto } from '../../types/members';
@@ -324,7 +325,7 @@ export default function MembersSection() {
                     }}
                   />
                   <button className="afm-remove-btn" onClick={() => setSocialRows(socialRows.filter((_, j) => j !== i))}>
-                    &times;
+                    <X size={16} />
                   </button>
                 </div>
               ))}

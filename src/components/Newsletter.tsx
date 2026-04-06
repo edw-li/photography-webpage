@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type FormEvent } from 'react';
 import DOMPurify from 'dompurify';
+import { X } from 'lucide-react';
 import type { Newsletter as NewsletterType } from '../types/newsletter';
 import { getNewsletters, subscribeToNewsletter } from '../api/newsletters';
 import { ApiError } from '../api/client';
@@ -96,7 +97,7 @@ function NewsletterModal({
           onClick={beginClose}
           aria-label="Close"
         >
-          &times;
+          <X size={24} />
         </button>
 
         <div className="newsletter__modal-header">

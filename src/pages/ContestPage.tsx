@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
@@ -150,7 +150,7 @@ function ModalShell({
           aria-label="Close"
           ref={closeRef}
         >
-          &times;
+          <X size={24} />
         </button>
         {children}
       </div>

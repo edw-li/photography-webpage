@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ResolvedEvent } from '../types/events';
+import { X } from 'lucide-react';
 import { parseDate, formatTime } from '../utils/recurrence';
 
 const MONTH_ABBR = [
@@ -96,7 +97,7 @@ export default function EventModal({ resolvedEvent, onClose }: EventModalProps) 
     >
       <div className="events__modal" onClick={(e) => e.stopPropagation()}>
         <button className="events__modal-close" onClick={startClose} aria-label="Close" ref={closeRef}>
-          &times;
+          <X size={24} />
         </button>
         <div className="events__modal-header">
           <div className="events__date">

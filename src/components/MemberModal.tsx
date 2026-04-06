@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type { Member } from '../types/members';
+import { X } from 'lucide-react';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import { getImageUrl } from '../utils/imageUrl';
 
@@ -198,7 +199,7 @@ export default function MemberModal({ member, onClose }: MemberModalProps) {
     >
       <div className="members__modal" onClick={(e) => e.stopPropagation()}>
         <button className="members__modal-close" onClick={startClose} aria-label="Close" ref={closeRef}>
-          &times;
+          <X size={24} />
         </button>
 
         <div className="members__modal-header">
