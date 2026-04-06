@@ -42,7 +42,7 @@ export default function Hero() {
       <div className="hero__content container">
         <h1 className="hero__title">
           <img src={heroLogo} alt="Selah" className="hero__title-logo" />
-          {' '}Photography Club
+          {' '}Photography
         </h1>
         <p className="hero__tagline">Capturing Moments, Building Community</p>
         <a href="#about" className="btn btn-primary hero__cta">

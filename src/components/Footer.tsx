@@ -24,7 +24,7 @@ export default function Footer() {
           <div className="footer__brand">
             <h3>
               <img src={footerIcon} alt="" className="footer__brand-icon" width="36" height="36" />
-              Selah <span>Photography Club</span>
+              Selah <span>Photography</span>
             </h3>
             <p>
               A community of passionate photographers dedicated to the art of
