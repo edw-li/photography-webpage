@@ -204,7 +204,12 @@ export default function Newsletter() {
       resetWidget();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setSubError('This email is already subscribed.');
+        // Email already subscribed
+        // Treat 409 conflict as success to prevent email leak
+        setSubSuccess(true);
+        setSubName('');
+        setSubEmail('');
+        resetWidget();
       } else {
         setSubError('Something went wrong. Please try again.');
       }
@@ -330,7 +335,7 @@ export default function Newsletter() {
             </div>
 
             {/* ── Signup ── */}
-            <div className="newsletter__signup fade-in-up">
+            <div id="subscribe" className="newsletter__signup fade-in-up">
               <div className="newsletter__signup-content">
                 <h3>Subscribe to Our Newsletter</h3>
                 <p>Get club updates, photography tips, and challenge announcements delivered to your inbox.</p>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Hero from '../components/Hero';
 import About from '../components/About';
+import ContestSection from '../components/ContestSection';
 import Gallery from '../components/Gallery';
 import Events from '../components/Events';
 import Newsletter from '../components/Newsletter';
@@ -46,6 +47,7 @@ export default function HomePage() {
     <>
       <Hero />
       <About />
+      <ContestSection />
       <Gallery />
       <Events />
       <Newsletter />
