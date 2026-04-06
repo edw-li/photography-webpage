@@ -11,9 +11,10 @@ export default function Footer() {
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
     e.preventDefault();
     if (isHomePage) {
+      window.history.pushState(null, '', `#${sectionId}`);
       scrollToSection(sectionId);
     } else {
-      navigate('/', { state: { scrollTo: sectionId } });
+      navigate(`/#${sectionId}`, { state: { scrollTo: sectionId } });
     }
   };
 

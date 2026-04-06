@@ -74,13 +74,17 @@ export default function Navbar() {
     (sectionId: string) => {
       setMenuOpen(false);
       if (isHomePage) {
+        const newUrl = sectionId === 'hero' ? window.location.pathname : `#${sectionId}`;
+        window.history.pushState(null, '', newUrl);
+        
         if (sectionId === 'hero') {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
           scrollToSection(sectionId);
         }
       } else {
-        navigate('/', { state: { scrollTo: sectionId === 'hero' ? undefined : sectionId } });
+        const hash = sectionId === 'hero' ? '' : `#${sectionId}`;
+        navigate(`/${hash}`, { state: { scrollTo: sectionId === 'hero' ? undefined : sectionId } });
       }
     },
     [isHomePage, navigate]
@@ -91,6 +95,7 @@ export default function Navbar() {
       e.preventDefault();
       setMenuOpen(false);
       if (isHomePage) {
+        window.history.pushState(null, '', window.location.pathname);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         navigate('/');
