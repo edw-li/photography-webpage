@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import navIcon from '../assets/icon-selah-white.png';
+import navIcon from '../assets/icon-selah.png';
 import './Navbar.css';
 
 const sectionLinks = [
@@ -115,7 +115,7 @@ export default function Navbar() {
       <div className="navbar__inner container">
         <a href="#" className="navbar__logo" onClick={handleLogoClick}>
           <img src={navIcon} alt="" className="navbar__logo-icon" width="32" height="32" />
-          Selah <span>Photography</span>
+          Selah <span>Photography Club</span>
         </a>
 
         <button
