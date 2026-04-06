@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Sun, Moon } from 'lucide-react';
 import useTheme from './hooks/useTheme';
 import './App.css';
@@ -45,7 +45,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-    <HashRouter>
+    <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
           <Navbar />
@@ -60,7 +60,7 @@ function App() {
           <ToastContainer />
         </ToastProvider>
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
     </ErrorBoundary>
   );
 }
