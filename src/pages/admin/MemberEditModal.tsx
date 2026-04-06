@@ -359,7 +359,7 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
                     }}
                   />
                   <button className="afm-remove-btn" onClick={() => setSocialRows(socialRows.filter((_, j) => j !== i))}>
-                    &times;
+                    <X size={16} />
                   </button>
                 </div>
               ))}

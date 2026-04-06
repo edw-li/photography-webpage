@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
 import {
   getContests,
   getContest,
@@ -304,7 +305,7 @@ export default function ContestsSection() {
                   />
                   {form.guidelines.length > 1 && (
                     <button className="afm-remove-btn" onClick={() => setForm({ ...form, guidelines: form.guidelines.filter((_, j) => j !== i) })}>
-                      &times;
+                      <X size={16} />
                     </button>
                   )}
                 </div>
@@ -408,10 +409,10 @@ export default function ContestsSection() {
                     </div>
                     <button
                       className="admin__action-btn admin__action-btn--danger"
-                      style={{ position: 'absolute', top: 4, right: 4, fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                      style={{ position: 'absolute', top: 4, right: 4, padding: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onClick={() => setDeleteSubTarget({ contestId: viewSubmissions.id, sub: s })}
                     >
-                      &times;
+                      <X size={14} />
                     </button>
                   </div>
                 ))}

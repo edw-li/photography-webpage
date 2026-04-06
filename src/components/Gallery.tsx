@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GalleryPhoto } from '../types/gallery';
+import { X } from 'lucide-react';
 import { getGalleryPhotos } from '../api/gallery';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import { getImageUrl } from '../utils/imageUrl';
@@ -214,7 +215,7 @@ function GalleryLightbox({
           aria-label="Close lightbox"
           ref={closeRef}
         >
-          &times;
+          <X size={24} />
         </button>
         <span className="gallery__lightbox-counter">
           {index + 1} / {photos.length}
