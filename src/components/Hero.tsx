@@ -45,7 +45,7 @@ export default function Hero() {
           {' '}Photography
         </h1>
         <p className="hero__tagline">Capturing Moments, Building Community</p>
-        <a href="#contact" className="btn btn-primary hero__cta">
+        <a href="#about" className="btn btn-primary hero__cta">
           Join Us
         </a>
       </div>

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import navIcon from '../assets/icon-selah-white.png';
+import navIcon from '../assets/icon-selah.png';
 import './Navbar.css';
 
 const sectionLinks = [

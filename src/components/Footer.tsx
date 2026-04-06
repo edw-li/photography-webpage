@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
-import footerIcon from '../assets/icon-selah-white.png';
+import footerIcon from '../assets/icon-selah.png';
 import './Footer.css';
 
 export default function Footer() {
