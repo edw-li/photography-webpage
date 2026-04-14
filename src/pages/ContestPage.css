@@ -766,6 +766,10 @@
   margin-bottom: 0.75rem;
 }
 
+.contest__rules-voting-info h3:not(:first-child) {
+  margin-top: 1.25rem;
+}
+
 .contest__rules-description {
   font-size: 0.95rem;
   line-height: 1.6;
@@ -774,7 +778,8 @@
 }
 
 .contest__rules-bonus {
-  margin-bottom: 1rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0;
 }
 
 .contest__rules-bonus p {

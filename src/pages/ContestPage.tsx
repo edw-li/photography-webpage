@@ -22,6 +22,14 @@ function formatDeadline(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
+function getVotingDeadline(submissionDeadline: string): string {
+  const d = new Date(submissionDeadline + 'T00:00:00');
+  // Voting deadline is the 14th of the month after the submission deadline
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(14);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 function formatExif(exif?: PhotoExif): string {
   if (!exif) return '';
   const parts: string[] = [];
@@ -704,7 +712,7 @@ function TabRules({ contest }: { contest: Contest }) {
             </li>
             <li>Select up to 3 photos per category</li>
             <li>Votes are final and cannot be changed</li>
-            <li>Voting deadline: {formatDeadline(contest.deadline)}</li>
+            <li>Voting deadline: {getVotingDeadline(contest.deadline)}</li>
             <li>Results are revealed after the voting period ends</li>
           </ul>
           <details className="contest__rules-details">
