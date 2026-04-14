@@ -232,10 +232,11 @@ async def list_all_contests(
     user: User | None = Depends(get_current_user_optional),
 ):
     status_order = case(
-        (Contest.status == "active", 0),
-        (Contest.status == "voting", 1),
-        (Contest.status == "completed", 2),
-        else_=3,
+        (Contest.status == "upcoming", 0),
+        (Contest.status == "active", 1),
+        (Contest.status == "voting", 2),
+        (Contest.status == "completed", 3),
+        else_=4,
     )
     result = await db.execute(select(Contest).order_by(status_order, Contest.deadline.asc()).limit(limit))
     contests = result.scalars().unique().all()
@@ -252,10 +253,11 @@ async def list_contests(
     total = count_result.scalar_one()
 
     status_order = case(
-        (Contest.status == "active", 0),
-        (Contest.status == "voting", 1),
-        (Contest.status == "completed", 2),
-        else_=3,
+        (Contest.status == "upcoming", 0),
+        (Contest.status == "active", 1),
+        (Contest.status == "voting", 2),
+        (Contest.status == "completed", 3),
+        else_=4,
     )
     result = await db.execute(
         select(Contest).order_by(status_order, Contest.deadline.asc()).offset((page - 1) * page_size).limit(page_size)

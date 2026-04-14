@@ -18,7 +18,7 @@ export interface ContestSubmission {
   categoryVotes?: CategoryVotes;
 }
 
-export type ContestStatus = 'active' | 'voting' | 'completed';
+export type ContestStatus = 'upcoming' | 'active' | 'voting' | 'completed';
 
 export interface ContestWinner {
   submissionId: number;
