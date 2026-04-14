@@ -6,13 +6,13 @@
   z-index: 1000;
   padding: 1rem 0;
   transition: all var(--transition-base);
-  background: rgba(26, 41, 55, 0.1);
+  background: rgba(31, 46, 26, 0.1);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .navbar--scrolled {
-  background: rgba(26, 41, 55, 0.85);
+  background: rgba(31, 46, 26, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 0.6rem 0;

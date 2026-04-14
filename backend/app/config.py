@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_use_tls: bool = True
-    reset_token_expire_minutes: int = 30
+    reset_token_expire_minutes: int = 5
     frontend_url: str = "http://localhost:5173"
 
     # Cloudflare Turnstile (optional — CAPTCHA disabled when empty)

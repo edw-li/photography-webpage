@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { resetPassword } from '../api/auth';
+import { resetPassword, validateResetToken } from '../api/auth';
+import { ApiError } from '../api/client';
 import './AuthPage.css';
 
 export default function ResetPasswordPage() {
@@ -12,8 +13,24 @@ export default function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [validating, setValidating] = useState(!!token);
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
 
-  if (!token) {
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    validateResetToken(token)
+      .then(() => { if (!cancelled) setTokenValid(true); })
+      .catch((err) => {
+        if (cancelled) return;
+        // API 4xx = genuinely invalid/expired; network error = let user try the form
+        setTokenValid(err instanceof ApiError ? false : true);
+      })
+      .finally(() => { if (!cancelled) setValidating(false); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (!token || tokenValid === false) {
     return (
       <div className="auth-page">
         <div className="auth-card">
@@ -22,6 +39,17 @@ export default function ResetPasswordPage() {
           <Link to="/forgot-password" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>
             Request a New Link
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (validating) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <h1>Verifying Link</h1>
+          <p>Please wait while we verify your reset link...</p>
         </div>
       </div>
     );

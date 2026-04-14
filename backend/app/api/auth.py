@@ -23,6 +23,7 @@ from ..schemas.user import (
     RegisterResponse,
     ResendVerificationRequest,
     ResetPasswordRequest,
+    ValidateResetTokenRequest,
     TokenResponse,
     UserLogin,
     UserRegister,
@@ -120,7 +121,7 @@ async def register(request: Request, body: UserRegister, db: AsyncSession = Depe
     await db.commit()
 
     # Send account verification email
-    verify_url = f"{settings.frontend_url}/#/verify-email?token={verification_token}"
+    verify_url = f"{settings.frontend_url}/verify-email?token={verification_token}"
     try:
         await send_account_verification_email(body.email, body.first_name, verify_url)
     except Exception:
@@ -239,6 +240,18 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: Async
     return MessageResponse(message="Your password has been reset successfully.")
 
 
+@router.post("/validate-reset-token")
+@limiter.limit(AUTH_ATTEMPT)
+async def validate_reset_token(request: Request, body: ValidateResetTokenRequest):
+    payload = verify_reset_token(body.token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset link.",
+        )
+    return {"valid": True}
+
+
 @router.get("/verify-email")
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -276,7 +289,7 @@ async def resend_verification(request: Request, body: ResendVerificationRequest,
     if user is not None and not user.is_email_verified:
         user.email_verification_token = uuid4().hex
         await db.commit()
-        verify_url = f"{settings.frontend_url}/#/verify-email?token={user.email_verification_token}"
+        verify_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
         try:
             await send_account_verification_email(user.email, user.first_name, verify_url)
         except Exception:

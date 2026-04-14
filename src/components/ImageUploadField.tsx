@@ -9,6 +9,7 @@ interface ImageUploadFieldProps {
   label?: string;
   shape?: 'square' | 'circle';
   required?: boolean;
+  onRawFile?: (file: File) => void;
 }
 
 export default function ImageUploadField({
@@ -18,6 +19,7 @@ export default function ImageUploadField({
   label,
   shape = 'square',
   required = false,
+  onRawFile,
 }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -30,6 +32,7 @@ export default function ImageUploadField({
       setError('Please select an image file');
       return;
     }
+    onRawFile?.(file);
     setError('');
     setCompressing(true);
     try {

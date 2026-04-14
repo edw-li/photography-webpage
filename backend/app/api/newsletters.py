@@ -76,7 +76,7 @@ async def _send_newsletter_emails(
     async def _send_one(sub: NewsletterSubscriber) -> tuple[str, bool]:
         async with sem:
             try:
-                unsub_url = f"{settings.frontend_url}/#/unsubscribe?token={sub.unsubscribe_token}"
+                unsub_url = f"{settings.frontend_url}/unsubscribe?token={sub.unsubscribe_token}"
                 await send_newsletter_email(
                     sub.email, sub.name, nl.title, nl.html,
                     unsubscribe_url=unsub_url,
@@ -139,7 +139,7 @@ async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession =
             existing.verification_token = uuid4().hex
             await db.commit()
             await db.refresh(existing)
-            verify_url = f"{settings.frontend_url}/#/verify-subscription?token={existing.verification_token}"
+            verify_url = f"{settings.frontend_url}/verify-subscription?token={existing.verification_token}"
             try:
                 await send_verification_email(existing.email, existing.name, verify_url)
             except Exception:
@@ -157,7 +157,7 @@ async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession =
         existing.verification_token = uuid4().hex
         await db.commit()
         await db.refresh(existing)
-        verify_url = f"{settings.frontend_url}/#/verify-subscription?token={existing.verification_token}"
+        verify_url = f"{settings.frontend_url}/verify-subscription?token={existing.verification_token}"
         try:
             await send_verification_email(existing.email, existing.name, verify_url)
         except Exception:
@@ -174,7 +174,7 @@ async def subscribe(request: Request, body: SubscribeRequest, db: AsyncSession =
     db.add(subscriber)
     await db.commit()
     await db.refresh(subscriber)
-    verify_url = f"{settings.frontend_url}/#/verify-subscription?token={subscriber.verification_token}"
+    verify_url = f"{settings.frontend_url}/verify-subscription?token={subscriber.verification_token}"
     try:
         await send_verification_email(subscriber.email, subscriber.name, verify_url)
     except Exception:

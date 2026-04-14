@@ -10,6 +10,7 @@ import { getContests, submitPhoto, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
 import { compressImage } from '../utils/compressImage';
+import { extractExif } from '../utils/extractExif';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
@@ -747,6 +748,15 @@ function TabRules({ contest }: { contest: Contest }) {
 
       {isActive && (
         <div className="contest__rules-voting-info">
+          {contest.description && (
+            <p className="contest__rules-description">{contest.description}</p>
+          )}
+          {contest.wildcardCategory && (
+            <div className="contest__rules-bonus">
+              <h3>Bonus Challenge Category</h3>
+              <p>{contest.wildcardCategory}</p>
+            </div>
+          )}
           <h3>Submission Info</h3>
           <ul className="contest__rules-list">
             <li>Maximum 3 submissions per person</li>
@@ -1122,6 +1132,21 @@ function ContestModal({
   const [shutterSpeed, setShutterSpeed] = useState('');
   const [iso, setIso] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  // Auto-extract EXIF from original file before compression
+  useEffect(() => {
+    if (!file) return;
+    let cancelled = false;
+    extractExif(file).then((exif) => {
+      if (cancelled) return;
+      if (exif.camera) setCamera((v) => v || exif.camera);
+      if (exif.focalLength) setFocalLength((v) => v || exif.focalLength);
+      if (exif.aperture) setAperture((v) => v || exif.aperture);
+      if (exif.shutterSpeed) setShutterSpeed((v) => v || exif.shutterSpeed);
+      if (exif.iso) setIso((v) => v || exif.iso);
+    });
+    return () => { cancelled = true; };
+  }, [file]);
 
   const tabContentRef = useRef<HTMLDivElement>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);

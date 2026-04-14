@@ -7,10 +7,10 @@
   --color-accent: #CD9239;
   --color-accent-light: #D9A84F;
   --color-accent-dark: #B47D2A;
-  --color-dark-900: #1A2937;
-  --color-dark-800: #284054;
-  --color-dark-100: #E4E9ED;
-  --color-dark-300: #8FA0AF;
+  --color-dark-900: #1f2e1a;
+  --color-dark-800: #2d4525;
+  --color-dark-100: #e4ede2;
+  --color-dark-300: #8faf8a;
   --color-light-100: #FFFFFF;
   --color-light-200: #F5F5F5;
   --color-light-300: #E8E8E8;
@@ -51,28 +51,28 @@
   --color-border: #E8E8E8;
 
   /* Dark accent sections (Contact, Footer, Calendar header) */
-  --color-dark-bg: #1A2937;
-  --color-dark-surface: #284054;
-  --color-dark-text: #C5D0D9;
-  --color-dark-text-muted: #8FA0AF;
-  --color-dark-border: #3A5468;
+  --color-dark-bg: #1f2e1a;
+  --color-dark-surface: #2d4525;
+  --color-dark-text: #c5d9c2;
+  --color-dark-text-muted: #8faf8a;
+  --color-dark-border: #3a6838;
 }
 
 [data-theme="dark"] {
-  --color-bg: #0F1A22;
-  --color-bg-alt: #152330;
-  --color-surface: #1A2937;
-  --color-surface-alt: #213545;
-  --color-text: #E4E9ED;
-  --color-text-secondary: #A8B5C0;
-  --color-text-muted: #6E8090;
-  --color-border: #2E4456;
+  --color-bg: #0f1e0d;
+  --color-bg-alt: #152e12;
+  --color-surface: #1f2e1a;
+  --color-surface-alt: #264521;
+  --color-text: #e4ede2;
+  --color-text-secondary: #a8c0a5;
+  --color-text-muted: #6e906b;
+  --color-border: #2e562b;
 
-  --color-dark-bg: #0A1319;
-  --color-dark-surface: #111E28;
-  --color-dark-text: #B4C1CB;
-  --color-dark-text-muted: #7A8D9C;
-  --color-dark-border: #2E4456;
+  --color-dark-bg: #0a190d;
+  --color-dark-surface: #112811;
+  --color-dark-text: #b4cbb1;
+  --color-dark-text-muted: #7a9c77;
+  --color-dark-border: #2e562b;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);

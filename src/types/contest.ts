@@ -56,6 +56,6 @@ export function getCategoryLabel(cat: VoteCategory, wildcardLabel?: string | nul
     case 'favorite':
       return 'Personal Favorite';
     case 'wildcard':
-      return wildcardLabel || 'Wildcard';
+      return wildcardLabel || 'Bonus Challenge';
   }
 }
