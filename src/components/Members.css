@@ -1,5 +1,5 @@
 .members {
-  background: var(--color-bg);
+  background: var(--color-bg-alt);
 }
 
 /* ── Search & Filter Controls ── */
@@ -312,11 +312,11 @@
 }
 
 .members__page-nav--up {
-  background: linear-gradient(to bottom, var(--color-bg) 30%, transparent);
+  background: linear-gradient(to bottom, var(--color-bg-alt) 30%, transparent);
 }
 
 .members__page-nav--down {
-  background: linear-gradient(to top, var(--color-bg) 30%, transparent);
+  background: linear-gradient(to top, var(--color-bg-alt) 30%, transparent);
 }
 
 .members__page-nav:hover {
