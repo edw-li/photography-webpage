@@ -51,6 +51,7 @@ interface TabDef {
 }
 
 const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
+  upcoming: [],
   active: [
     { id: 'rules', label: 'Rules' },
     { id: 'submit', label: 'Submit' },
@@ -67,6 +68,7 @@ const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
 };
 
 const HEIGHT_REF_TAB: Record<Contest['status'], TabId> = {
+  upcoming: 'rules',
   active: 'submit',
   voting: 'vote',
   completed: 'podium',
@@ -1143,7 +1145,9 @@ function ContestModal({
       ? `Submit to "${contest.theme}"`
       : contest.status === 'voting'
         ? `Vote — "${contest.theme}"`
-        : `Results — "${contest.theme}"`;
+        : contest.status === 'upcoming'
+          ? `Upcoming — "${contest.theme}"`
+          : `Results — "${contest.theme}"`;
 
   return (
     <ModalShell open ariaLabel={modalTitle} onClose={onClose}>
@@ -1203,20 +1207,23 @@ function ContestCard({
   contest: Contest;
   onClick: () => void;
 }) {
+  const isUpcoming = contest.status === 'upcoming';
   const statusLabel =
     contest.status === 'active'
       ? 'Open for Submissions'
       : contest.status === 'voting'
         ? 'Voting in Progress'
-        : 'Completed';
+        : contest.status === 'upcoming'
+          ? 'Upcoming'
+          : 'Completed';
 
   return (
     <div
-      className="contest__card fade-in-up"
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
-      tabIndex={0}
-      role="button"
+      className={`contest__card fade-in-up${isUpcoming ? ' contest__card--upcoming' : ''}`}
+      onClick={isUpcoming ? undefined : onClick}
+      onKeyDown={isUpcoming ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      tabIndex={isUpcoming ? -1 : 0}
+      role={isUpcoming ? undefined : 'button'}
       aria-label={`${contest.theme} — ${statusLabel}`}
     >
       <div className="contest__card-header">
