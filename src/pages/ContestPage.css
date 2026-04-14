@@ -783,6 +783,41 @@
   color: var(--color-text-secondary);
 }
 
+.contest__rules-details {
+  margin-top: 1.25rem;
+}
+
+.contest__rules-details-summary {
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 0.6rem 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contest__rules-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.contest__rules-details-summary::before {
+  content: '▸';
+  font-size: 0.85rem;
+  transition: transform var(--transition-fast);
+}
+
+.contest__rules-details[open] > .contest__rules-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.contest__rules-details .contest__rules-list {
+  margin-top: 0.5rem;
+}
+
 .contest__rules-heading {
   font-family: var(--font-heading);
   font-size: 1rem;

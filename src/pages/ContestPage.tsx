@@ -254,15 +254,10 @@ function TabSubmit({
   title,
   setTitle,
   camera,
-  setCamera,
   focalLength,
-  setFocalLength,
   aperture,
-  setAperture,
   shutterSpeed,
-  setShutterSpeed,
   iso,
-  setIso,
   submitted,
   setSubmitted,
   onContestRefresh,
@@ -274,15 +269,10 @@ function TabSubmit({
   title: string;
   setTitle: (v: string) => void;
   camera: string;
-  setCamera: (v: string) => void;
   focalLength: string;
-  setFocalLength: (v: string) => void;
   aperture: string;
-  setAperture: (v: string) => void;
   shutterSpeed: string;
-  setShutterSpeed: (v: string) => void;
   iso: string;
-  setIso: (v: string) => void;
   submitted: boolean;
   setSubmitted: (v: boolean) => void;
   onContestRefresh: () => void;
@@ -435,32 +425,6 @@ function TabSubmit({
               disabled={atLimit}
             />
           </label>
-
-          <fieldset className="contest__exif-group" disabled={atLimit}>
-            <legend>EXIF Data (Optional)</legend>
-            <div className="contest__exif-grid">
-              <label className="contest__form-label">
-                Camera
-                <input type="text" className="contest__form-input" value={camera} onChange={(e) => setCamera(e.target.value)} placeholder="e.g. Sony A7III" />
-              </label>
-              <label className="contest__form-label">
-                Focal Length
-                <input type="text" className="contest__form-input" value={focalLength} onChange={(e) => setFocalLength(e.target.value)} placeholder="e.g. 35mm" />
-              </label>
-              <label className="contest__form-label">
-                Aperture
-                <input type="text" className="contest__form-input" value={aperture} onChange={(e) => setAperture(e.target.value)} placeholder="e.g. f/2.8" />
-              </label>
-              <label className="contest__form-label">
-                Shutter Speed
-                <input type="text" className="contest__form-input" value={shutterSpeed} onChange={(e) => setShutterSpeed(e.target.value)} placeholder="e.g. 1/250s" />
-              </label>
-              <label className="contest__form-label">
-                ISO
-                <input type="number" className="contest__form-input" value={iso} onChange={(e) => setIso(e.target.value)} placeholder="e.g. 400" />
-              </label>
-            </div>
-          </fieldset>
 
           <button
             type="submit"
@@ -751,12 +715,6 @@ function TabRules({ contest }: { contest: Contest }) {
           {contest.description && (
             <p className="contest__rules-description">{contest.description}</p>
           )}
-          {contest.wildcardCategory && (
-            <div className="contest__rules-bonus">
-              <h3>Bonus Challenge Category</h3>
-              <p>{contest.wildcardCategory}</p>
-            </div>
-          )}
           <h3>Submission Info</h3>
           <ul className="contest__rules-list">
             <li>Maximum 3 submissions per person</li>
@@ -766,18 +724,27 @@ function TabRules({ contest }: { contest: Contest }) {
               <li key={i}>{g}</li>
             ))}
           </ul>
+          {contest.wildcardCategory && (
+            <div className="contest__rules-bonus">
+              <h3>Bonus Challenge Category</h3>
+              <p>{contest.wildcardCategory}</p>
+            </div>
+          )}
         </div>
       )}
 
-      {isVoting && contest.guidelines.length > 0 && (
-        <>
-          <h3 className="contest__rules-heading">Contest Guidelines</h3>
+      {isVoting && (
+        <details className="contest__rules-details">
+          <summary className="contest__rules-details-summary">Submission Guidelines</summary>
           <ul className="contest__rules-list">
+            <li>Maximum 3 submissions per person</li>
+            <li>Submissions cannot be changed once submitted</li>
+            <li>Submission deadline: {formatDeadline(contest.deadline)}</li>
             {contest.guidelines.map((g, i) => (
               <li key={i}>{g}</li>
             ))}
           </ul>
-        </>
+        </details>
       )}
     </div>
   );
@@ -1196,15 +1163,10 @@ function ContestModal({
             title={title}
             setTitle={setTitle}
             camera={camera}
-            setCamera={setCamera}
             focalLength={focalLength}
-            setFocalLength={setFocalLength}
             aperture={aperture}
-            setAperture={setAperture}
             shutterSpeed={shutterSpeed}
-            setShutterSpeed={setShutterSpeed}
             iso={iso}
-            setIso={setIso}
             submitted={submitted}
             setSubmitted={setSubmitted}
             onContestRefresh={onContestRefresh}
