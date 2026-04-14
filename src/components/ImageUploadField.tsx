@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
 import { compressImage } from '../utils/compressImage';
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 interface ImageUploadFieldProps {
   value: string;
   onChange: (url: string) => void;
@@ -32,11 +35,15 @@ export default function ImageUploadField({
       setError('Please select an image file');
       return;
     }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
+      return;
+    }
     onRawFile?.(file);
     setError('');
     setCompressing(true);
     try {
-      const { file: compressed } = await compressImage(file);
+      const { file: compressed } = await compressImage(file, { maxSizeMB: MAX_FILE_SIZE_MB });
       setCompressing(false);
       setUploading(true);
       try {
