@@ -290,8 +290,13 @@ export default function ContestsSection() {
           </div>
 
           <div className="afm-field">
-            <label className="afm-label">Guidelines</label>
+            <label className="afm-label">Submission Guidelines</label>
             <div className="afm-dynamic-list">
+              <div className="afm-defaults-list">
+                <div className="afm-default-item">Maximum 3 submissions per person</div>
+                <div className="afm-default-item">Submissions cannot be changed once submitted</div>
+                <div className="afm-default-item">Submission deadline is based on the deadline field</div>
+              </div>
               {form.guidelines.map((g, i) => (
                 <div key={i} className="afm-dynamic-row">
                   <input
@@ -302,6 +307,7 @@ export default function ContestsSection() {
                       updated[i] = e.target.value;
                       setForm({ ...form, guidelines: updated });
                     }}
+                    placeholder="Additional guideline"
                   />
                   {form.guidelines.length > 1 && (
                     <button className="afm-remove-btn" onClick={() => setForm({ ...form, guidelines: form.guidelines.filter((_, j) => j !== i) })}>

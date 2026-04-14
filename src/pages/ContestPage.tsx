@@ -762,18 +762,23 @@ function TabRules({ contest }: { contest: Contest }) {
             <li>Maximum 3 submissions per person</li>
             <li>Submissions cannot be changed once submitted</li>
             <li>Submission deadline: {formatDeadline(contest.deadline)}</li>
+            {contest.guidelines.map((g, i) => (
+              <li key={i}>{g}</li>
+            ))}
           </ul>
         </div>
       )}
 
-      <h3 className="contest__rules-heading">
-        {isVoting ? 'Contest Guidelines' : 'Guidelines'}
-      </h3>
-      <ul className="contest__rules-list">
-        {contest.guidelines.map((g, i) => (
-          <li key={i}>{g}</li>
-        ))}
-      </ul>
+      {isVoting && contest.guidelines.length > 0 && (
+        <>
+          <h3 className="contest__rules-heading">Contest Guidelines</h3>
+          <ul className="contest__rules-list">
+            {contest.guidelines.map((g, i) => (
+              <li key={i}>{g}</li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

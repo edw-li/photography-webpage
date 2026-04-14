@@ -209,6 +209,23 @@
   flex: 1;
 }
 
+.afm-defaults-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.afm-default-item {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 0.4rem 0.6rem;
+  background: var(--color-bg-alt, #f5f5f5);
+  border-radius: var(--radius-sm);
+}
+
 .afm-remove-btn {
   flex-shrink: 0;
   display: flex;
