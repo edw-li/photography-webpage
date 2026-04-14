@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function ContestSection() {
   return (
-    <section id="contest" className="section" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+    <section id="contest" className="section" style={{ background: 'var(--color-bg-alt)' }}>
       <div className="container fade-in-up">
         <div className="section-title">
           <h2>Monthly Photography Contest</h2>

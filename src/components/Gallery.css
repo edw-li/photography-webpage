@@ -1,5 +1,5 @@
 .gallery {
-  background: var(--color-bg-alt);
+  background: var(--color-bg);
 }
 
 /* =============================================
@@ -160,12 +160,12 @@
 
 .gallery__nav--prev {
   left: 0;
-  background: linear-gradient(to right, var(--color-bg-alt) 30%, transparent);
+  background: linear-gradient(to right, var(--color-bg) 30%, transparent);
 }
 
 .gallery__nav--next {
   right: 0;
-  background: linear-gradient(to left, var(--color-bg-alt) 30%, transparent);
+  background: linear-gradient(to left, var(--color-bg) 30%, transparent);
 }
 
 .gallery__nav:hover {
