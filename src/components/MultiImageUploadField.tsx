@@ -4,6 +4,9 @@ import { getImageUrl } from '../utils/imageUrl';
 import { compressImage } from '../utils/compressImage';
 import { X } from 'lucide-react';
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export interface ImageWithCaption {
   id?: number;
   url: string;
@@ -40,10 +43,14 @@ export default function MultiImageUploadField({
       setError('Please select an image file');
       return;
     }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
+      return;
+    }
     setError('');
     setCompressing(true);
     try {
-      const { file: compressed } = await compressImage(file);
+      const { file: compressed } = await compressImage(file, { maxSizeMB: MAX_FILE_SIZE_MB });
       setCompressing(false);
       setUploading(true);
       try {
