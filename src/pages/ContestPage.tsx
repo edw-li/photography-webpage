@@ -254,15 +254,10 @@ function TabSubmit({
   title,
   setTitle,
   camera,
-  setCamera,
   focalLength,
-  setFocalLength,
   aperture,
-  setAperture,
   shutterSpeed,
-  setShutterSpeed,
   iso,
-  setIso,
   submitted,
   setSubmitted,
   onContestRefresh,
@@ -274,15 +269,10 @@ function TabSubmit({
   title: string;
   setTitle: (v: string) => void;
   camera: string;
-  setCamera: (v: string) => void;
   focalLength: string;
-  setFocalLength: (v: string) => void;
   aperture: string;
-  setAperture: (v: string) => void;
   shutterSpeed: string;
-  setShutterSpeed: (v: string) => void;
   iso: string;
-  setIso: (v: string) => void;
   submitted: boolean;
   setSubmitted: (v: boolean) => void;
   onContestRefresh: () => void;
@@ -1173,15 +1163,10 @@ function ContestModal({
             title={title}
             setTitle={setTitle}
             camera={camera}
-            setCamera={setCamera}
             focalLength={focalLength}
-            setFocalLength={setFocalLength}
             aperture={aperture}
-            setAperture={setAperture}
             shutterSpeed={shutterSpeed}
-            setShutterSpeed={setShutterSpeed}
             iso={iso}
-            setIso={setIso}
             submitted={submitted}
             setSubmitted={setSubmitted}
             onContestRefresh={onContestRefresh}
