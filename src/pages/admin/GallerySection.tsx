@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getGalleryPhotos,
   createGalleryPhoto,
@@ -14,6 +14,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
 import ImageUploadField from '../../components/ImageUploadField';
 import { getImageUrl } from '../../utils/imageUrl';
+import { extractExif } from '../../utils/extractExif';
 import Pagination from './Pagination';
 
 const IMAGE_OFF_ICON = (
@@ -71,7 +72,26 @@ export default function GallerySection() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<GalleryPhoto | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const exifDetailsRef = useRef<HTMLDetailsElement>(null);
   const pageSize = 20;
+
+  const handleRawFile = useCallback((file: File) => {
+    extractExif(file).then((exif) => {
+      setForm((prev) => {
+        const next = { ...prev };
+        let filled = false;
+        if (exif.camera && !prev.camera) { next.camera = exif.camera; filled = true; }
+        if (exif.focalLength && !prev.focalLength) { next.focalLength = exif.focalLength; filled = true; }
+        if (exif.aperture && !prev.aperture) { next.aperture = exif.aperture; filled = true; }
+        if (exif.shutterSpeed && !prev.shutterSpeed) { next.shutterSpeed = exif.shutterSpeed; filled = true; }
+        if (exif.iso && !prev.iso) { next.iso = exif.iso; filled = true; }
+        if (filled && exifDetailsRef.current) {
+          exifDetailsRef.current.open = true;
+        }
+        return next;
+      });
+    });
+  }, []);
 
   const load = useCallback(async (p: number) => {
     setLoading(true);
@@ -263,6 +283,7 @@ export default function GallerySection() {
             category="gallery"
             label="Image"
             required
+            onRawFile={handleRawFile}
           />
 
           <div className="afm-row">
@@ -284,7 +305,7 @@ export default function GallerySection() {
               ))}
             </select>
           </div>
-          <details style={{ marginBottom: '1rem' }}>
+          <details ref={exifDetailsRef} style={{ marginBottom: '1rem' }}>
             <summary style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>EXIF Data</summary>
             <div style={{ marginTop: '0.75rem' }}>
               <div className="afm-row">

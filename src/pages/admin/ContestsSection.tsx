@@ -317,7 +317,7 @@ export default function ContestsSection() {
           </div>
 
           <div className="afm-field">
-            <label className="afm-label">Wildcard Voting Category</label>
+            <label className="afm-label">Bonus Challenge Category</label>
             <input
               className="afm-input"
               placeholder="e.g. Best Use of Color"

@@ -144,6 +144,13 @@ export async function resetPassword(token: string, newPassword: string): Promise
   });
 }
 
+export async function validateResetToken(token: string): Promise<{ valid: boolean }> {
+  return apiFetch<{ valid: boolean }>('/auth/validate-reset-token', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
 export async function verifyEmail(token: string): Promise<MessageResponse> {
   return apiFetch<MessageResponse>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
 }

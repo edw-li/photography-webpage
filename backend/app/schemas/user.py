@@ -99,6 +99,10 @@ class ResetPasswordRequest(CamelModel):
         return v
 
 
+class ValidateResetTokenRequest(CamelModel):
+    token: str = Field(min_length=1)
+
+
 class RegisterResponse(CamelModel):
     message: str
 

@@ -50,9 +50,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(26, 41, 55, 0.95) 0%,
-    rgba(26, 41, 55, 0.6) 50%,
-    rgba(26, 41, 55, 0.3) 100%
+    rgba(31, 46, 26, 0.95) 0%,
+    rgba(31, 46, 26, 0.6) 50%,
+    rgba(31, 46, 26, 0.3) 100%
   );
 }
 
@@ -764,6 +764,23 @@
   font-size: 1rem;
   color: #fb923c;
   margin-bottom: 0.75rem;
+}
+
+.contest__rules-description {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0 0 1rem;
+}
+
+.contest__rules-bonus {
+  margin-bottom: 1rem;
+}
+
+.contest__rules-bonus p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
 }
 
 .contest__rules-heading {
