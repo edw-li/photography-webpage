@@ -235,6 +235,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.cif__tally-value {
+  display: inline-block;
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text, #111);
+  font-variant-numeric: tabular-nums;
+}
+
 .cif__tally-input:focus {
   outline: none;
   border-color: var(--color-accent, #f7941d);

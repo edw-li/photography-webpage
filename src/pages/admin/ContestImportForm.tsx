@@ -35,9 +35,10 @@ interface PendingUpload {
 interface Props {
   contest: Contest;
   onContestUpdate: (c: Contest) => void;
+  readOnly?: boolean;
 }
 
-export default function ContestImportForm({ contest, onContestUpdate }: Props) {
+export default function ContestImportForm({ contest, onContestUpdate, readOnly = false }: Props) {
   const { addToast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [submissions, setSubmissions] = useState<ContestSubmission[]>(contest.submissions);
@@ -319,20 +320,22 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
                     )}
                   </div>
                 </div>
-                <div className="cif__sub-actions">
-                  <button className="admin__action-btn" onClick={() => openAssign(sub)}>Reassign</button>
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(sub)}>
-                    <X size={14} />
-                  </button>
-                </div>
+                {!readOnly && (
+                  <div className="cif__sub-actions">
+                    <button className="admin__action-btn" onClick={() => openAssign(sub)}>Reassign</button>
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(sub)}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* --- Section 2: Upload New Submissions --- */}
-      <div className="cif__section">
+      {/* --- Section 2: Upload New Submissions (import mode only) --- */}
+      {!readOnly && <div className="cif__section">
         <h4 className="cif__section-title">Add Submissions</h4>
         <div
           className="cif__drop-zone"
@@ -423,7 +426,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
             </button>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* --- Section 3: Vote Tallies --- */}
       {submissions.length > 0 && (
@@ -450,32 +453,23 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
                     <td>{sub.title}</td>
                     <td>{sub.photographer}</td>
                     <td>
-                      <input
-                        type="number"
-                        min="0"
-                        className="cif__tally-input"
-                        value={tallies[sub.id]?.theme ?? 0}
-                        onChange={(e) => updateTally(sub.id, 'theme', parseInt(e.target.value, 10) || 0)}
-                      />
+                      {readOnly
+                        ? <span className="cif__tally-value">{tallies[sub.id]?.theme ?? 0}</span>
+                        : <input type="number" min="0" className="cif__tally-input" value={tallies[sub.id]?.theme ?? 0} onChange={(e) => updateTally(sub.id, 'theme', parseInt(e.target.value, 10) || 0)} />
+                      }
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        min="0"
-                        className="cif__tally-input"
-                        value={tallies[sub.id]?.favorite ?? 0}
-                        onChange={(e) => updateTally(sub.id, 'favorite', parseInt(e.target.value, 10) || 0)}
-                      />
+                      {readOnly
+                        ? <span className="cif__tally-value">{tallies[sub.id]?.favorite ?? 0}</span>
+                        : <input type="number" min="0" className="cif__tally-input" value={tallies[sub.id]?.favorite ?? 0} onChange={(e) => updateTally(sub.id, 'favorite', parseInt(e.target.value, 10) || 0)} />
+                      }
                     </td>
                     {hasWildcard && (
                       <td>
-                        <input
-                          type="number"
-                          min="0"
-                          className="cif__tally-input"
-                          value={tallies[sub.id]?.wildcard ?? 0}
-                          onChange={(e) => updateTally(sub.id, 'wildcard', parseInt(e.target.value, 10) || 0)}
-                        />
+                        {readOnly
+                          ? <span className="cif__tally-value">{tallies[sub.id]?.wildcard ?? 0}</span>
+                          : <input type="number" min="0" className="cif__tally-input" value={tallies[sub.id]?.wildcard ?? 0} onChange={(e) => updateTally(sub.id, 'wildcard', parseInt(e.target.value, 10) || 0)} />
+                        }
                       </td>
                     )}
                   </tr>
@@ -483,15 +477,17 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
               </tbody>
             </table>
           </div>
-          <button
-            className="afm-btn afm-btn--save"
-            onClick={handleFinalize}
-            disabled={finalizing}
-            style={{ alignSelf: 'flex-start', marginTop: '0.75rem' }}
-          >
-            {finalizing && <Loader2 size={14} className="afm-spinner" />}
-            {finalizing ? 'Finalizing...' : 'Calculate Winners & Finalize'}
-          </button>
+          {!readOnly && (
+            <button
+              className="afm-btn afm-btn--save"
+              onClick={handleFinalize}
+              disabled={finalizing}
+              style={{ alignSelf: 'flex-start', marginTop: '0.75rem' }}
+            >
+              {finalizing && <Loader2 size={14} className="afm-spinner" />}
+              {finalizing ? 'Finalizing...' : 'Calculate Winners & Finalize'}
+            </button>
+          )}
         </div>
       )}
 
