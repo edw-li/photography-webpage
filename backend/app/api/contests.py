@@ -229,7 +229,6 @@ async def _populate_gallery_from_contest(
     member_by_user: dict[str, int] = {}
     user_ids = [str(sub.user_id) for sub in contest.submissions if sub.user_id]
     if user_ids:
-        from ..models.member import Member
         member_result = await db.execute(
             select(Member.user_id, Member.id).where(Member.user_id.in_(user_ids))
         )
@@ -398,8 +397,10 @@ async def update_contest(
     if old_status == "completed" and contest.status in ("voting", "active"):
         contest.winners = None
         contest.honorable_mentions = None
+        contest.is_imported = False
         for sub in contest.submissions:
             sub.vote_count = 0
+            sub.category_vote_tallies = None
         # Remove gallery entries for this contest
         gallery_result = await db.execute(
             select(GalleryPhoto).where(GalleryPhoto.contest_id == contest.id)
