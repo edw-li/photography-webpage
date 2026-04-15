@@ -156,6 +156,77 @@ def _save_local(content: bytes, category: str, unique_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Image reading (for EXIF backfill)
+# ---------------------------------------------------------------------------
+
+
+def read_image_bytes(url: str) -> bytes | None:
+    """Read image bytes from OCI or local storage given a URL. Returns None on failure."""
+    try:
+        if settings.oci_configured and url.startswith(settings.oci_public_base_url):
+            prefix = f"{settings.oci_public_base_url}/"
+            object_key = url[len(prefix):]
+            client = _get_s3_client()
+            response = client.get_object(Bucket=settings.oci_bucket_name, Key=object_key)
+            return response["Body"].read()
+        elif url.startswith("/uploads/"):
+            path = UPLOAD_DIR.parent / url.lstrip("/")
+            if path.exists():
+                return path.read_bytes()
+    except Exception:
+        logger.warning("Failed to read image: %s", url)
+    return None
+
+
+def extract_exif_from_bytes(content: bytes) -> dict[str, str | int | None]:
+    """Extract EXIF fields from image bytes using Pillow. Returns dict with available fields."""
+    result: dict[str, str | int | None] = {}
+    try:
+        with Image.open(io.BytesIO(content)) as img:
+            exif_data = img.getexif()
+            if not exif_data:
+                return result
+
+            # Standard EXIF tags
+            make = exif_data.get(0x010F, "").strip()     # Make
+            model = exif_data.get(0x0110, "").strip()     # Model
+            if model and make and model.lower().startswith(make.lower()):
+                result["camera"] = model
+            elif model and make:
+                result["camera"] = f"{make} {model}"
+            elif model:
+                result["camera"] = model
+            elif make:
+                result["camera"] = make
+
+            # IFD EXIF sub-tags
+            ifd = exif_data.get_ifd(0x8769)
+            if ifd:
+                focal = ifd.get(0xA405) or ifd.get(0x920A)  # FocalLengthIn35mm or FocalLength
+                if focal is not None:
+                    result["focal_length"] = f"{round(float(focal))}mm"
+
+                fnumber = ifd.get(0x829D)  # FNumber
+                if fnumber is not None:
+                    result["aperture"] = f"f/{float(fnumber)}"
+
+                exposure = ifd.get(0x829A)  # ExposureTime
+                if exposure is not None:
+                    exp = float(exposure)
+                    if exp >= 1:
+                        result["shutter_speed"] = f"{exp}s"
+                    elif exp > 0:
+                        result["shutter_speed"] = f"1/{round(1/exp)}s"
+
+                iso = ifd.get(0x8827)  # ISOSpeedRatings
+                if iso is not None:
+                    result["iso"] = int(iso)
+    except Exception:
+        logger.warning("Failed to extract EXIF from image bytes")
+    return result
+
+
+# ---------------------------------------------------------------------------
 # HEIC/HEIF conversion
 # ---------------------------------------------------------------------------
 
