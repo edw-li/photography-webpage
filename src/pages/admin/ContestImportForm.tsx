@@ -13,6 +13,7 @@ import { getCategoryLabel } from '../../types/contest';
 import { getMembers } from '../../api/members';
 import type { Member } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
+import { compressImage } from '../../utils/compressImage';
 import { getImageUrl } from '../../utils/imageUrl';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import './ContestImportForm.css';
@@ -136,8 +137,9 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
     for (const p of toUpload) {
       updatePending(p.id, { status: 'uploading' });
       try {
+        const { file: compressed } = await compressImage(p.file);
         const formData = new FormData();
-        formData.append('file', p.file);
+        formData.append('file', compressed);
         formData.append('title', p.title.trim());
         const photographerName = p.memberId != null
           ? (members.find((m) => m.id === p.memberId)?.name ?? p.photographer.trim())
