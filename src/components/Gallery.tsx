@@ -21,6 +21,15 @@ function formatExif(photo: GalleryPhoto): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatContestMonth(month: string): string {
+  // "2026-03" → "Mar 2026"
+  const [year, m] = month.split('-');
+  const idx = parseInt(m, 10) - 1;
+  return `${SHORT_MONTHS[idx] ?? m} ${year}`;
+}
+
 function winnerLabel(place: number): string {
   if (place === 1) return '1st';
   if (place === 2) return '2nd';
@@ -232,6 +241,7 @@ function GalleryLightbox({
                 .sort((a, b) => a.place - b.place)
                 .map((p, i) => (
                   <span key={i} className="gallery__lightbox-placement">
+                    {p.month && <span className="gallery__lightbox-placement-month">{formatContestMonth(p.month)} · </span>}
                     {winnerLabel(p.place)} — {getCategoryLabel(p.category as VoteCategory)}
                   </span>
                 ))}
