@@ -873,14 +873,29 @@ function TabPodium({ contest }: { contest: Contest }) {
   }
 
   const currentCat = categories[activeSlide];
-  const winnersForCat = (contest.winners || [])
-    .filter((w) => (w.category || 'theme') === currentCat)
-    .sort((a, b) => a.place - b.place)
-    .map((w) => {
-      const sub = contest.submissions.find((s) => s.id === w.submissionId);
-      return sub ? { ...sub, place: w.place } : null;
-    })
-    .filter((x): x is ContestSubmission & { place: 1 | 2 | 3 } => x !== null);
+
+  // Resolve podium submissions and recompute competition ranks from vote data
+  // so ties display correctly regardless of stored place values.
+  const winnersForCat = (() => {
+    const raw = (contest.winners || [])
+      .filter((w) => (w.category || 'theme') === currentCat)
+      .map((w) => {
+        const sub = contest.submissions.find((s) => s.id === w.submissionId);
+        if (!sub) return null;
+        const votes = sub.categoryVotes ? sub.categoryVotes[currentCat] : (sub.votes ?? 0);
+        return { ...sub, votes };
+      })
+      .filter((x): x is ContestSubmission & { votes: number } => x !== null)
+      .sort((a, b) => b.votes - a.votes);
+
+    // Assign competition ranks (ties share the same rank)
+    let currentRank = 1;
+    return raw.map((sub, i) => {
+      if (i > 0 && sub.votes < raw[i - 1].votes) currentRank = i + 1;
+      const place = (currentRank <= 3 ? currentRank : 3) as 1 | 2 | 3;
+      return { ...sub, place };
+    });
+  })();
 
   const mentionsForCat = (contest.honorableMentions || [])
     .filter((hm) => (hm.category || 'theme') === currentCat)
