@@ -2,10 +2,16 @@ const API_BASE = '/api/v1';
 
 let accessToken: string | null = localStorage.getItem('access_token');
 let refreshToken: string | null = localStorage.getItem('refresh_token');
+let idleLogoutTriggered = false;
+
+export function setIdleLogoutTriggered(value: boolean): void {
+  idleLogoutTriggered = value;
+}
 
 export function setTokens(access: string, refresh: string): void {
   accessToken = access;
   refreshToken = refresh;
+  idleLogoutTriggered = false;
   localStorage.setItem('access_token', access);
   localStorage.setItem('refresh_token', refresh);
 }
@@ -13,6 +19,7 @@ export function setTokens(access: string, refresh: string): void {
 export function clearTokens(): void {
   accessToken = null;
   refreshToken = null;
+  idleLogoutTriggered = false;
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
 }
@@ -22,6 +29,10 @@ export function getAccessToken(): string | null {
 }
 
 async function refreshAccessToken(): Promise<boolean> {
+  if (idleLogoutTriggered) {
+    clearTokens();
+    return false;
+  }
   if (!refreshToken) return false;
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {

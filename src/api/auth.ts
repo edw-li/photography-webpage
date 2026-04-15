@@ -1,4 +1,5 @@
 import { apiFetch, setTokens, clearTokens } from './client';
+import { STORAGE_ACTIVITY_KEY, STORAGE_LOGOUT_KEY } from '../hooks/useIdleTimer';
 import type { Member } from '../types/members';
 
 export interface AuthUser {
@@ -33,6 +34,7 @@ export async function login(
     }),
   });
   setTokens(tokens.accessToken, tokens.refreshToken);
+  localStorage.setItem(STORAGE_ACTIVITY_KEY, Date.now().toString());
   return getCurrentUser();
 }
 
@@ -120,10 +122,14 @@ export async function apiLogout(): Promise<void> {
     }
   }
   clearTokens();
+  localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+  localStorage.removeItem(STORAGE_LOGOUT_KEY);
 }
 
 export function logout(): void {
   clearTokens();
+  localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+  localStorage.removeItem(STORAGE_LOGOUT_KEY);
 }
 
 interface MessageResponse {
