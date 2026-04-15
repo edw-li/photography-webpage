@@ -156,14 +156,37 @@ def _save_local(content: bytes, category: str, unique_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# HEIC/HEIF conversion
+# ---------------------------------------------------------------------------
+
+_HEIC_EXTENSIONS = {".heic", ".heif"}
+
+
+def _convert_heic_to_jpeg(content: bytes) -> tuple[bytes, str]:
+    """Convert HEIC/HEIF bytes to JPEG. Returns (jpeg_bytes, '.jpg')."""
+    with Image.open(io.BytesIO(content)) as img:
+        img = ImageOps.exif_transpose(img)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92)
+        return buf.getvalue(), ".jpg"
+
+
+# ---------------------------------------------------------------------------
 # Public API (unchanged signatures)
 # ---------------------------------------------------------------------------
 
 async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool = True, user_slug: str | None = None) -> str:
     """Save uploaded image, optionally with thumbnails. Return URL path."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
-    unique_name = f"{uuid4().hex}{ext}"
     content = await file.read()
+
+    # Convert HEIC/HEIF to JPEG so stored files are always web-safe
+    if ext.lower() in _HEIC_EXTENSIONS:
+        content, ext = _convert_heic_to_jpeg(content)
+
+    unique_name = f"{uuid4().hex}{ext}"
     effective_category = f"{category}/{user_slug}" if user_slug else category
 
     if settings.oci_configured:
@@ -240,11 +263,16 @@ async def save_gallery_image(file: UploadFile, user_slug: str | None = None) -> 
 async def save_submission_image(contest_month: str, file: UploadFile, user_slug: str | None = None) -> str:
     """Save uploaded contest submission image, return URL."""
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
+    content = await file.read()
+
+    # Convert HEIC/HEIF to JPEG so stored files are always web-safe
+    if ext.lower() in _HEIC_EXTENSIONS:
+        content, ext = _convert_heic_to_jpeg(content)
+
     unique_name = f"{uuid4().hex}{ext}"
     category = f"submissions/{contest_month}"
     if user_slug:
         category = f"{category}/{user_slug}"
-    content = await file.read()
 
     if settings.oci_configured:
         return _upload_with_thumbnails_oci(content, category, unique_name, ext)

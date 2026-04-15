@@ -304,7 +304,15 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
           <div className="cif__pending-list">
             {pending.map((p) => (
               <div key={p.id} className={`cif__pending-row${p.status === 'error' ? ' cif__pending-row--error' : ''}`}>
-                <img src={p.previewUrl} alt="" className="cif__pending-thumb" />
+                <img
+                  src={p.previewUrl}
+                  alt=""
+                  className="cif__pending-thumb"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.querySelector('.cif__pending-placeholder')?.classList.add('cif__pending-placeholder--visible'); }}
+                />
+                <div className="cif__pending-placeholder" title={p.file.name}>
+                  <Upload size={18} />
+                </div>
                 <div className="cif__pending-fields">
                   <input
                     className="afm-input"

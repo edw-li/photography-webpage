@@ -5,6 +5,10 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
+# Register HEIC/HEIF codec with Pillow so Image.open() can read Apple HEIC files.
+from pillow_heif import register_heif_opener  # noqa: E402
+register_heif_opener()
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

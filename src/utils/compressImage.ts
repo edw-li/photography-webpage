@@ -75,11 +75,16 @@ export async function compressImage(
   // converted to JPEG via canvas — the backend only accepts JPEG/PNG/GIF/WebP.
   const isWebSafe = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type);
 
-  // Load image to check dimensions
+  // Load image to check dimensions.
+  // If the browser can't decode the format (e.g. HEIC on Windows without HEIF
+  // extensions), return the original file and let the backend handle conversion.
   const url = URL.createObjectURL(file);
   let img: HTMLImageElement;
   try {
     img = await loadImage(url);
+  } catch {
+    URL.revokeObjectURL(url);
+    return { file, originalSize: file.size, compressedSize: file.size, wasCompressed: false };
   } finally {
     URL.revokeObjectURL(url);
   }
