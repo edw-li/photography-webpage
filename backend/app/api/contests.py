@@ -33,7 +33,7 @@ from ..schemas.contest import (
 from ..models.gallery import GalleryPhoto
 from ..models.member import Member
 from ..rate_limit import limiter, AUTH_ATTEMPT
-from ..services.storage import delete_uploaded_image, make_photographer_slug, save_submission_image, make_user_slug
+from ..services.storage import delete_uploaded_image, extract_exif_from_bytes, make_photographer_slug, read_image_bytes, save_submission_image, make_user_slug
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
 
@@ -431,7 +431,7 @@ async def update_contest(
     # Auto-calculate winners when advancing from voting to completed
     if old_status == "voting" and contest.status == "completed":
         await _auto_calculate_winners(contest, db)
-        await _populate_gallery_from_contest(contest, db)
+        await _populate_gallery_from_contest(contest, db, update_winners=True)
 
     # Clear winners when reverting from completed
     if old_status == "completed" and contest.status in ("voting", "active"):
@@ -820,3 +820,82 @@ async def assign_submission(
         )
 
     return _submission_to_response(submission, category_votes)
+
+
+@router.post("/{contest_id}/backfill-exif")
+async def backfill_exif(
+    contest_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: extract EXIF from stored images and backfill submissions + gallery entries."""
+    result = await db.execute(select(Contest).where(Contest.id == contest_id))
+    contest = result.scalar_one_or_none()
+    if contest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+
+    updated = 0
+    skipped = 0
+    for sub in contest.submissions:
+        # Skip if EXIF is already populated
+        if any([sub.exif_camera, sub.exif_focal_length, sub.exif_aperture, sub.exif_shutter_speed, sub.exif_iso]):
+            skipped += 1
+            continue
+
+        content = read_image_bytes(sub.url)
+        if content is None:
+            skipped += 1
+            continue
+
+        exif = extract_exif_from_bytes(content)
+        if not exif:
+            skipped += 1
+            continue
+
+        # Update submission
+        if exif.get("camera"):
+            sub.exif_camera = exif["camera"]
+        if exif.get("focal_length"):
+            sub.exif_focal_length = exif["focal_length"]
+        if exif.get("aperture"):
+            sub.exif_aperture = exif["aperture"]
+        if exif.get("shutter_speed"):
+            sub.exif_shutter_speed = exif["shutter_speed"]
+        if exif.get("iso"):
+            sub.exif_iso = exif["iso"]
+
+        # Also update corresponding gallery entry
+        gallery_result = await db.execute(
+            select(GalleryPhoto).where(GalleryPhoto.contest_submission_id == sub.id)
+        )
+        gp = gallery_result.scalar_one_or_none()
+        if gp:
+            gp.exif_camera = sub.exif_camera
+            gp.exif_focal_length = sub.exif_focal_length
+            gp.exif_aperture = sub.exif_aperture
+            gp.exif_shutter_speed = sub.exif_shutter_speed
+            gp.exif_iso = sub.exif_iso
+
+        updated += 1
+
+    await db.commit()
+    return {"detail": f"EXIF backfill complete: {updated} updated, {skipped} skipped"}
+
+
+@router.post("/{contest_id}/refresh-gallery")
+async def refresh_gallery(
+    contest_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: re-sync gallery entries from current contest winners (updates placements)."""
+    result = await db.execute(select(Contest).where(Contest.id == contest_id))
+    contest = result.scalar_one_or_none()
+    if contest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    if contest.status != "completed":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest must be completed")
+
+    await _populate_gallery_from_contest(contest, db, update_winners=True)
+    await db.commit()
+    return {"detail": "Gallery entries refreshed with current winner placements"}

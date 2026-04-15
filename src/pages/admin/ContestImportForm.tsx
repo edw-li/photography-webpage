@@ -4,6 +4,8 @@ import {
   uploadAdminSubmission,
   finalizeContest,
   assignSubmission,
+  backfillExif,
+  refreshGallery,
   deleteSubmission,
   getContest,
 } from '../../api/contests';
@@ -14,6 +16,7 @@ import { getMembers } from '../../api/members';
 import type { Member } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import { compressImage, isImageFile, IMAGE_ACCEPT } from '../../utils/compressImage';
+import { extractExif } from '../../utils/extractExif';
 import { getImageUrl } from '../../utils/imageUrl';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import './ContestImportForm.css';
@@ -48,6 +51,8 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
   const [assignMemberId, setAssignMemberId] = useState<string>('');
   const [assignPhotographer, setAssignPhotographer] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [refreshingGallery, setRefreshingGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(pending) as MutableRefObject<PendingUpload[]>;
   pendingRef.current = pending;
@@ -137,6 +142,8 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
     for (const p of toUpload) {
       updatePending(p.id, { status: 'uploading' });
       try {
+        // Extract EXIF from original file BEFORE compression (canvas strips EXIF)
+        const exif = await extractExif(p.file);
         const { file: compressed } = await compressImage(p.file);
         const formData = new FormData();
         formData.append('file', compressed);
@@ -146,6 +153,11 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
           : p.photographer.trim();
         formData.append('photographer', photographerName);
         if (p.memberId != null) formData.append('member_id', String(p.memberId));
+        if (exif.camera) formData.append('exif_camera', exif.camera);
+        if (exif.focalLength) formData.append('exif_focal_length', exif.focalLength);
+        if (exif.aperture) formData.append('exif_aperture', exif.aperture);
+        if (exif.shutterSpeed) formData.append('exif_shutter_speed', exif.shutterSpeed);
+        if (exif.iso) formData.append('exif_iso', exif.iso);
         await uploadAdminSubmission(contest.id, formData);
         updatePending(p.id, { status: 'done' });
         successCount++;
@@ -230,6 +242,29 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
     setFinalizing(false);
   };
 
+  const handleRefreshGallery = async () => {
+    setRefreshingGallery(true);
+    try {
+      const res = await refreshGallery(contest.id);
+      addToast('success', res.detail);
+    } catch {
+      addToast('error', 'Failed to refresh gallery');
+    }
+    setRefreshingGallery(false);
+  };
+
+  const handleBackfillExif = async () => {
+    setBackfilling(true);
+    try {
+      const res = await backfillExif(contest.id);
+      addToast('success', res.detail);
+      await refreshContest();
+    } catch {
+      addToast('error', 'Failed to backfill EXIF data');
+    }
+    setBackfilling(false);
+  };
+
   const updateTally = (subId: number, category: 'theme' | 'favorite' | 'wildcard', value: number) => {
     setTallies((prev) => ({
       ...prev,
@@ -244,9 +279,27 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
       {/* --- Section 1: Existing Submissions --- */}
       {submissions.length > 0 && (
         <div className="cif__section">
-          <h4 className="cif__section-title">
-            Submissions ({submissions.length})
-          </h4>
+          <div className="cif__section-header">
+            <h4 className="cif__section-title" style={{ margin: 0 }}>
+              Submissions ({submissions.length})
+            </h4>
+            <button
+              className="admin__action-btn"
+              onClick={handleBackfillExif}
+              disabled={backfilling}
+              title="Extract EXIF metadata from stored images"
+            >
+              {backfilling ? 'Extracting...' : 'Backfill EXIF'}
+            </button>
+            <button
+              className="admin__action-btn"
+              onClick={handleRefreshGallery}
+              disabled={refreshingGallery}
+              title="Re-sync gallery entries with current winner placements"
+            >
+              {refreshingGallery ? 'Refreshing...' : 'Refresh Gallery'}
+            </button>
+          </div>
           <div className="cif__subs-grid">
             {submissions.map((sub) => (
               <div key={sub.id} className="cif__sub-card">

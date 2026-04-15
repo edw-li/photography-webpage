@@ -99,6 +99,18 @@ export async function finalizeContest(
   });
 }
 
+export async function refreshGallery(contestId: number): Promise<{ detail: string }> {
+  return apiFetch<{ detail: string }>(`/contests/${contestId}/refresh-gallery`, {
+    method: 'POST',
+  });
+}
+
+export async function backfillExif(contestId: number): Promise<{ detail: string }> {
+  return apiFetch<{ detail: string }>(`/contests/${contestId}/backfill-exif`, {
+    method: 'POST',
+  });
+}
+
 export async function assignSubmission(
   contestId: number,
   submissionId: number,
