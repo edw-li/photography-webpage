@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GalleryPhoto } from '../types/gallery';
+import type { VoteCategory } from '../types/contest';
+import { getCategoryLabel } from '../types/contest';
 import { X } from 'lucide-react';
 import { getGalleryPhotos } from '../api/gallery';
 import { useImageLoaded } from '../hooks/useImageLoaded';
@@ -25,6 +27,7 @@ function winnerLabel(place: number): string {
   if (place === 3) return '3rd';
   return `${place}th`;
 }
+
 
 function GalleryItem({
   photo,
@@ -223,6 +226,17 @@ function GalleryLightbox({
         <div className={`gallery__lightbox-header${fadeIn ? ' gallery__lightbox-header--loaded' : ''}`}>
           <strong>{displayPhoto.title}</strong>
           <span>{displayPhoto.photographer}</span>
+          {displayPhoto.winnerPlacements && displayPhoto.winnerPlacements.length > 0 && (
+            <div className="gallery__lightbox-placements">
+              {displayPhoto.winnerPlacements
+                .sort((a, b) => a.place - b.place)
+                .map((p, i) => (
+                  <span key={i} className="gallery__lightbox-placement">
+                    {winnerLabel(p.place)} — {getCategoryLabel(p.category as VoteCategory)}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
 
         <div className="gallery__lightbox-body">

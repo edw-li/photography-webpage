@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +25,9 @@ class Contest(Base):
     wildcard_category: Mapped[str | None] = mapped_column(String(200), nullable=True)
     winners: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     honorable_mentions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    is_imported: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
@@ -56,6 +59,7 @@ class ContestSubmission(Base):
     exif_aperture: Mapped[str | None] = mapped_column(String(50), nullable=True)
     exif_shutter_speed: Mapped[str | None] = mapped_column(String(50), nullable=True)
     exif_iso: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    category_vote_tallies: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

@@ -23,6 +23,7 @@ class GalleryPhotoResponse(CamelModel):
     is_winner: bool = False
     winner_place: int | None = None
     winner_category: str | None = None
+    winner_placements: list[dict] | None = None
 
 
 class GalleryPhotoUpdate(CamelModel):

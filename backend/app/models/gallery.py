@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
@@ -38,6 +39,7 @@ class GalleryPhoto(Base):
     )
     winner_place: Mapped[int | None] = mapped_column(Integer, nullable=True)
     winner_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    winner_placements: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

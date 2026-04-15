@@ -18,6 +18,7 @@ export interface GalleryPhoto {
   isWinner?: boolean;
   winnerPlace?: number | null;
   winnerCategory?: string | null;
+  winnerPlacements?: { place: number; category: string }[] | null;
 }
 
 export interface GalleryConfig {

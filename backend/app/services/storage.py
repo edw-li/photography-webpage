@@ -24,6 +24,15 @@ def make_user_slug(user_id: str | uuid.UUID, first_name: str, last_name: str) ->
         slug = "user"
     return f"{hex8}-{slug[:60].rstrip('-')}"
 
+
+def make_photographer_slug(photographer_name: str) -> str:
+    """Filesystem-safe slug for admin-imported submissions: 'import-{name}'."""
+    normalized = unicodedata.normalize("NFKD", photographer_name).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
+    if not slug:
+        slug = "unknown"
+    return f"import-{slug[:60].rstrip('-')}"
+
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path(settings.upload_dir)

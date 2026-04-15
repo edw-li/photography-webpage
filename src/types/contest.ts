@@ -13,6 +13,7 @@ export interface ContestSubmission {
   url: string;
   title: string;
   photographer: string;
+  isAssigned?: boolean;
   votes?: number;
   exif?: PhotoExif;
   categoryVotes?: CategoryVotes;
@@ -42,6 +43,7 @@ export interface Contest {
   participantCount: number;
   guidelines: string[];
   wildcardCategory?: string | null;
+  isImported?: boolean;
   submissions: ContestSubmission[];
   winners?: ContestWinner[];
   honorableMentions?: HonorableMention[];
