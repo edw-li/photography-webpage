@@ -991,13 +991,26 @@ function TabFullResults({ contest }: { contest: Contest }) {
   const [selectedCategory, setSelectedCategory] = useState<VoteCategory>(categories[0]);
 
   const ranked = useMemo(() => {
-    return [...contest.submissions]
+    const sorted = [...contest.submissions]
       .sort((a, b) => {
         const aVotes = a.categoryVotes ? a.categoryVotes[selectedCategory] : (a.votes ?? 0);
         const bVotes = b.categoryVotes ? b.categoryVotes[selectedCategory] : (b.votes ?? 0);
         return bVotes - aVotes;
       })
       .slice(0, 10);
+
+    // Assign competition-style ranks (ties share the same rank)
+    let currentRank = 1;
+    return sorted.map((sub, i) => {
+      const votes = sub.categoryVotes ? sub.categoryVotes[selectedCategory] : (sub.votes ?? 0);
+      if (i > 0) {
+        const prevVotes = sorted[i - 1].categoryVotes
+          ? sorted[i - 1].categoryVotes![selectedCategory]
+          : (sorted[i - 1].votes ?? 0);
+        if (votes < prevVotes) currentRank = i + 1;
+      }
+      return { ...sub, competitionRank: currentRank };
+    });
   }, [contest.submissions, selectedCategory]);
 
   const stats = useMemo(() => {
@@ -1038,8 +1051,8 @@ function TabFullResults({ contest }: { contest: Contest }) {
       </div>
 
       <div className="contest__results-list">
-        {ranked.map((sub, i) => {
-          const rank = i + 1;
+        {ranked.map((sub) => {
+          const rank = sub.competitionRank;
           const color = medalColor(rank);
           return (
             <div

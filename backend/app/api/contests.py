@@ -1,5 +1,6 @@
 import math
 from collections import defaultdict
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import case, select, func
@@ -153,6 +154,44 @@ async def _contest_to_response(
     )
 
 
+def _rank_for_category(
+    entries: list[tuple[int, int, datetime]],
+    category: str,
+) -> tuple[list[dict], list[dict]]:
+    """Assign competition-style ranks for one category.
+
+    *entries* is a list of ``(submission_id, vote_count, created_at)`` tuples.
+    Returns ``(winners, honorable_mentions)`` where winners has at most 3 items
+    and each carries its competition rank as ``place``.  Ties share the same
+    rank; earliest submission breaks ties for the limited podium slots.
+    """
+    if not entries:
+        return [], []
+
+    # Sort: most votes first, earliest submission breaks ties
+    entries.sort(key=lambda x: (-x[1], x[2]))
+
+    # Assign competition ranks (1, 1, 3 — not 1, 2, 3 — when votes tie)
+    ranks: list[tuple[int, int]] = []  # (sub_id, rank)
+    current_rank = 1
+    for i, (sub_id, votes, _) in enumerate(entries):
+        if i > 0 and votes < entries[i - 1][1]:
+            current_rank = i + 1
+        ranks.append((sub_id, current_rank))
+
+    # Podium = first 3 in sort order (tiebreaker already applied)
+    winners = [
+        {"submissionId": sub_id, "place": rank, "category": category}
+        for sub_id, rank in ranks[:3]
+    ]
+    # Honorable mentions = next 2 after podium
+    mentions = [
+        {"submissionId": sub_id, "category": category}
+        for sub_id, _ in ranks[3:5]
+    ]
+    return winners, mentions
+
+
 async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
     """Auto-calculate winners from vote tallies when advancing to completed."""
     vote_rows = await db.execute(
@@ -171,15 +210,16 @@ async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
     for row in vote_rows:
         by_category[row.category].append((row.submission_id, row.cnt))
 
+    # Build created_at lookup for tiebreaking
+    sub_created = {sub.id: sub.created_at for sub in contest.submissions}
+
     winners = []
     honorable_mentions = []
     for category, ranked in by_category.items():
-        # Top 3 = winners
-        for i, (sub_id, _count) in enumerate(ranked[:3]):
-            winners.append({"submissionId": sub_id, "place": i + 1, "category": category})
-        # 4th-5th = honorable mentions
-        for sub_id, _count in ranked[3:5]:
-            honorable_mentions.append({"submissionId": sub_id, "category": category})
+        entries = [(sub_id, cnt, sub_created[sub_id]) for sub_id, cnt in ranked]
+        cat_winners, cat_mentions = _rank_for_category(entries, category)
+        winners.extend(cat_winners)
+        honorable_mentions.extend(cat_mentions)
 
     contest.winners = winners if winners else None
     contest.honorable_mentions = honorable_mentions if honorable_mentions else None
@@ -703,15 +743,16 @@ async def finalize_contest(
         if tally.wildcard > 0 and contest.wildcard_category:
             by_category["wildcard"].append((sub.id, tally.wildcard))
 
-    # Calculate winners from tallies (same logic as _auto_calculate_winners)
+    # Calculate winners from tallies using competition-style ranking
+    sub_created = {sub.id: sub.created_at for sub in contest.submissions}
+
     winners = []
     honorable_mentions = []
     for category, ranked in by_category.items():
-        ranked.sort(key=lambda x: x[1], reverse=True)
-        for i, (sub_id, _count) in enumerate(ranked[:3]):
-            winners.append({"submissionId": sub_id, "place": i + 1, "category": category})
-        for sub_id, _count in ranked[3:5]:
-            honorable_mentions.append({"submissionId": sub_id, "category": category})
+        entries = [(sub_id, cnt, sub_created[sub_id]) for sub_id, cnt in ranked]
+        cat_winners, cat_mentions = _rank_for_category(entries, category)
+        winners.extend(cat_winners)
+        honorable_mentions.extend(cat_mentions)
 
     contest.winners = winners if winners else None
     contest.honorable_mentions = honorable_mentions if honorable_mentions else None
