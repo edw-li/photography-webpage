@@ -95,6 +95,7 @@ def _photo_to_response(photo: GalleryPhoto) -> GalleryPhotoResponse:
         is_winner=photo.is_winner,
         winner_place=photo.winner_place,
         winner_category=photo.winner_category,
+        winner_placements=photo.winner_placements,
     )
 
 

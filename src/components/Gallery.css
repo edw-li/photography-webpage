@@ -384,6 +384,20 @@
   font-weight: 500;
 }
 
+.gallery__lightbox-placements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+}
+
+.gallery__lightbox-placement {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
 .gallery__lightbox-exif {
   text-align: center;
   margin-top: 0.5rem;

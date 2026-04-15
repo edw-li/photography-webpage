@@ -68,3 +68,44 @@ export async function castVote(
     body: JSON.stringify({ votes }),
   });
 }
+
+// --- Admin Import APIs ---
+
+export async function uploadAdminSubmission(
+  contestId: number,
+  formData: FormData,
+): Promise<void> {
+  await apiFetch(`/contests/${contestId}/admin-submissions`, {
+    method: 'POST',
+    body: formData,
+    headers: {},
+  });
+}
+
+export interface SubmissionVoteTally {
+  submissionId: number;
+  theme: number;
+  favorite: number;
+  wildcard: number;
+}
+
+export async function finalizeContest(
+  contestId: number,
+  voteTallies: SubmissionVoteTally[],
+): Promise<Contest> {
+  return apiFetch<Contest>(`/contests/${contestId}/finalize`, {
+    method: 'POST',
+    body: JSON.stringify({ voteTallies }),
+  });
+}
+
+export async function assignSubmission(
+  contestId: number,
+  submissionId: number,
+  data: { memberId: number | null; photographer: string },
+): Promise<void> {
+  await apiFetch(`/contests/${contestId}/submissions/${submissionId}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}

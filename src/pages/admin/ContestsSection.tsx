@@ -13,6 +13,7 @@ import { getCategoryLabel } from '../../types/contest';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
+import ContestImportForm from './ContestImportForm';
 
 const STATUS_OPTIONS = ['upcoming', 'active', 'voting', 'completed'];
 const nextStatus: Record<string, string> = {
@@ -93,6 +94,8 @@ export default function ContestsSection() {
     setLoadingId(null);
   };
 
+  const isImportMode = form.status === 'completed' && (!editingContest || editingContest.isImported);
+
   const handleSave = async () => {
     if (!form.month || !form.theme || !form.description || !form.deadline) {
       addToast('error', 'Please fill in all required fields');
@@ -103,7 +106,7 @@ export default function ContestsSection() {
       const guidelines = form.guidelines.filter((g) => g.trim());
       const wildcardCategory = form.wildcardCategory.trim() || null;
       if (editingContest) {
-        await updateContest(editingContest.id, {
+        const updated = await updateContest(editingContest.id, {
           month: form.month,
           theme: form.theme,
           description: form.description,
@@ -112,12 +115,19 @@ export default function ContestsSection() {
           guidelines,
           wildcardCategory,
         });
+        setEditingContest(updated);
         addToast('success', 'Contest updated');
       } else {
-        await createContest({ ...form, guidelines, wildcardCategory });
-        addToast('success', 'Contest created');
+        const created = await createContest({ ...form, guidelines, wildcardCategory });
+        if (isImportMode) {
+          // Open the newly created imported contest for editing
+          setEditingContest(created);
+          addToast('success', 'Contest created — now add submissions and vote tallies below');
+        } else {
+          addToast('success', 'Contest created');
+          setShowForm(false);
+        }
       }
-      setShowForm(false);
       load();
     } catch {
       addToast('error', `Failed to ${editingContest ? 'update' : 'create'} contest`);
@@ -257,10 +267,12 @@ export default function ContestsSection() {
 
       {showForm && (
         <AdminFormModal
-          title={editingContest ? 'Edit Contest' : 'Create Contest'}
+          title={editingContest?.isImported ? 'Import Contest' : editingContest ? 'Edit Contest' : isImportMode ? 'Create Imported Contest' : 'Create Contest'}
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           saving={saving}
+          wide={!!editingContest?.isImported}
+          saveLabel={!editingContest && isImportMode ? 'Create' : undefined}
         >
           <div className="afm-row">
             <div className="afm-field">
@@ -332,7 +344,14 @@ export default function ContestsSection() {
             />
           </div>
 
-          {editingContest && form.status === 'completed' && editingContest.winners && editingContest.winners.length > 0 && (
+          {editingContest && editingContest.isImported && (
+            <ContestImportForm
+              contest={editingContest}
+              onContestUpdate={(updated) => { setEditingContest(updated); load(); }}
+            />
+          )}
+
+          {editingContest && form.status === 'completed' && !editingContest.isImported && editingContest.winners && editingContest.winners.length > 0 && (
             <div className="afm-field">
               <label className="afm-label">Winners (auto-calculated)</label>
               {(['theme', 'favorite', 'wildcard'] as VoteCategory[])

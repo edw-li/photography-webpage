@@ -24,12 +24,15 @@ from ..schemas.contest import (
     ContestSubmissionResponse,
     ContestUpdate,
     ContestWinnerSchema,
+    FinalizeContestRequest,
     HonorableMentionSchema,
+    SubmissionAssignRequest,
     SubmissionExifSchema,
 )
 from ..models.gallery import GalleryPhoto
+from ..models.member import Member
 from ..rate_limit import limiter, AUTH_ATTEMPT
-from ..services.storage import delete_uploaded_image, save_submission_image, make_user_slug
+from ..services.storage import delete_uploaded_image, make_photographer_slug, save_submission_image, make_user_slug
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
 
@@ -54,6 +57,7 @@ def _submission_to_response(
         url=sub.url,
         title=sub.title,
         photographer=sub.photographer,
+        is_assigned=sub.user_id is not None,
         votes=sub.vote_count if sub.vote_count else None,
         exif=exif,
         category_votes=category_votes,
@@ -68,20 +72,31 @@ async def _contest_to_response(
     # For completed contests, compute per-submission category vote counts
     sub_category_votes: dict[int, CategoryVotesSchema] = {}
     if contest.status == "completed":
-        vote_rows = await db.execute(
-            select(
-                ContestVote.submission_id,
-                ContestVote.category,
-                func.count().label("cnt"),
+        if contest.is_imported:
+            # Imported contests: read tallies from JSONB on each submission
+            for sub in contest.submissions:
+                if sub.category_vote_tallies:
+                    sub_category_votes[sub.id] = CategoryVotesSchema(
+                        theme=sub.category_vote_tallies.get("theme", 0),
+                        favorite=sub.category_vote_tallies.get("favorite", 0),
+                        wildcard=sub.category_vote_tallies.get("wildcard", 0),
+                    )
+        else:
+            # Organic contests: aggregate from ContestVote table
+            vote_rows = await db.execute(
+                select(
+                    ContestVote.submission_id,
+                    ContestVote.category,
+                    func.count().label("cnt"),
+                )
+                .where(ContestVote.contest_id == contest.id)
+                .group_by(ContestVote.submission_id, ContestVote.category)
             )
-            .where(ContestVote.contest_id == contest.id)
-            .group_by(ContestVote.submission_id, ContestVote.category)
-        )
-        for row in vote_rows:
-            sid = row.submission_id
-            if sid not in sub_category_votes:
-                sub_category_votes[sid] = CategoryVotesSchema()
-            setattr(sub_category_votes[sid], row.category, row.cnt)
+            for row in vote_rows:
+                sid = row.submission_id
+                if sid not in sub_category_votes:
+                    sub_category_votes[sid] = CategoryVotesSchema()
+                setattr(sub_category_votes[sid], row.category, row.cnt)
 
     submissions = [
         _submission_to_response(s, sub_category_votes.get(s.id))
@@ -129,6 +144,7 @@ async def _contest_to_response(
         participant_count=participant_count,
         guidelines=contest.guidelines,
         wildcard_category=contest.wildcard_category,
+        is_imported=contest.is_imported,
         submissions=submissions,
         winners=winners,
         honorable_mentions=honorable_mentions,
@@ -178,36 +194,70 @@ async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
         sub.vote_count = total_votes.get(sub.id, 0)
 
 
-async def _populate_gallery_from_contest(contest: Contest, db: AsyncSession) -> None:
-    """Create gallery entries for contest submissions after completion."""
-    # Build winner map: submission_id -> (best_place, category)
+async def _populate_gallery_from_contest(
+    contest: Contest, db: AsyncSession, update_winners: bool = False,
+) -> None:
+    """Create gallery entries for contest submissions after completion.
+
+    When *update_winners* is True (used by finalize/re-finalize), existing
+    gallery entries also get their winner status refreshed instead of being
+    skipped.
+    """
+    # Build winner map: submission_id -> (best_place, best_category)
     winner_map: dict[int, tuple[int, str]] = {}
+    # Build full placements map: submission_id -> [{place, category}, ...]
+    all_placements: dict[int, list[dict]] = defaultdict(list)
     if contest.winners:
         for w in contest.winners:
             sid = w["submissionId"]
             place = w["place"]
             cat = w.get("category", "theme")
+            all_placements[sid].append({"place": place, "category": cat})
             if sid not in winner_map or place < winner_map[sid][0]:
                 winner_map[sid] = (place, cat)
 
-    # Find existing gallery entries for this contest to avoid duplicates
+    # Find existing gallery entries for this contest
     existing_result = await db.execute(
-        select(GalleryPhoto.contest_submission_id).where(
+        select(GalleryPhoto).where(
             GalleryPhoto.contest_id == contest.id,
             GalleryPhoto.contest_submission_id.isnot(None),
         )
     )
-    existing_sub_ids = {row[0] for row in existing_result}
+    existing_photos = {gp.contest_submission_id: gp for gp in existing_result.scalars().all()}
+
+    # Resolve member_id for submissions that have a user_id
+    member_by_user: dict[str, int] = {}
+    user_ids = [str(sub.user_id) for sub in contest.submissions if sub.user_id]
+    if user_ids:
+        from ..models.member import Member
+        member_result = await db.execute(
+            select(Member.user_id, Member.id).where(Member.user_id.in_(user_ids))
+        )
+        for row in member_result:
+            member_by_user[str(row.user_id)] = row.id
 
     for sub in contest.submissions:
-        if sub.id in existing_sub_ids:
-            continue
         is_winner = sub.id in winner_map
         place, category = winner_map[sub.id] if is_winner else (None, None)
+        placements = all_placements.get(sub.id) or None
+        member_id = member_by_user.get(str(sub.user_id)) if sub.user_id else None
+
+        if sub.id in existing_photos:
+            if update_winners:
+                gp = existing_photos[sub.id]
+                gp.is_winner = is_winner
+                gp.winner_place = place
+                gp.winner_category = category
+                gp.winner_placements = placements
+                gp.photographer = sub.photographer
+                gp.member_id = member_id
+            continue
+
         photo = GalleryPhoto(
             url=sub.url,
             title=sub.title,
             photographer=sub.photographer,
+            member_id=member_id,
             exif_camera=sub.exif_camera,
             exif_focal_length=sub.exif_focal_length,
             exif_iso=sub.exif_iso,
@@ -218,6 +268,7 @@ async def _populate_gallery_from_contest(contest: Contest, db: AsyncSession) -> 
             is_winner=is_winner,
             winner_place=place,
             winner_category=category,
+            winner_placements=placements,
         )
         db.add(photo)
 
@@ -300,6 +351,7 @@ async def create_contest(
         deadline=body.deadline,
         guidelines=body.guidelines,
         wildcard_category=body.wildcard_category,
+        is_imported=body.status == "completed",
     )
     db.add(contest)
     await log_activity(db, admin, "create", "contest", body.theme, f"Created contest: {body.theme}")
@@ -547,3 +599,182 @@ async def cast_vote(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Vote conflict detected")
 
     return {"detail": "Votes recorded"}
+
+
+# --- Admin Import Endpoints ---
+
+
+@router.post("/{contest_id}/admin-submissions", response_model=ContestSubmissionResponse, status_code=status.HTTP_201_CREATED)
+async def create_admin_submission(
+    request: Request,
+    contest_id: int,
+    file: UploadFile,
+    title: str = Form(...),
+    photographer: str = Form(...),
+    member_id: int | None = Form(None),
+    exif_camera: str | None = Form(None),
+    exif_focal_length: str | None = Form(None),
+    exif_aperture: str | None = Form(None),
+    exif_shutter_speed: str | None = Form(None),
+    exif_iso: int | None = Form(None),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: upload a submission for an imported contest. No status or limit checks."""
+    result = await db.execute(select(Contest).where(Contest.id == contest_id))
+    contest = result.scalar_one_or_none()
+    if contest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    if not contest.is_imported:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Admin submissions are only allowed for imported contests")
+
+    await validate_image_upload(file)
+
+    # Resolve member → user_id if a member is specified
+    user_id = None
+    if member_id is not None:
+        member_result = await db.execute(select(Member).where(Member.id == member_id))
+        member = member_result.scalar_one_or_none()
+        if member is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        user_id = member.user_id  # may still be None if member has no linked user
+
+    slug = make_photographer_slug(photographer)
+    url = await save_submission_image(contest.month, file, user_slug=slug)
+
+    submission = ContestSubmission(
+        contest_id=contest_id,
+        url=url,
+        title=title,
+        photographer=photographer,
+        user_id=user_id,
+        exif_camera=exif_camera,
+        exif_focal_length=exif_focal_length,
+        exif_aperture=exif_aperture,
+        exif_shutter_speed=exif_shutter_speed,
+        exif_iso=exif_iso,
+    )
+    db.add(submission)
+    await db.commit()
+    await db.refresh(submission)
+    return _submission_to_response(submission)
+
+
+@router.post("/{contest_id}/finalize", response_model=ContestResponse)
+async def finalize_contest(
+    contest_id: int,
+    body: FinalizeContestRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: set vote tallies and calculate winners for an imported contest."""
+    result = await db.execute(select(Contest).where(Contest.id == contest_id))
+    contest = result.scalar_one_or_none()
+    if contest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    if not contest.is_imported:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only imported contests can be finalized this way")
+    if not contest.submissions:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest has no submissions to finalize")
+
+    # Build submission lookup
+    sub_map = {sub.id: sub for sub in contest.submissions}
+
+    # Set tallies on each submission
+    by_category: dict[str, list[tuple[int, int]]] = defaultdict(list)
+
+    for tally in body.vote_tallies:
+        sub = sub_map.get(tally.submission_id)
+        if sub is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Submission {tally.submission_id} not found in this contest",
+            )
+        tallies = {"theme": tally.theme, "favorite": tally.favorite, "wildcard": tally.wildcard}
+        sub.category_vote_tallies = tallies
+        sub.vote_count = tally.theme + tally.favorite + tally.wildcard
+
+        # Build category rankings
+        if tally.theme > 0:
+            by_category["theme"].append((sub.id, tally.theme))
+        if tally.favorite > 0:
+            by_category["favorite"].append((sub.id, tally.favorite))
+        if tally.wildcard > 0 and contest.wildcard_category:
+            by_category["wildcard"].append((sub.id, tally.wildcard))
+
+    # Calculate winners from tallies (same logic as _auto_calculate_winners)
+    winners = []
+    honorable_mentions = []
+    for category, ranked in by_category.items():
+        ranked.sort(key=lambda x: x[1], reverse=True)
+        for i, (sub_id, _count) in enumerate(ranked[:3]):
+            winners.append({"submissionId": sub_id, "place": i + 1, "category": category})
+        for sub_id, _count in ranked[3:5]:
+            honorable_mentions.append({"submissionId": sub_id, "category": category})
+
+    contest.winners = winners if winners else None
+    contest.honorable_mentions = honorable_mentions if honorable_mentions else None
+
+    # Populate/update gallery entries
+    await _populate_gallery_from_contest(contest, db, update_winners=True)
+
+    await log_activity(db, admin, "update", "contest", str(contest_id), f"Finalized imported contest: {contest.theme}")
+    await db.commit()
+    await db.refresh(contest)
+    return await _contest_to_response(contest, db, admin)
+
+
+@router.patch("/{contest_id}/submissions/{submission_id}/assign", response_model=ContestSubmissionResponse)
+async def assign_submission(
+    contest_id: int,
+    submission_id: int,
+    body: SubmissionAssignRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: reassign a submission to a member (or clear the assignment)."""
+    result = await db.execute(
+        select(ContestSubmission).where(
+            ContestSubmission.id == submission_id,
+            ContestSubmission.contest_id == contest_id,
+        )
+    )
+    submission = result.scalar_one_or_none()
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    member_id_for_gallery = None
+    if body.member_id is not None:
+        member_result = await db.execute(select(Member).where(Member.id == body.member_id))
+        member = member_result.scalar_one_or_none()
+        if member is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        submission.user_id = member.user_id
+        member_id_for_gallery = member.id
+    else:
+        submission.user_id = None
+
+    submission.photographer = body.photographer
+
+    # Update the corresponding gallery entry if it exists
+    gallery_result = await db.execute(
+        select(GalleryPhoto).where(GalleryPhoto.contest_submission_id == submission_id)
+    )
+    gallery_photo = gallery_result.scalar_one_or_none()
+    if gallery_photo:
+        gallery_photo.photographer = body.photographer
+        gallery_photo.member_id = member_id_for_gallery
+
+    await db.commit()
+    await db.refresh(submission)
+
+    # Build category_votes from tallies if available
+    category_votes = None
+    if submission.category_vote_tallies:
+        category_votes = CategoryVotesSchema(
+            theme=submission.category_vote_tallies.get("theme", 0),
+            favorite=submission.category_vote_tallies.get("favorite", 0),
+            wildcard=submission.category_vote_tallies.get("wildcard", 0),
+        )
+
+    return _submission_to_response(submission, category_votes)
