@@ -20,15 +20,39 @@ from ..services.storage import delete_uploaded_image, save_gallery_image, make_u
 from .activity import log_activity
 from .deps import get_db, require_admin
 
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "image/heic", "image/heif",
+}
+
+# Content types that browsers may report for HEIC when the OS doesn't register
+# a proper MIME type (common on Windows without HEIF Image Extensions).
+_HEIC_FALLBACK_TYPES = {"application/octet-stream", ""}
+
+
+def _has_valid_magic_bytes(content: bytes) -> bool:
+    """Check whether raw bytes start with a known image signature."""
+    if content[:3] == b'\xff\xd8\xff':  # JPEG
+        return True
+    if content[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+        return True
+    if content[:6] in (b'GIF87a', b'GIF89a'):  # GIF
+        return True
+    if content[:4] == b'RIFF' and len(content) >= 12 and content[8:12] == b'WEBP':  # WebP
+        return True
+    # HEIC/HEIF (ISOBMFF container): bytes 4-8 are 'ftyp'
+    if len(content) >= 12 and content[4:8] == b'ftyp':
+        return True
+    return False
 
 
 async def validate_image_upload(file: UploadFile) -> bytes:
     """Validate an uploaded image: content type, magic bytes, file size. Returns validated bytes."""
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    ct = file.content_type or ""
+    if ct not in ALLOWED_CONTENT_TYPES and ct not in _HEIC_FALLBACK_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be an image (JPEG, PNG, GIF, or WebP)",
+            detail="File must be an image (JPEG, PNG, GIF, WebP, or HEIC)",
         )
 
     max_bytes = settings.max_upload_size_mb * 1024 * 1024
@@ -39,24 +63,13 @@ async def validate_image_upload(file: UploadFile) -> bytes:
             detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB",
         )
 
-    # Validate magic bytes
-    valid = False
-    if content[:3] == b'\xff\xd8\xff':  # JPEG
-        valid = True
-    elif content[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
-        valid = True
-    elif content[:6] in (b'GIF87a', b'GIF89a'):  # GIF
-        valid = True
-    elif content[:4] == b'RIFF' and len(content) >= 12 and content[8:12] == b'WEBP':  # WebP
-        valid = True
-
-    if not valid:
+    if not _has_valid_magic_bytes(content):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File is not a valid image (magic bytes check failed)",
         )
 
-    # Validate parseable image with Pillow
+    # Validate parseable image with Pillow (pillow-heif registered at startup)
     try:
         img = Image.open(io.BytesIO(content))
         img.verify()
