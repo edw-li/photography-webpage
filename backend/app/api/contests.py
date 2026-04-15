@@ -252,7 +252,7 @@ async def _populate_gallery_from_contest(
             sid = w["submissionId"]
             place = w["place"]
             cat = w.get("category", "theme")
-            all_placements[sid].append({"place": place, "category": cat})
+            all_placements[sid].append({"place": place, "category": cat, "month": contest.month})
             if sid not in winner_map or place < winner_map[sid][0]:
                 winner_map[sid] = (place, cat)
 
