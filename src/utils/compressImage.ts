@@ -56,6 +56,10 @@ export async function compressImage(
     return { file, originalSize: file.size, compressedSize: file.size, wasCompressed: false };
   }
 
+  // Non-web-safe formats (HEIC, HEIF, TIFF, BMP, etc.) must always be
+  // converted to JPEG via canvas — the backend only accepts JPEG/PNG/GIF/WebP.
+  const isWebSafe = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type);
+
   // Load image to check dimensions
   const url = URL.createObjectURL(file);
   let img: HTMLImageElement;
@@ -65,10 +69,10 @@ export async function compressImage(
     URL.revokeObjectURL(url);
   }
 
-  // Bail if already under target size and dimensions are normal
+  // Bail if already under target size, dimensions are normal, AND format is web-safe
   const needsResize =
     img.naturalWidth > opts.maxDimension || img.naturalHeight > opts.maxDimension;
-  if (file.size <= maxBytes && !needsResize) {
+  if (file.size <= maxBytes && !needsResize && isWebSafe) {
     return { file, originalSize: file.size, compressedSize: file.size, wasCompressed: false };
   }
 
@@ -105,8 +109,9 @@ export async function compressImage(
   canvas.width = 0;
   canvas.height = 0;
 
-  // If compression made it bigger, return original
-  if (blob.size >= file.size) {
+  // If compression made it bigger and format is already web-safe, return original.
+  // Non-web-safe formats (HEIC, etc.) must still return the converted version.
+  if (blob.size >= file.size && isWebSafe) {
     return { file, originalSize: file.size, compressedSize: file.size, wasCompressed: false };
   }
 
