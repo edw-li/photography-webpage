@@ -929,10 +929,11 @@ function TabPodium({ contest }: { contest: Contest }) {
             {winnersForCat.length === 0 && (
               <p className="contest__modal-subtitle">No winners announced for this category.</p>
             )}
-            {winnersForCat.map((p) => (
+            {winnersForCat.map((p, i) => (
               <div
                 key={p.id}
                 className={`contest__podium-place contest__podium-place--${p.place}`}
+                style={{ order: [2, 1, 3][i] }}
               >
                 <div className="contest__podium-photo">
                   <img src={getImageUrl(p.url, 'thumb')} alt={p.title} />
