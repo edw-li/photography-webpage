@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
 import { getImageUrl } from '../utils/imageUrl';
-import { compressImage } from '../utils/compressImage';
+import { compressImage, isImageFile, IMAGE_ACCEPT } from '../utils/compressImage';
 import { X } from 'lucide-react';
 
 const MAX_FILE_SIZE_MB = 10;
@@ -39,7 +39,7 @@ export default function MultiImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       setError('Please select an image file');
       return;
     }
@@ -158,7 +158,7 @@ export default function MultiImageUploadField({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         style={{ display: 'none' }}
         onChange={handleInputChange}
       />

@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getContests, submitPhoto, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
-import { compressImage } from '../utils/compressImage';
+import { compressImage, isImageFile, IMAGE_ACCEPT } from '../utils/compressImage';
 import { extractExif } from '../utils/extractExif';
 import './ContestPage.css';
 
@@ -313,7 +313,7 @@ function TabSubmit({
     setDragging(false);
     if (atLimit) return;
     const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) {
+    if (f && isImageFile(f)) {
       if (f.size > MAX_FILE_SIZE_BYTES) {
         setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
         return;
@@ -417,7 +417,7 @@ function TabSubmit({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               onChange={handleFileChange}
               className="contest__file-input"
               disabled={atLimit}
