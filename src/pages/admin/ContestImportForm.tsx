@@ -60,7 +60,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
 
   // Load members for assignment dropdown
   useEffect(() => {
-    getMembers({ pageSize: 200 }).then((res) => setMembers(res.items)).catch(() => {});
+    getMembers({ pageSize: 100 }).then((res) => setMembers(res.items)).catch(() => {});
   }, []);
 
   // Initialize tallies from existing category votes
@@ -122,8 +122,11 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
     const toUpload = pending.filter((p) => p.status === 'pending' || p.status === 'error');
     if (toUpload.length === 0) return;
     for (const p of toUpload) {
-      if (!p.title.trim() || !p.photographer.trim()) {
-        addToast('error', `Please fill in title and photographer for all submissions`);
+      const photographerName = p.memberId != null
+        ? members.find((m) => m.id === p.memberId)?.name
+        : p.photographer.trim();
+      if (!p.title.trim() || !photographerName) {
+        addToast('error', 'Please fill in title and photographer for all submissions');
         return;
       }
     }
@@ -136,7 +139,10 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
         const formData = new FormData();
         formData.append('file', p.file);
         formData.append('title', p.title.trim());
-        formData.append('photographer', p.photographer.trim());
+        const photographerName = p.memberId != null
+          ? (members.find((m) => m.id === p.memberId)?.name ?? p.photographer.trim())
+          : p.photographer.trim();
+        formData.append('photographer', photographerName);
         if (p.memberId != null) formData.append('member_id', String(p.memberId));
         await uploadAdminSubmission(contest.id, formData);
         updatePending(p.id, { status: 'done' });
@@ -305,24 +311,29 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
                     onChange={(e) => updatePending(p.id, { title: e.target.value })}
                     disabled={p.status === 'uploading' || p.status === 'done'}
                   />
-                  <input
-                    className="afm-input"
-                    placeholder="Photographer *"
-                    value={p.photographer}
-                    onChange={(e) => updatePending(p.id, { photographer: e.target.value })}
-                    disabled={p.status === 'uploading' || p.status === 'done'}
-                  />
                   <select
                     className="afm-select"
                     value={p.memberId ?? ''}
-                    onChange={(e) => updatePending(p.id, { memberId: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    onChange={(e) => updatePending(p.id, {
+                      memberId: e.target.value ? parseInt(e.target.value, 10) : null,
+                      photographer: e.target.value ? '' : p.photographer,
+                    })}
                     disabled={p.status === 'uploading' || p.status === 'done'}
                   >
-                    <option value="">No member (placeholder)</option>
+                    <option value="">No member (enter name)</option>
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>
+                  {p.memberId == null && (
+                    <input
+                      className="afm-input"
+                      placeholder="Photographer name *"
+                      value={p.photographer}
+                      onChange={(e) => updatePending(p.id, { photographer: e.target.value })}
+                      disabled={p.status === 'uploading' || p.status === 'done'}
+                    />
+                  )}
                 </div>
                 <div className="cif__pending-status">
                   {p.status === 'uploading' && <Loader2 size={16} className="cif__spinner" />}
@@ -471,20 +482,11 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <h3 className="confirm-dialog__title">Reassign Submission</h3>
             <p className="confirm-dialog__message">
-              Update the photographer for &ldquo;{assignTarget.title}&rdquo;. Select a member to link
-              this submission to their account, or leave empty for a placeholder name.
+              Assign &ldquo;{assignTarget.title}&rdquo; to a member, or enter a placeholder name.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div>
-                <label className="afm-label">Photographer Name</label>
-                <input
-                  className="afm-input"
-                  value={assignPhotographer}
-                  onChange={(e) => setAssignPhotographer(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="afm-label">Link to Member (optional)</label>
+                <label className="afm-label">Member</label>
                 <select
                   className="afm-select"
                   value={assignMemberId}
@@ -493,15 +495,27 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
                     if (e.target.value) {
                       const m = members.find((m) => String(m.id) === e.target.value);
                       if (m) setAssignPhotographer(m.name);
+                    } else {
+                      setAssignPhotographer('');
                     }
                   }}
                 >
-                  <option value="">None (placeholder)</option>
+                  <option value="">No member (enter name)</option>
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
                 </select>
               </div>
+              {!assignMemberId && (
+                <div>
+                  <label className="afm-label">Photographer Name</label>
+                  <input
+                    className="afm-input"
+                    value={assignPhotographer}
+                    onChange={(e) => setAssignPhotographer(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             <div className="confirm-dialog__actions">
               <button className="confirm-dialog__btn confirm-dialog__btn--cancel" onClick={() => setAssignTarget(null)} disabled={assigning}>
@@ -510,7 +524,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
               <button
                 className="confirm-dialog__btn confirm-dialog__btn--confirm"
                 onClick={handleAssign}
-                disabled={assigning || !assignPhotographer.trim()}
+                disabled={assigning || (!assignMemberId && !assignPhotographer.trim())}
               >
                 {assigning && <Loader2 size={14} className="confirm-dialog__spinner" />}
                 {assigning ? 'Saving...' : 'Save'}
