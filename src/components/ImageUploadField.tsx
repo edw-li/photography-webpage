@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { uploadImage } from '../api/uploads';
-import { compressImage } from '../utils/compressImage';
+import { compressImage, isImageFile, IMAGE_ACCEPT } from '../utils/compressImage';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -31,7 +31,7 @@ export default function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       setError('Please select an image file');
       return;
     }
@@ -147,7 +147,7 @@ export default function ImageUploadField({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         style={{ display: 'none' }}
         onChange={handleInputChange}
       />

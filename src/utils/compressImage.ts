@@ -1,3 +1,18 @@
+/** Extensions recognised as images even when the browser reports an empty MIME type (e.g. HEIC on Windows). */
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|avif|tiff?|bmp)$/i;
+
+/**
+ * accept string for file inputs — includes HEIC/HEIF so the OS file picker
+ * shows them alongside standard image formats.
+ */
+export const IMAGE_ACCEPT = 'image/*,.heic,.heif';
+
+/** Check whether a File looks like an image (by MIME type OR file extension). */
+export function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true;
+  return IMAGE_EXTENSIONS.test(file.name);
+}
+
 export interface CompressResult {
   file: File;
   originalSize: number;

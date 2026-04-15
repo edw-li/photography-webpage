@@ -13,7 +13,7 @@ import { getCategoryLabel } from '../../types/contest';
 import { getMembers } from '../../api/members';
 import type { Member } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
-import { compressImage } from '../../utils/compressImage';
+import { compressImage, isImageFile, IMAGE_ACCEPT } from '../../utils/compressImage';
 import { getImageUrl } from '../../utils/imageUrl';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import './ContestImportForm.css';
@@ -93,7 +93,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
     if (!files) return;
     const newPending: PendingUpload[] = [];
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) continue;
+      if (!isImageFile(file)) continue;
       newPending.push({
         id: crypto.randomUUID(),
         file,
@@ -293,7 +293,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_ACCEPT}
             multiple
             hidden
             onChange={(e) => { handleFileSelect(e.target.files); e.target.value = ''; }}
