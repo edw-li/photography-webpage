@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { type AuthUser, login as apiLogin, register as apiRegister, getCurrentUser, apiLogout, logout as apiLogoutSync } from '../api/auth';
 import { getAccessToken } from '../api/client';
+import useIdleTimer from '../hooks/useIdleTimer';
+import SessionWarning from '../components/SessionWarning';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -56,6 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLogoutKey(k => k + 1);
   }, []);
 
+  const { isWarningVisible, remainingSeconds, extendSession } = useIdleTimer({
+    isAuthenticated: user !== null,
+    onLogout: logout,
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -71,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {isWarningVisible && (
+        <SessionWarning
+          remainingSeconds={remainingSeconds}
+          onExtend={extendSession}
+          onLogout={logout}
+        />
+      )}
     </AuthContext.Provider>
   );
 }
