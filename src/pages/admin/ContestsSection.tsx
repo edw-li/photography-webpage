@@ -367,7 +367,7 @@ export default function ContestsSection() {
                       .map((w) => {
                         const sub = editingContest.submissions.find((s) => s.id === w.submissionId);
                         return (
-                          <div key={`${cat}-${w.place}`} style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', paddingLeft: '0.5rem' }}>
+                          <div key={`${cat}-${w.submissionId}`} style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', paddingLeft: '0.5rem' }}>
                             {w.place === 1 ? '1st' : w.place === 2 ? '2nd' : '3rd'}: {sub ? `${sub.title} by ${sub.photographer}` : `Submission #${w.submissionId}`}
                           </div>
                         );

@@ -462,7 +462,7 @@ export default function ContestImportForm({ contest, onContestUpdate }: Props) {
                   .map((w) => {
                     const sub = submissions.find((s) => s.id === w.submissionId);
                     return (
-                      <div key={`${cat}-${w.place}`} className="cif__winners-entry">
+                      <div key={`${cat}-${w.submissionId}`} className="cif__winners-entry">
                         {w.place === 1 ? '🥇' : w.place === 2 ? '🥈' : '🥉'}{' '}
                         {sub ? `${sub.title} — ${sub.photographer}` : `Submission #${w.submissionId}`}
                       </div>
