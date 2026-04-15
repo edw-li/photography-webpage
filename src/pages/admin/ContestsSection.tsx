@@ -8,8 +8,7 @@ import {
   deleteContest,
   deleteSubmission,
 } from '../../api/contests';
-import type { Contest, ContestSubmission, VoteCategory } from '../../types/contest';
-import { getCategoryLabel } from '../../types/contest';
+import type { Contest, ContestSubmission } from '../../types/contest';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
@@ -271,7 +270,7 @@ export default function ContestsSection() {
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           saving={saving}
-          wide={!!editingContest?.isImported}
+          wide={!!editingContest && form.status === 'completed'}
           saveLabel={!editingContest && isImportMode ? 'Create' : undefined}
         >
           <div className="afm-row">
@@ -344,37 +343,12 @@ export default function ContestsSection() {
             />
           </div>
 
-          {editingContest && editingContest.isImported && (
+          {editingContest && form.status === 'completed' && (
             <ContestImportForm
               contest={editingContest}
               onContestUpdate={(updated) => { setEditingContest(updated); load(); }}
+              readOnly={!editingContest.isImported}
             />
-          )}
-
-          {editingContest && form.status === 'completed' && !editingContest.isImported && editingContest.winners && editingContest.winners.length > 0 && (
-            <div className="afm-field">
-              <label className="afm-label">Winners (auto-calculated)</label>
-              {(['theme', 'favorite', 'wildcard'] as VoteCategory[])
-                .filter((cat) => editingContest.winners!.some((w) => (w.category || 'theme') === cat))
-                .map((cat) => (
-                  <div key={cat} style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-accent)', marginBottom: '0.25rem' }}>
-                      {getCategoryLabel(cat, editingContest.wildcardCategory)}
-                    </div>
-                    {editingContest.winners!
-                      .filter((w) => (w.category || 'theme') === cat)
-                      .sort((a, b) => a.place - b.place)
-                      .map((w) => {
-                        const sub = editingContest.submissions.find((s) => s.id === w.submissionId);
-                        return (
-                          <div key={`${cat}-${w.submissionId}`} style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', paddingLeft: '0.5rem' }}>
-                            {w.place === 1 ? '1st' : w.place === 2 ? '2nd' : '3rd'}: {sub ? `${sub.title} by ${sub.photographer}` : `Submission #${w.submissionId}`}
-                          </div>
-                        );
-                      })}
-                  </div>
-                ))}
-            </div>
           )}
         </AdminFormModal>
       )}
