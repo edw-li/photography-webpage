@@ -93,7 +93,7 @@
 
 .events__card-meta {
   font-size: 0.85rem !important;
-  color: var(--color-accent) !important;
+  color: var(--color-text-secondary) !important;
   margin-bottom: 0.25rem;
 }
 

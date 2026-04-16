@@ -9,7 +9,7 @@
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   background: rgba(239, 216, 125, 0.12);
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.3px;

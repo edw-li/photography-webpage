@@ -1451,9 +1451,9 @@
 }
 
 .contest__carousel-dot--active {
-  background: rgba(239, 216, 125, 0.15);
+  background: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-accent);
+  color: var(--color-accent-text, #2a3d22);
 }
 
 @keyframes carouselFadeIn {
