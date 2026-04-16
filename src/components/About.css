@@ -27,11 +27,11 @@
 }
 
 .about__tab:hover {
-  color: var(--color-accent-light);
+  color: var(--color-accent-dark, #CD9239);
 }
 
 .about__tab--active {
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   font-weight: 600;
 }
 
@@ -39,7 +39,7 @@
   position: absolute;
   bottom: -2px;
   height: 3px;
-  background: var(--color-accent);
+  background: var(--color-accent-dark, #CD9239);
   border-radius: 2px;
   transition: left 0.3s ease, width 0.3s ease;
 }
@@ -141,7 +141,7 @@
 
 .about__text h3 {
   margin-bottom: 0.75rem;
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
 }
 
 .about__text p {
@@ -218,7 +218,7 @@
 }
 
 .about__benefit-icon {
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   margin-bottom: 1rem;
 }
 
@@ -279,7 +279,7 @@
 
 .about__leader-role {
   display: block;
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.75rem;

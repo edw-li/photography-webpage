@@ -230,7 +230,7 @@
 }
 
 .members__card p {
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   font-size: 0.9rem;
   font-weight: 500;
 }
