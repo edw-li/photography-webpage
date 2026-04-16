@@ -11,7 +11,7 @@
   display: flex;
   align-items: flex-end;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--color-dark-900) 0%, #1a3a14 50%, var(--color-dark-800) 100%);
+  background: linear-gradient(135deg, var(--color-dark-900) 0%, #2f4a26 50%, var(--color-dark-800) 100%);
 }
 
 .my-results__hero::after {

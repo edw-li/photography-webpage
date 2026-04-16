@@ -61,12 +61,13 @@
 
 .session-warning__btn--extend {
   border: none;
-  background: var(--color-accent, #f7941d);
-  color: #fff;
+  background: var(--color-accent, #EFD87D);
+  color: var(--color-accent-text, #2a3d22);
 }
 
 .session-warning__btn--extend:hover {
-  filter: brightness(1.1);
+  background: var(--color-accent-dark, #CD9239);
+  color: #fff;
 }
 
 .session-warning__btn--logout {

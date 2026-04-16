@@ -31,9 +31,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(31, 46, 26, 0.95) 0%,
-    rgba(31, 46, 26, 0.6) 50%,
-    rgba(31, 46, 26, 0.3) 100%
+    rgba(42, 61, 34, 0.95) 0%,
+    rgba(42, 61, 34, 0.6) 50%,
+    rgba(42, 61, 34, 0.3) 100%
   );
 }
 
@@ -185,17 +185,18 @@
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text, #2a3d22);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: filter var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .admin__create-btn:hover {
-  filter: brightness(1.1);
+  background: var(--color-accent-dark);
+  color: #fff;
 }
 
 /* ─── Table ─── */
@@ -311,7 +312,7 @@
 }
 
 .admin__badge--admin {
-  background: rgba(205, 146, 57, 0.15);
+  background: rgba(239, 216, 125, 0.15);
   color: var(--color-accent);
 }
 
@@ -374,7 +375,7 @@
 
 .admin__pagination-btn--active {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text, #2a3d22);
   border-color: var(--color-accent);
 }
 
@@ -572,7 +573,7 @@
 .admin__drop-zone:hover,
 .admin__drop-zone--active {
   border-color: var(--color-accent);
-  background: rgba(205, 146, 57, 0.05);
+  background: rgba(239, 216, 125, 0.05);
 }
 
 /* ─── Visibility Toggle ─── */

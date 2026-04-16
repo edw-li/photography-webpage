@@ -29,7 +29,7 @@
 }
 
 .footer__brand h3 span {
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
 }
 
 .footer__brand p {
@@ -64,7 +64,7 @@
 
 .footer__links a:hover,
 .footer__social a:hover {
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
 }
 
 .footer__bar {

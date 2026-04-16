@@ -71,7 +71,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
   margin-bottom: 0.5rem;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .contact__socials a:hover {
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
 }
 
 .contact__success {
@@ -107,7 +107,7 @@
 }
 
 .contact__success h3 {
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
   font-size: 1.5rem;
 }
 

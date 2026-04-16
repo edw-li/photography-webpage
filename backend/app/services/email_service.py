@@ -44,7 +44,7 @@ async def send_newsletter_email(
 ) -> None:
     """Build and send a newsletter email to a subscriber."""
     subscriber_name = html.escape(subscriber_name)
-    banner_url = f"{settings.frontend_url}/og-banner.jpg"
+    banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -55,7 +55,7 @@ async def send_newsletter_email(
         <table width="600" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1f2e1a;text-align:center;">
+            <td style="background:#2a3d22;text-align:center;">
               <img src="{banner_url}" alt="Selah Photography Club"
                    width="600" style="display:block;width:100%;height:auto;" />
             </td>
@@ -65,7 +65,7 @@ async def send_newsletter_email(
               <p style="margin:0 0 16px;font-size:14px;color:#666;">
                 Hi {subscriber_name},
               </p>
-              <h2 style="margin:0 0 20px;font-size:20px;color:#1f2e1a;">
+              <h2 style="margin:0 0 20px;font-size:20px;color:#2a3d22;">
                 {newsletter_title}
               </h2>
               <div style="font-size:14px;color:#333;line-height:1.6;">
@@ -109,7 +109,7 @@ async def send_contact_reply_email(
     safe_reply = html.escape(reply_text).replace("\n", "<br>")
     safe_original = html.escape(original_message).replace("\n", "<br>")
 
-    banner_url = f"{settings.frontend_url}/og-banner.jpg"
+    banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -120,7 +120,7 @@ async def send_contact_reply_email(
         <table width="600" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1f2e1a;text-align:center;">
+            <td style="background:#2a3d22;text-align:center;">
               <img src="{banner_url}" alt="Selah Photography Club"
                    width="600" style="display:block;width:100%;height:auto;" />
             </td>
@@ -167,7 +167,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
     """Build and send a password-reset email with a link to the frontend."""
     reset_url = f"{settings.frontend_url}/reset-password?token={reset_token}"
 
-    banner_url = f"{settings.frontend_url}/og-banner.jpg"
+    banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -178,14 +178,14 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1f2e1a;text-align:center;">
+            <td style="background:#2a3d22;text-align:center;">
               <img src="{banner_url}" alt="Selah Photography Club"
                    width="480" style="display:block;width:100%;height:auto;" />
             </td>
           </tr>
           <tr>
             <td style="padding:32px 32px 24px;text-align:center;">
-              <h1 style="margin:0 0 8px;font-size:22px;color:#1f2e1a;">
+              <h1 style="margin:0 0 8px;font-size:22px;color:#2a3d22;">
                 Reset Your Password
               </h1>
               <p style="margin:0 0 24px;font-size:14px;color:#666;">
@@ -223,7 +223,7 @@ async def send_password_reset_email(to: str, reset_token: str) -> None:
 async def send_verification_email(to: str, name: str, verify_url: str) -> None:
     """Send a subscription verification (double opt-in) email."""
     name = html.escape(name)
-    banner_url = f"{settings.frontend_url}/og-banner.jpg"
+    banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -234,7 +234,7 @@ async def send_verification_email(to: str, name: str, verify_url: str) -> None:
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1f2e1a;text-align:center;">
+            <td style="background:#2a3d22;text-align:center;">
               <img src="{banner_url}" alt="Selah Photography Club"
                    width="480" style="display:block;width:100%;height:auto;" />
             </td>
@@ -277,7 +277,7 @@ async def send_verification_email(to: str, name: str, verify_url: str) -> None:
 async def send_account_verification_email(to: str, first_name: str, verify_url: str) -> None:
     """Send an account email verification email."""
     first_name = html.escape(first_name)
-    banner_url = f"{settings.frontend_url}/og-banner.jpg"
+    banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -288,7 +288,7 @@ async def send_account_verification_email(to: str, first_name: str, verify_url: 
         <table width="480" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
-            <td style="background:#1f2e1a;text-align:center;">
+            <td style="background:#2a3d22;text-align:center;">
               <img src="{banner_url}" alt="Selah Photography Club"
                    width="480" style="display:block;width:100%;height:auto;" />
             </td>

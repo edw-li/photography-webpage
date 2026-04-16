@@ -32,7 +32,7 @@
 .members__search:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(205, 146, 57, 0.15);
+  box-shadow: 0 0 0 3px rgba(239, 216, 125, 0.15);
 }
 
 .members__filters {

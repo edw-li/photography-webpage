@@ -1,3 +1,7 @@
+html:has(.auth-page) {
+  scrollbar-gutter: auto;
+}
+
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -20,7 +24,7 @@
   content: "";
   position: fixed;
   inset: 0;
-  background: rgba(31, 46, 26, 0.82);
+  background: rgba(42, 61, 34, 0.82);
   z-index: -1;
 }
 
@@ -37,7 +41,7 @@
 
 .auth-card {
   animation: authCardEnter 0.4s ease both;
-  background: rgba(31, 46, 26, 0.6);
+  background: rgba(42, 61, 34, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
