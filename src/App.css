@@ -13,7 +13,7 @@
   height: 44px;
   border-radius: var(--radius-full);
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text, #2a3d22);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,7 +21,7 @@
   opacity: 0;
   transform: translateY(10px);
   pointer-events: none;
-  transition: opacity var(--transition-base), transform var(--transition-base), background var(--transition-fast), right var(--transition-base);
+  transition: opacity var(--transition-base), transform var(--transition-base), background var(--transition-fast), color var(--transition-fast), right var(--transition-base);
 }
 
 .back-to-top--visible {
@@ -32,8 +32,9 @@
 }
 
 .back-to-top:hover {
-  background: var(--color-accent-light);
-  box-shadow: 0 4px 20px rgba(205, 146, 57, 0.4);
+  background: var(--color-accent-dark);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(239, 216, 125, 0.4);
 }
 
 .back-to-top:active {

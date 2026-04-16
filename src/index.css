@@ -3,17 +3,20 @@
    ============================================= */
 
 :root {
-  /* Colors */
-  --color-accent: #CD9239;
-  --color-accent-light: #D9A84F;
-  --color-accent-dark: #B47D2A;
-  --color-dark-900: #1f2e1a;
-  --color-dark-800: #2d4525;
-  --color-dark-100: #e4ede2;
-  --color-dark-300: #8faf8a;
+  /* Colors — gold buttons & accents */
+  --color-accent: #EFD87D;
+  --color-accent-light: #f5e6a0;
+  --color-accent-dark: #CD9239;
+  --color-accent-text: #2a3d22;
+  --color-gold: #EFD87D;
+  /* Green palette */
+  --color-dark-900: #2a3d22;
+  --color-dark-800: #354d2c;
+  --color-dark-100: #e8f0e4;
+  --color-dark-300: #9DBB89;
   --color-light-100: #FFFFFF;
-  --color-light-200: #F5F5F5;
-  --color-light-300: #E8E8E8;
+  --color-light-200: #f4f8f2;
+  --color-light-300: #dde8d8;
 
   /* Typography */
   --font-heading: 'Teachers', Georgia, serif;
@@ -41,38 +44,38 @@
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.15);
 
   /* Semantic colors — light mode defaults */
-  --color-bg: #FFFFFF;
-  --color-bg-alt: #F5F5F5;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F5F5F5;
+  --color-bg: #f9fbf7;
+  --color-bg-alt: #f0f5ec;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f4f8f2;
   --color-text: #1A1A1A;
-  --color-text-secondary: #555;
-  --color-text-muted: #888;
-  --color-border: #E8E8E8;
+  --color-text-secondary: #4a5548;
+  --color-text-muted: #7a8a76;
+  --color-border: #d5e0cf;
 
-  /* Dark accent sections (Contact, Footer, Calendar header) */
-  --color-dark-bg: #1f2e1a;
-  --color-dark-surface: #2d4525;
-  --color-dark-text: #c5d9c2;
-  --color-dark-text-muted: #8faf8a;
-  --color-dark-border: #3a6838;
+  /* Dark accent sections (Contact, Footer, Calendar header, Navbar) */
+  --color-dark-bg: #2a3d22;
+  --color-dark-surface: #354d2c;
+  --color-dark-text: #d4e5cb;
+  --color-dark-text-muted: #9DBB89;
+  --color-dark-border: #4a6b3e;
 }
 
 [data-theme="dark"] {
-  --color-bg: #0f1e0d;
-  --color-bg-alt: #152e12;
-  --color-surface: #1f2e1a;
-  --color-surface-alt: #264521;
-  --color-text: #e4ede2;
-  --color-text-secondary: #a8c0a5;
-  --color-text-muted: #6e906b;
-  --color-border: #2e562b;
+  --color-bg: #141e11;
+  --color-bg-alt: #1e2d19;
+  --color-surface: #2a3d22;
+  --color-surface-alt: #354d2c;
+  --color-text: #e8f0e4;
+  --color-text-secondary: #b4cbb1;
+  --color-text-muted: #7a9c77;
+  --color-border: #3d5a34;
 
-  --color-dark-bg: #0a190d;
-  --color-dark-surface: #112811;
-  --color-dark-text: #b4cbb1;
+  --color-dark-bg: #0f1a0c;
+  --color-dark-surface: #192813;
+  --color-dark-text: #c5d9c2;
   --color-dark-text-muted: #7a9c77;
-  --color-dark-border: #2e562b;
+  --color-dark-border: #2e4a28;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -203,7 +206,7 @@ p {
   display: block;
   width: 60px;
   height: 3px;
-  background: var(--color-accent);
+  background: var(--color-gold, #EFD87D);
   margin: 1rem auto 0;
   border-radius: 2px;
 }
@@ -240,17 +243,19 @@ p {
 
 .btn-primary {
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text);
 }
 
 .btn-primary:hover {
-  background: var(--color-accent-light);
+  background: var(--color-accent-dark);
+  color: #fff;
   transform: scale(1.05);
-  box-shadow: 0 4px 20px rgba(205, 146, 57, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 216, 125, 0.4);
 }
 
 .btn-primary:active {
   background: var(--color-accent-dark);
+  color: #fff;
   transform: scale(1);
 }
 
@@ -305,7 +310,7 @@ p {
 
 .section-error__btn:hover {
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text);
 }
 
 /* =============================================

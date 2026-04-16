@@ -5,14 +5,14 @@
   right: 0;
   z-index: 1000;
   padding: 1rem 0;
-  transition: all var(--transition-base);
-  background: rgba(31, 46, 26, 0.1);
+  transition: background var(--transition-base), padding var(--transition-base), box-shadow var(--transition-base);
+  background: rgba(157, 187, 137, 0.1);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .navbar--scrolled {
-  background: rgba(31, 46, 26, 0.85);
+  background: rgba(53, 77, 44, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 0.6rem 0;

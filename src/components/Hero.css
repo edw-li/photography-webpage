@@ -29,8 +29,8 @@
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(31, 46, 26, 0.75) 0%,
-    rgba(31, 46, 26, 0.5) 100%
+    rgba(42, 61, 34, 0.75) 0%,
+    rgba(42, 61, 34, 0.5) 100%
   );
   z-index: 1;
 }

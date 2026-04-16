@@ -93,8 +93,8 @@
 
 .cif__drop-zone:hover,
 .cif__drop-zone--active {
-  border-color: var(--color-accent, #f7941d);
-  background: rgba(247, 148, 29, 0.04);
+  border-color: var(--color-accent, #EFD87D);
+  background: rgba(239, 216, 125, 0.06);
 }
 
 /* --- Pending uploads --- */
@@ -246,8 +246,8 @@
 
 .cif__tally-input:focus {
   outline: none;
-  border-color: var(--color-accent, #f7941d);
-  box-shadow: 0 0 0 2px rgba(247, 148, 29, 0.15);
+  border-color: var(--color-accent, #EFD87D);
+  box-shadow: 0 0 0 2px rgba(239, 216, 125, 0.25);
 }
 
 /* --- Winners preview --- */
@@ -259,7 +259,7 @@
 .cif__winners-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-accent, #f7941d);
+  color: var(--color-accent, #EFD87D);
   margin-bottom: 0.25rem;
 }
 

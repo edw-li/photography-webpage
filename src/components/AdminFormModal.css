@@ -114,12 +114,13 @@
 
 .afm-btn--save {
   border: none;
-  background: var(--color-accent, #f7941d);
-  color: #fff;
+  background: var(--color-accent, #EFD87D);
+  color: var(--color-accent-text, #2a3d22);
 }
 
 .afm-btn--save:hover:not(:disabled) {
-  filter: brightness(1.1);
+  background: var(--color-accent-dark, #CD9239);
+  color: #fff;
 }
 
 .afm-spinner {
@@ -160,7 +161,7 @@
 .afm-select:focus,
 .afm-textarea:focus {
   outline: none;
-  border-color: var(--color-accent, #f7941d);
+  border-color: var(--color-accent, #EFD87D);
 }
 
 .afm-textarea {
@@ -178,7 +179,7 @@
 .afm-checkbox-row input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--color-accent, #f7941d);
+  accent-color: var(--color-accent, #EFD87D);
 }
 
 .afm-checkbox-row label {
@@ -262,8 +263,8 @@
 }
 
 .afm-add-btn:hover {
-  border-color: var(--color-accent, #f7941d);
-  color: var(--color-accent, #f7941d);
+  border-color: var(--color-accent, #EFD87D);
+  color: var(--color-accent, #EFD87D);
 }
 
 @keyframes afm-fade-in {

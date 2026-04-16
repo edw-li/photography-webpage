@@ -50,9 +50,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(31, 46, 26, 0.95) 0%,
-    rgba(31, 46, 26, 0.6) 50%,
-    rgba(31, 46, 26, 0.3) 100%
+    rgba(42, 61, 34, 0.95) 0%,
+    rgba(42, 61, 34, 0.6) 50%,
+    rgba(42, 61, 34, 0.3) 100%
   );
 }
 
@@ -67,8 +67,8 @@
   display: inline-block;
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
-  background: rgba(205, 146, 57, 0.2);
-  color: var(--color-accent);
+  background: rgba(239, 216, 125, 0.2);
+  color: var(--color-gold, #EFD87D);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -313,7 +313,7 @@
   padding: 0.65rem 1.5rem;
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text, #2a3d22);
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 600;
@@ -323,7 +323,8 @@
 }
 
 .contest__modal-btn:hover {
-  opacity: 0.85;
+  background: var(--color-accent-dark);
+  color: #fff;
 }
 
 .contest__modal-btn:disabled {
@@ -456,7 +457,7 @@
 .contest__dropzone:hover,
 .contest__dropzone--active {
   border-color: var(--color-accent);
-  background: rgba(205, 146, 57, 0.04);
+  background: rgba(239, 216, 125, 0.04);
 }
 
 .contest__dropzone--has-preview {
@@ -1167,8 +1168,8 @@
   justify-content: center;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
-  background: rgba(205, 146, 57, 0.08);
-  border: 1px solid rgba(205, 146, 57, 0.2);
+  background: rgba(239, 216, 125, 0.08);
+  border: 1px solid rgba(239, 216, 125, 0.2);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-accent);
@@ -1251,7 +1252,7 @@
 
 .contest__wizard-step--active .contest__wizard-step-dot {
   border-color: var(--color-accent);
-  background: rgba(205, 146, 57, 0.15);
+  background: rgba(239, 216, 125, 0.15);
   color: var(--color-accent);
 }
 
@@ -1450,7 +1451,7 @@
 }
 
 .contest__carousel-dot--active {
-  background: rgba(205, 146, 57, 0.15);
+  background: rgba(239, 216, 125, 0.15);
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
@@ -1490,7 +1491,7 @@
 }
 
 .contest__category-pill--active {
-  background: rgba(205, 146, 57, 0.15);
+  background: rgba(239, 216, 125, 0.15);
   border-color: var(--color-accent);
   color: var(--color-accent);
 }

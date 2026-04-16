@@ -37,7 +37,7 @@
 .gallery__toggle-btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text, #2a3d22);
 }
 
 .gallery__toggle-btn:hover:not(.gallery__toggle-btn--active) {
@@ -113,7 +113,7 @@
 .gallery__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(31, 46, 26, 0.85) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(42, 61, 34, 0.85) 0%, transparent 60%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -133,7 +133,7 @@
 }
 
 .gallery__overlay p {
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
   font-size: 0.85rem;
   font-weight: 500;
 }
@@ -380,7 +380,7 @@
 
 .gallery__lightbox-header span {
   font-size: 0.9rem;
-  color: var(--color-accent);
+  color: var(--color-gold, #EFD87D);
   font-weight: 500;
 }
 
