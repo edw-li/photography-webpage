@@ -40,7 +40,7 @@
   top: 0;
   right: 2rem;
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text, #2a3d22);
   padding: 0.3rem 0.8rem 0.4rem;
   font-size: 0.7rem;
   font-weight: 700;
@@ -109,7 +109,7 @@
 
 .newsletter__filter-pill--active {
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text, #2a3d22);
 }
 
 /* ── Archive Grid ── */

@@ -616,7 +616,7 @@
   height: 32px;
   border-radius: var(--radius-full);
   background: var(--color-accent);
-  color: var(--color-light-100);
+  color: var(--color-accent-text, #2a3d22);
   display: flex;
   align-items: center;
   justify-content: center;
