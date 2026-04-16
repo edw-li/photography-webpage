@@ -1,4 +1,4 @@
-import type { Contest } from '../types/contest';
+import type { Contest, MyResultsResponse } from '../types/contest';
 import { apiFetch } from './client';
 
 export async function getContests(): Promise<Contest[]> {
@@ -120,4 +120,8 @@ export async function assignSubmission(
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+}
+
+export async function getMyResults(): Promise<MyResultsResponse> {
+  return apiFetch<MyResultsResponse>('/contests/my-results');
 }

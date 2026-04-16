@@ -102,3 +102,69 @@ class FinalizeContestRequest(CamelModel):
 class SubmissionAssignRequest(CamelModel):
     member_id: int | None = None
     photographer: str
+
+
+# --- My Results schemas ---
+
+
+class SubmissionResultSchema(CamelModel):
+    """A single submission's result within a category."""
+
+    submission_id: int
+    url: str
+    title: str
+    photographer: str
+    place: int | None = None
+    exif: SubmissionExifSchema | None = None
+
+
+class CategoryResultSchema(CamelModel):
+    """All of the user's submissions for one (contest, category) cell."""
+
+    has_submission: bool
+    best_place: int | None = None
+    submissions: list[SubmissionResultSchema] = []
+
+
+class MyResultsContestSchema(CamelModel):
+    contest_id: int
+    month: str
+    theme: str
+    wildcard_category: str | None = None
+    has_wildcard: bool
+    theme_result: CategoryResultSchema
+    favorite_result: CategoryResultSchema
+    wildcard_result: CategoryResultSchema
+
+
+class LeaderboardRankingSchema(CamelModel):
+    value: int
+    rank: int
+    total_members: int
+
+
+class MyResultsStatsSchema(CamelModel):
+    total_submissions: int
+    total_votes: int
+    first_place_finishes: int
+    second_place_finishes: int
+    third_place_finishes: int
+    podium_finishes: int
+    contests_entered: int
+    total_completed_contests: int
+    participation_rate: float
+    best_category: str | None = None
+
+
+class MyResultsLeaderboardSchema(CamelModel):
+    first_place: LeaderboardRankingSchema
+    second_place: LeaderboardRankingSchema
+    third_place: LeaderboardRankingSchema
+    total_podium: LeaderboardRankingSchema
+    total_votes: LeaderboardRankingSchema
+
+
+class MyResultsResponseSchema(CamelModel):
+    stats: MyResultsStatsSchema
+    leaderboard: MyResultsLeaderboardSchema
+    contests: list[MyResultsContestSchema]

@@ -19,6 +19,7 @@ from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.contest import (
     BatchVoteRequest,
+    CategoryResultSchema,
     CategoryVotesSchema,
     ContestCreate,
     ContestResponse,
@@ -27,8 +28,14 @@ from ..schemas.contest import (
     ContestWinnerSchema,
     FinalizeContestRequest,
     HonorableMentionSchema,
+    LeaderboardRankingSchema,
+    MyResultsContestSchema,
+    MyResultsLeaderboardSchema,
+    MyResultsResponseSchema,
+    MyResultsStatsSchema,
     SubmissionAssignRequest,
     SubmissionExifSchema,
+    SubmissionResultSchema,
 )
 from ..models.gallery import GalleryPhoto
 from ..models.member import Member
@@ -361,6 +368,162 @@ async def list_contests(
         page_size=page_size,
         pages=math.ceil(total / page_size) if total > 0 else 0,
     )
+
+
+@router.get("/my-results", response_model=MyResultsResponseSchema)
+async def get_my_results(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current user's competition performance and submission history."""
+    result = await db.execute(
+        select(Contest)
+        .where(Contest.status == "completed")
+        .order_by(Contest.month.desc())
+    )
+    completed = result.scalars().unique().all()
+
+    # Build per-user stats across all completed contests
+    sub_to_user: dict[int, str] = {}
+    all_user_stats: dict[str, dict] = defaultdict(
+        lambda: {"first": 0, "second": 0, "third": 0, "podium": 0, "votes": 0, "submissions": 0, "contests": set(),
+                 "cat_wins": defaultdict(int)}
+    )
+
+    for contest in completed:
+        for sub in contest.submissions:
+            if sub.user_id:
+                uid = str(sub.user_id)
+                sub_to_user[sub.id] = uid
+                all_user_stats[uid]["submissions"] += 1
+                all_user_stats[uid]["votes"] += sub.vote_count
+                all_user_stats[uid]["contests"].add(contest.id)
+
+        if contest.winners:
+            for w in contest.winners:
+                uid = sub_to_user.get(w["submissionId"])
+                if uid:
+                    place = w["place"]
+                    if place == 1:
+                        all_user_stats[uid]["first"] += 1
+                    elif place == 2:
+                        all_user_stats[uid]["second"] += 1
+                    elif place == 3:
+                        all_user_stats[uid]["third"] += 1
+                    all_user_stats[uid]["podium"] += 1
+                    all_user_stats[uid]["cat_wins"][w["category"]] += 1
+
+    my_uid = str(user.id)
+    my = all_user_stats.get(my_uid)
+    total_completed = len(completed)
+    total_members = len(all_user_stats)
+
+    if my:
+        contests_entered = len(my["contests"])
+        cat_wins = my["cat_wins"]
+        best_cat = max(cat_wins, key=cat_wins.get) if cat_wins else None
+        stats = MyResultsStatsSchema(
+            total_submissions=my["submissions"],
+            total_votes=my["votes"],
+            first_place_finishes=my["first"],
+            second_place_finishes=my["second"],
+            third_place_finishes=my["third"],
+            podium_finishes=my["podium"],
+            contests_entered=contests_entered,
+            total_completed_contests=total_completed,
+            participation_rate=round(contests_entered / total_completed, 4) if total_completed else 0.0,
+            best_category=best_cat,
+        )
+    else:
+        stats = MyResultsStatsSchema(
+            total_submissions=0, total_votes=0,
+            first_place_finishes=0, second_place_finishes=0, third_place_finishes=0,
+            podium_finishes=0, contests_entered=0,
+            total_completed_contests=total_completed, participation_rate=0.0,
+            best_category=None,
+        )
+
+    # Leaderboard rankings (competition-style)
+    def _compute_rank(key: str) -> LeaderboardRankingSchema:
+        if not all_user_stats or my_uid not in all_user_stats:
+            return LeaderboardRankingSchema(value=0, rank=total_members + 1, total_members=total_members)
+        my_val = all_user_stats[my_uid][key]
+        rank = 1 + sum(1 for s in all_user_stats.values() if s[key] > my_val)
+        return LeaderboardRankingSchema(value=my_val, rank=rank, total_members=total_members)
+
+    leaderboard = MyResultsLeaderboardSchema(
+        first_place=_compute_rank("first"),
+        second_place=_compute_rank("second"),
+        third_place=_compute_rank("third"),
+        total_podium=_compute_rank("podium"),
+        total_votes=_compute_rank("votes"),
+    )
+
+    # Per-contest results for the current user
+    def _sub_exif(sub: ContestSubmission) -> SubmissionExifSchema | None:
+        if any([sub.exif_camera, sub.exif_focal_length, sub.exif_aperture, sub.exif_shutter_speed, sub.exif_iso]):
+            return SubmissionExifSchema(
+                camera=sub.exif_camera,
+                focal_length=sub.exif_focal_length,
+                aperture=sub.exif_aperture,
+                shutter_speed=sub.exif_shutter_speed,
+                iso=sub.exif_iso,
+            )
+        return None
+
+    contests_out: list[MyResultsContestSchema] = []
+    for contest in completed:
+        user_subs = [s for s in contest.submissions if s.user_id == user.id]
+        user_sub_ids = {s.id for s in user_subs}
+        has_submission = len(user_subs) > 0
+
+        # Skip contests the user didn't participate in
+        if not has_submission:
+            continue
+
+        # Build winner lookup: category -> {submission_id -> place}
+        winner_lookup: dict[str, dict[int, int]] = defaultdict(dict)
+        if contest.winners:
+            for w in contest.winners:
+                if w["submissionId"] in user_sub_ids:
+                    winner_lookup[w["category"]][w["submissionId"]] = w["place"]
+
+        def _cat_result(category: str) -> CategoryResultSchema:
+            if category == "wildcard" and not contest.wildcard_category:
+                return CategoryResultSchema(has_submission=False, best_place=None, submissions=[])
+
+            placements = winner_lookup.get(category, {})
+            sub_results = []
+            for sub in user_subs:
+                sub_results.append(SubmissionResultSchema(
+                    submission_id=sub.id,
+                    url=sub.url,
+                    title=sub.title,
+                    photographer=sub.photographer,
+                    place=placements.get(sub.id),
+                    exif=_sub_exif(sub),
+                ))
+            # Sort: placed first (by place asc), then unplaced
+            sub_results.sort(key=lambda r: (r.place is None, r.place or 0))
+            best = min((p for p in placements.values()), default=None)
+            return CategoryResultSchema(
+                has_submission=True,
+                best_place=best,
+                submissions=sub_results,
+            )
+
+        contests_out.append(MyResultsContestSchema(
+            contest_id=contest.id,
+            month=contest.month,
+            theme=contest.theme,
+            wildcard_category=contest.wildcard_category,
+            has_wildcard=contest.wildcard_category is not None,
+            theme_result=_cat_result("theme"),
+            favorite_result=_cat_result("favorite"),
+            wildcard_result=_cat_result("wildcard"),
+        ))
+
+    return MyResultsResponseSchema(stats=stats, leaderboard=leaderboard, contests=contests_out)
 
 
 @router.get("/{contest_id}", response_model=ContestResponse)
