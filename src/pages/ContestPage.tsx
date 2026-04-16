@@ -1015,7 +1015,7 @@ function TabFullResults({ contest }: { contest: Contest }) {
       })
       .slice(0, 10);
 
-    // Assign competition-style ranks (ties share the same rank)
+    // Top 3: competition-style ranks (ties share rank). 4+: sequential.
     let currentRank = 1;
     return sorted.map((sub, i) => {
       const votes = sub.categoryVotes ? sub.categoryVotes[selectedCategory] : (sub.votes ?? 0);
@@ -1025,7 +1025,9 @@ function TabFullResults({ contest }: { contest: Contest }) {
           : (sorted[i - 1].votes ?? 0);
         if (votes < prevVotes) currentRank = i + 1;
       }
-      return { ...sub, competitionRank: currentRank };
+      // After the podium, switch to simple sequential ranks
+      const displayRank = currentRank <= 3 ? currentRank : i + 1;
+      return { ...sub, competitionRank: displayRank };
     });
   }, [contest.submissions, selectedCategory]);
 
@@ -1092,7 +1094,9 @@ function TabFullResults({ contest }: { contest: Contest }) {
                 <span className="contest__results-name">{sub.title}</span>
                 <span className="contest__results-photographer">{sub.photographer}</span>
               </div>
-              <span className="contest__results-votes">{getVotesForSub(sub)} votes</span>
+              {rank <= 3 && (
+                <span className="contest__results-votes">{getVotesForSub(sub)} votes</span>
+              )}
             </div>
           );
         })}
