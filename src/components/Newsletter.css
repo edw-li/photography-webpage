@@ -91,10 +91,10 @@
 
 .newsletter__filter-pill {
   padding: 0.35rem 0.9rem;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-accent-dark, #CD9239);
   border-radius: 999px;
   background: transparent;
-  color: var(--color-accent);
+  color: var(--color-accent-dark, #CD9239);
   font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 500;
@@ -103,8 +103,8 @@
 }
 
 .newsletter__filter-pill:hover {
-  background: var(--color-accent-light);
-  color: var(--color-light-100);
+  background: var(--color-accent);
+  color: var(--color-accent-text, #2a3d22);
 }
 
 .newsletter__filter-pill--active {
