@@ -17,7 +17,7 @@
   padding: 0.5rem 1.25rem;
   border: 1px solid var(--color-border);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 500;
@@ -41,12 +41,12 @@
 }
 
 .gallery__toggle-btn:hover:not(.gallery__toggle-btn--active) {
-  border-color: var(--color-accent-dark, #CD9239);
-  color: var(--color-accent-dark, #CD9239);
+  border-color: var(--color-accent);
+  color: var(--color-text-secondary);
 }
 
 .gallery__toggle-btn:last-child:hover:not(.gallery__toggle-btn--active) {
-  border-left: 1px solid var(--color-accent-dark, #CD9239);
+  border-left: 1px solid var(--color-accent);
 }
 
 /* =============================================
