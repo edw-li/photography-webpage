@@ -23,17 +23,12 @@ export default function SessionWarning({
   const extendRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onExtend();
-    };
-    document.addEventListener('keydown', handleKey);
     extendRef.current?.focus();
     document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
     };
-  }, [onExtend]);
+  }, []);
 
   return (
     <div className="session-warning-overlay">
