@@ -331,6 +331,12 @@
   right: 0;
 }
 
+.events__day-cell--last-row .events__day-popover {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 4px;
+}
+
 .events__day-popover-item {
   display: flex;
   align-items: center;

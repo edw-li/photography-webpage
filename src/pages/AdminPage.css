@@ -242,6 +242,9 @@
 /* ─── Action Buttons ─── */
 
 .admin__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

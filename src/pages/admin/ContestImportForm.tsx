@@ -19,6 +19,7 @@ import { compressImage, isImageFile, IMAGE_ACCEPT } from '../../utils/compressIm
 import { extractExif } from '../../utils/extractExif';
 import { getImageUrl } from '../../utils/imageUrl';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import Tooltip from '../../components/Tooltip';
 import './ContestImportForm.css';
 
 interface PendingUpload {
@@ -284,24 +285,26 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
             <h4 className="cif__section-title" style={{ margin: 0 }}>
               Submissions ({submissions.length})
             </h4>
-            <button
-              className="admin__action-btn"
-              onClick={handleBackfillExif}
-              disabled={backfilling}
-              title="Re-extract camera metadata (aperture, shutter, ISO, focal length, camera model) from this contest's stored images. Use this if submissions were imported without EXIF, or if EXIF parsing was changed and existing entries need to be refreshed."
-            >
-              {backfilling ? 'Extracting...' : 'Backfill EXIF'}
-              <Info size={14} style={{ marginLeft: 4, opacity: 0.7 }} aria-hidden="true" />
-            </button>
-            <button
-              className="admin__action-btn"
-              onClick={handleRefreshGallery}
-              disabled={refreshingGallery}
-              title="Re-publish this contest's winning submissions to the public Winners gallery. Use after finalizing a contest or after manually adjusting winner placements/vote counts so the public gallery reflects the latest results."
-            >
-              {refreshingGallery ? 'Refreshing...' : 'Refresh Gallery'}
-              <Info size={14} style={{ marginLeft: 4, opacity: 0.7 }} aria-hidden="true" />
-            </button>
+            <Tooltip content="Re-extract camera metadata (aperture, shutter, ISO, focal length, camera model) from this contest's stored images. Use this if submissions were imported without EXIF, or if EXIF parsing was changed and existing entries need to be refreshed.">
+              <button
+                className="admin__action-btn"
+                onClick={handleBackfillExif}
+                disabled={backfilling}
+              >
+                {backfilling ? 'Extracting...' : 'Backfill EXIF'}
+                <Info size={14} style={{ opacity: 0.7 }} aria-hidden="true" />
+              </button>
+            </Tooltip>
+            <Tooltip content="Re-publish this contest's winning submissions to the public Winners gallery. Use after finalizing a contest or after manually adjusting winner placements/vote counts so the public gallery reflects the latest results.">
+              <button
+                className="admin__action-btn"
+                onClick={handleRefreshGallery}
+                disabled={refreshingGallery}
+              >
+                {refreshingGallery ? 'Refreshing...' : 'Refresh Gallery'}
+                <Info size={14} style={{ opacity: 0.7 }} aria-hidden="true" />
+              </button>
+            </Tooltip>
           </div>
           <div className="cif__subs-grid">
             {submissions.map((sub) => (
