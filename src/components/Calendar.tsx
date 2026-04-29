@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import type { ResolvedEvent } from '../types/events';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, formatTime } from '../utils/recurrence';
 
@@ -32,8 +32,15 @@ export default function Calendar({
   onCalAnimEnd,
 }: CalendarProps) {
   const [popoverDay, setPopoverDay] = useState<string | null>(null);
+  const [prevYearMonth, setPrevYearMonth] = useState(`${year}-${month}`);
   const daysRef = useRef<HTMLDivElement>(null);
   const prevHeightRef = useRef<number | null>(null);
+
+  const currentYearMonth = `${year}-${month}`;
+  if (prevYearMonth !== currentYearMonth) {
+    setPrevYearMonth(currentYearMonth);
+    setPopoverDay(null);
+  }
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -41,7 +48,10 @@ export default function Calendar({
 
   const handleDayClick = (dateStr: string) => {
     const dayEvents = eventsByDate.get(dateStr);
-    if (!dayEvents || dayEvents.length === 0) return;
+    if (!dayEvents || dayEvents.length === 0) {
+      setPopoverDay(null);
+      return;
+    }
     if (dayEvents.length === 1) {
       onEventClick(dayEvents[0]);
       setPopoverDay(null);
@@ -54,6 +64,24 @@ export default function Calendar({
     onEventClick(ev);
     setPopoverDay(null);
   };
+
+  useEffect(() => {
+    if (popoverDay === null) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('.events__day-cell')) return;
+      setPopoverDay(null);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPopoverDay(null);
+    };
+    document.addEventListener('click', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [popoverDay]);
 
   const days: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) days.push(null);
@@ -179,7 +207,10 @@ export default function Calendar({
                 </>
               )}
               {popoverDay === dateStr && dayEvents.length > 1 && (
-                <div className="events__day-popover">
+                <div
+                  className="events__day-popover"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {dayEvents.map((ev) => (
                     <button
                       key={ev.eventId}
