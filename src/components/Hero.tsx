@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import heroLogo from '../assets/logo-selah-white.png';
 import './Hero.css';
 
 export default function Hero() {
+  const { isAuthenticated } = useAuth();
   const bgRef = useRef<HTMLDivElement>(null);
   const [bgLoaded, setBgLoaded] = useState(false);
 
@@ -45,9 +48,12 @@ export default function Hero() {
           {' '}Photography
         </h1>
         <p className="hero__tagline">Capturing Moments, Building Community</p>
-        <a href="#about" className="btn btn-primary hero__cta">
-          Join Us
-        </a>
+        <Link
+          to={isAuthenticated ? '/contest' : '/register'}
+          className="btn btn-primary hero__cta"
+        >
+          {isAuthenticated ? 'Submit to Contest' : 'Join Us'}
+        </Link>
       </div>
     </section>
   );
