@@ -69,6 +69,7 @@ export default function GallerySection() {
   const [showForm, setShowForm] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<GalleryPhoto | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<GalleryPhoto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -114,12 +115,13 @@ export default function GallerySection() {
   const openCreate = () => {
     setEditingPhoto(null);
     setForm(emptyForm);
+    setInitialForm(emptyForm);
     setShowForm(true);
   };
 
   const openEdit = (photo: GalleryPhoto) => {
     setEditingPhoto(photo);
-    setForm({
+    const init = {
       title: photo.title,
       photographer: photo.photographer,
       url: photo.url,
@@ -129,9 +131,13 @@ export default function GallerySection() {
       aperture: photo.exif?.aperture || '',
       shutterSpeed: photo.exif?.shutterSpeed || '',
       iso: photo.exif?.iso ? String(photo.exif.iso) : '',
-    });
+    };
+    setForm(init);
+    setInitialForm(init);
     setShowForm(true);
   };
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const handleSave = async () => {
     if (!form.title || !form.photographer) {
@@ -276,6 +282,7 @@ export default function GallerySection() {
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           saving={saving}
+          isDirty={isDirty}
         >
           <ImageUploadField
             value={form.url}

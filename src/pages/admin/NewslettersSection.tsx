@@ -46,6 +46,7 @@ export default function NewslettersSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Newsletter | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -75,6 +76,7 @@ export default function NewslettersSection() {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setInitialForm(emptyForm);
     setShowForm(true);
   };
 
@@ -82,7 +84,7 @@ export default function NewslettersSection() {
     try {
       const full = await getNewsletter(nl.id);
       setEditingId(nl.id);
-      setForm({
+      const init = {
         title: full.title,
         category: full.category,
         author: full.author,
@@ -91,12 +93,16 @@ export default function NewslettersSection() {
         featured: full.featured || false,
         bodyMd: full.bodyMd || '',
         sendToSubscribers: false,
-      });
+      };
+      setForm(init);
+      setInitialForm(init);
       setShowForm(true);
     } catch {
       addToast('error', 'Failed to load newsletter details');
     }
   };
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const handleSave = async () => {
     if (!form.title || !form.date || !form.category || !form.author || !form.bodyMd) {
@@ -216,6 +222,7 @@ export default function NewslettersSection() {
           onSave={handleSave}
           saving={saving}
           wide
+          isDirty={isDirty}
         >
           <div className="afm-row">
             <div className="afm-field">
