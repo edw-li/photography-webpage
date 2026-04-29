@@ -6,6 +6,8 @@ import type { MemberAdmin } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
 import ImageUploadField from '../../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../../components/MultiImageUploadField';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useUnsavedChangesGuard from '../../hooks/useUnsavedChangesGuard';
 import '../../components/AdminFormModal.css';
 
 const PLATFORMS = ['instagram', 'twitter', 'flickr', 'facebook', 'youtube', 'linkedin'] as const;
@@ -84,17 +86,6 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
     new Map(items.filter((i) => i.id != null).map((i) => [i.id!, i.caption]));
   const [originalCaptions, setOriginalCaptions] = useState(() => buildCaptionMap(photoItems));
 
-  // Escape to close
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
-    };
-  }, [onClose]);
-
   // --- Dirty detection ---
   const basicDirty =
     name !== original.name ||
@@ -116,6 +107,25 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
     const orig = originalCaptions.get(item.id);
     return orig !== undefined && item.caption !== orig;
   });
+
+  const anyDirty = basicDirty || detailsDirty || socialDirty || captionsDirty;
+  const { confirmingDiscard, attemptClose, confirmDiscard, cancelDiscard } =
+    useUnsavedChangesGuard(anyDirty, onClose);
+
+  // Escape to close (with discard guard)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (confirmingDiscard) cancelDiscard();
+      else attemptClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = '';
+    };
+  }, [attemptClose, cancelDiscard, confirmingDiscard]);
 
   const memberId = member.id!;
 
@@ -256,7 +266,8 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="afm-overlay" onClick={onClose}>
+    <>
+    <div className="afm-overlay" onClick={attemptClose}>
       <div
         className="afm-modal afm-modal--wide"
         role="dialog"
@@ -265,7 +276,7 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
       >
         <div className="afm-header">
           <h3 className="afm-title">Edit Member</h3>
-          <button className="afm-close" onClick={onClose} aria-label="Close">
+          <button className="afm-close" onClick={attemptClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -401,5 +412,17 @@ export default function MemberEditModal({ member, onClose, onSaved }: Props) {
         </div>
       </div>
     </div>
+    {confirmingDiscard && (
+      <ConfirmDialog
+        title="Discard unsaved changes?"
+        message="You have unsaved edits in one or more sections. If you close this form now, those changes will be lost."
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        danger
+        onConfirm={confirmDiscard}
+        onCancel={cancelDiscard}
+      />
+    )}
+    </>
   );
 }

@@ -43,6 +43,7 @@ export default function ContestsSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contest | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -69,6 +70,7 @@ export default function ContestsSection() {
   const openCreate = () => {
     setEditingContest(null);
     setForm(emptyForm);
+    setInitialForm(emptyForm);
     setShowForm(true);
   };
 
@@ -77,7 +79,7 @@ export default function ContestsSection() {
     try {
       const full = await getContest(c.id);
       setEditingContest(full);
-      setForm({
+      const init = {
         month: full.month,
         theme: full.theme,
         description: full.description,
@@ -85,13 +87,17 @@ export default function ContestsSection() {
         deadline: full.deadline,
         guidelines: full.guidelines.length > 0 ? full.guidelines : [''],
         wildcardCategory: full.wildcardCategory || '',
-      });
+      };
+      setForm(init);
+      setInitialForm(init);
       setShowForm(true);
     } catch {
       addToast('error', 'Failed to load contest details');
     }
     setLoadingId(null);
   };
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const isImportMode = form.status === 'completed' && (!editingContest || editingContest.isImported);
 
@@ -115,12 +121,14 @@ export default function ContestsSection() {
           wildcardCategory,
         });
         setEditingContest(updated);
+        setInitialForm(form);
         addToast('success', 'Contest updated');
       } else {
         const created = await createContest({ ...form, guidelines, wildcardCategory });
         if (isImportMode) {
           // Open the newly created imported contest for editing
           setEditingContest(created);
+          setInitialForm(form);
           addToast('success', 'Contest created — now add submissions and vote tallies below');
         } else {
           addToast('success', 'Contest created');
@@ -272,6 +280,7 @@ export default function ContestsSection() {
           saving={saving}
           wide={!!editingContest && form.status === 'completed'}
           saveLabel={!editingContest && isImportMode ? 'Create' : undefined}
+          isDirty={isDirty}
         >
           <div className="afm-row">
             <div className="afm-field">

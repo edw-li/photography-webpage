@@ -37,8 +37,11 @@ export default function MembersSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(emptyForm);
   const [socialRows, setSocialRows] = useState<SocialRow[]>([]);
+  const [initialSocialRows, setInitialSocialRows] = useState<SocialRow[]>([]);
   const [photoRows, setPhotoRows] = useState<ImageWithCaption[]>([]);
+  const [initialPhotoRows, setInitialPhotoRows] = useState<ImageWithCaption[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MemberAdmin | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -65,10 +68,18 @@ export default function MembersSection() {
   const openCreate = () => {
     setEditingMember(null);
     setForm(emptyForm);
+    setInitialForm(emptyForm);
     setSocialRows([]);
+    setInitialSocialRows([]);
     setPhotoRows([]);
+    setInitialPhotoRows([]);
     setShowForm(true);
   };
+
+  const isDirty =
+    JSON.stringify(form) !== JSON.stringify(initialForm) ||
+    JSON.stringify(socialRows) !== JSON.stringify(initialSocialRows) ||
+    JSON.stringify(photoRows) !== JSON.stringify(initialPhotoRows);
 
   const openEdit = (m: MemberAdmin) => {
     setEditingMember(m);
@@ -256,6 +267,7 @@ export default function MembersSection() {
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           saving={saving}
+          isDirty={isDirty}
         >
           <div className="afm-row">
             <div className="afm-field">

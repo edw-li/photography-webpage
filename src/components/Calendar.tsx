@@ -143,12 +143,18 @@ export default function Calendar({
           const dayEvents = eventsByDate.get(dateStr) ?? [];
           const isToday = dateStr === todayStr;
           const hasEvents = dayEvents.length > 0;
+          const cellTitle = !hasEvents
+            ? undefined
+            : dayEvents.length === 1
+              ? `${dayEvents[0].event.title} — Click to view`
+              : `${dayEvents.length} events — Click to see all`;
 
           return (
             <div
               key={dateStr}
               className={`events__day-cell${hasEvents ? ' events__day-cell--has-events' : ''}`}
               onClick={() => handleDayClick(dateStr)}
+              title={cellTitle}
             >
               <span
                 className={`events__day-number${isToday ? ' events__day-number--today' : ''}`}

@@ -288,7 +288,7 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
               className="admin__action-btn"
               onClick={handleBackfillExif}
               disabled={backfilling}
-              title="Extract EXIF metadata from stored images"
+              title="Re-extract camera metadata (aperture, shutter, ISO, focal length, camera model) from this contest's stored images. Use this if submissions were imported without EXIF, or if EXIF parsing was changed and existing entries need to be refreshed."
             >
               {backfilling ? 'Extracting...' : 'Backfill EXIF'}
             </button>
@@ -296,7 +296,7 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
               className="admin__action-btn"
               onClick={handleRefreshGallery}
               disabled={refreshingGallery}
-              title="Re-sync gallery entries with current winner placements"
+              title="Re-publish this contest's winning submissions to the public Winners gallery. Use after finalizing a contest or after manually adjusting winner placements/vote counts so the public gallery reflects the latest results."
             >
               {refreshingGallery ? 'Refreshing...' : 'Refresh Gallery'}
             </button>

@@ -20,6 +20,7 @@ export default function ContactsSection() {
   const [viewItem, setViewItem] = useState<ContactItem | null>(null);
   const [replyTarget, setReplyTarget] = useState<ContactItem | null>(null);
   const [replyBody, setReplyBody] = useState('');
+  const [initialReplyBody, setInitialReplyBody] = useState('');
   const [sending, setSending] = useState(false);
   const pageSize = 20;
 
@@ -54,8 +55,12 @@ export default function ContactsSection() {
 
   const openReply = (c: ContactItem) => {
     setReplyTarget(c);
-    setReplyBody(c.replyMessage || '');
+    const init = c.replyMessage || '';
+    setReplyBody(init);
+    setInitialReplyBody(init);
   };
+
+  const isReplyDirty = replyBody !== initialReplyBody;
 
   const handleReply = async () => {
     if (!replyTarget) return;
@@ -165,10 +170,11 @@ export default function ContactsSection() {
       {replyTarget && (
         <AdminFormModal
           title={`Reply to ${replyTarget.name}`}
-          onClose={() => { setReplyTarget(null); setReplyBody(''); }}
+          onClose={() => { setReplyTarget(null); setReplyBody(''); setInitialReplyBody(''); }}
           onSave={handleReply}
           saving={sending}
           saveLabel="Send"
+          isDirty={isReplyDirty}
         >
           <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: 'var(--color-surface, #f5f5f5)', borderRadius: 6, fontSize: '0.85rem', color: 'var(--color-text-muted, #888)' }}>
             <strong>Original message:</strong>

@@ -32,6 +32,7 @@ export default function EventsSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -52,12 +53,13 @@ export default function EventsSection() {
   const openCreate = () => {
     setEditingEvent(null);
     setForm(emptyForm);
+    setInitialForm(emptyForm);
     setShowForm(true);
   };
 
   const openEdit = (ev: CalendarEvent) => {
     setEditingEvent(ev);
-    setForm({
+    const init = {
       title: ev.title,
       description: ev.description,
       location: ev.location,
@@ -70,9 +72,13 @@ export default function EventsSection() {
       dayOfWeek: ev.recurrence?.dayOfWeek || [],
       weekOfMonth: ev.recurrence?.weekOfMonth || [],
       endDate: ev.recurrence?.endDate || '',
-    });
+    };
+    setForm(init);
+    setInitialForm(init);
     setShowForm(true);
   };
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const handleSave = async () => {
     if (!form.title || !form.date || !form.time || !form.location || !form.description) {
@@ -204,6 +210,7 @@ export default function EventsSection() {
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           saving={saving}
+          isDirty={isDirty}
         >
           <div className="afm-row">
             <div className="afm-field">
