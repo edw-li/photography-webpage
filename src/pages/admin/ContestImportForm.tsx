@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react';
-import { Upload, X, Loader2, UserCheck, UserX, Trophy } from 'lucide-react';
+import { Upload, X, Loader2, UserCheck, UserX, Trophy, Info } from 'lucide-react';
 import {
   uploadAdminSubmission,
   finalizeContest,
@@ -291,6 +291,7 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
               title="Re-extract camera metadata (aperture, shutter, ISO, focal length, camera model) from this contest's stored images. Use this if submissions were imported without EXIF, or if EXIF parsing was changed and existing entries need to be refreshed."
             >
               {backfilling ? 'Extracting...' : 'Backfill EXIF'}
+              <Info size={14} style={{ marginLeft: 4, opacity: 0.7 }} aria-hidden="true" />
             </button>
             <button
               className="admin__action-btn"
@@ -299,6 +300,7 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
               title="Re-publish this contest's winning submissions to the public Winners gallery. Use after finalizing a contest or after manually adjusting winner placements/vote counts so the public gallery reflects the latest results."
             >
               {refreshingGallery ? 'Refreshing...' : 'Refresh Gallery'}
+              <Info size={14} style={{ marginLeft: 4, opacity: 0.7 }} aria-hidden="true" />
             </button>
           </div>
           <div className="cif__subs-grid">
