@@ -1,16 +1,20 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyEmail, resendVerification } from '../api/auth';
 import { useToast } from '../contexts/ToastContext';
 import './AuthPage.css';
+
+const REDIRECT_SECONDS = 5;
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(REDIRECT_SECONDS);
 
   const [resendEmail, setResendEmail] = useState('');
   const [resending, setResending] = useState(false);
@@ -27,6 +31,16 @@ export default function VerifyEmailPage() {
       .catch(() => setSuccess(false))
       .finally(() => setLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    if (!success) return;
+    if (countdown <= 0) {
+      navigate('/login');
+      return;
+    }
+    const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [success, countdown, navigate]);
 
   const handleResend = async (e: FormEvent) => {
     e.preventDefault();
@@ -105,8 +119,11 @@ export default function VerifyEmailPage() {
       <div className="auth-card">
         <h1>Email Verified</h1>
         <p>Your email has been verified! You can now log in.</p>
+        <p style={{ fontSize: '0.85rem', opacity: 0.7 }} aria-live="polite">
+          Redirecting to log in in {countdown}s…
+        </p>
         <Link to="/login" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>
-          Log In
+          Log In Now
         </Link>
       </div>
     </div>

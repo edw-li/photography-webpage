@@ -2,6 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword, validateResetToken } from '../api/auth';
 import { ApiError } from '../api/client';
+import PasswordField from '../components/PasswordField';
+import { validatePassword } from '../utils/passwordValidation';
 import './AuthPage.css';
 
 export default function ResetPasswordPage() {
@@ -59,14 +61,8 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError('');
 
-    if (
-      password.length < 8 ||
-      !/[A-Z]/.test(password) ||
-      !/[a-z]/.test(password) ||
-      !/[0-9]/.test(password) ||
-      !/[^A-Za-z0-9]/.test(password)
-    ) {
-      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit, and a special character.');
+    if (!validatePassword(password).allMet) {
+      setError('Password does not meet all requirements.');
       return;
     }
     if (password !== confirmPassword) {
@@ -106,26 +102,23 @@ export default function ResetPasswordPage() {
         <h1>Reset Password</h1>
         <p>Enter your new password below.</p>
         <form className="auth-card__form" onSubmit={handleSubmit}>
-          <div className="auth-card__field">
-            <label htmlFor="reset-password">New Password</label>
-            <input
-              id="reset-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-            />
-          </div>
-          <div className="auth-card__field">
-            <label htmlFor="reset-confirm">Confirm Password</label>
-            <input
-              id="reset-confirm"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter your password"
-            />
-          </div>
+          <PasswordField
+            id="reset-password"
+            label="New Password"
+            value={password}
+            onChange={setPassword}
+            placeholder="At least 8 characters"
+            showRequirements
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="reset-confirm"
+            label="Confirm Password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Re-enter your password"
+            autoComplete="new-password"
+          />
           {error && <p className="auth-card__error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Resetting...' : 'Reset Password'}
