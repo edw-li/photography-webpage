@@ -1,6 +1,7 @@
+import calendar
 import math
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import case, select, func
@@ -15,6 +16,7 @@ from ..models.contest import (
     MAX_SUBMISSIONS_PER_USER,
     MAX_VOTES_PER_CATEGORY,
 )
+from ..models.event import Event
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.contest import (
@@ -319,6 +321,155 @@ async def _populate_gallery_from_contest(
         db.add(photo)
 
 
+# --- Auto-scheduled deadline events ---
+
+CONTEST_EVENT_TIME = "23:59"
+CONTEST_EVENT_LOCATION = "Online"
+
+
+def _parse_contest_month(month_str: str) -> tuple[int, int]:
+    """Parse 'YYYY-MM' into (year, month)."""
+    year_part, month_part = month_str.split("-", 1)
+    return int(year_part), int(month_part)
+
+
+def _format_contest_month(month_str: str) -> str:
+    """Return a human-readable month phrase like 'March 2026' from '2026-03'."""
+    year, month = _parse_contest_month(month_str)
+    return date(year, month, 1).strftime("%B %Y")
+
+
+def _submission_deadline_date(month_str: str) -> str:
+    """Return YYYY-MM-DD for the last day of the contest month."""
+    year, month = _parse_contest_month(month_str)
+    last_day = calendar.monthrange(year, month)[1]
+    return f"{year:04d}-{month:02d}-{last_day:02d}"
+
+
+def _voting_deadline_date(month_str: str) -> str:
+    """Return YYYY-MM-DD for the 14th of the next month, with year wrap."""
+    year, month = _parse_contest_month(month_str)
+    next_year = year + 1 if month == 12 else year
+    next_month = 1 if month == 12 else month + 1
+    return f"{next_year:04d}-{next_month:02d}-14"
+
+
+def _submission_event_id(contest_id: int) -> str:
+    return f"contest-{contest_id}-submission-deadline"
+
+
+def _voting_event_id(contest_id: int) -> str:
+    return f"contest-{contest_id}-voting-deadline"
+
+
+def _build_submission_event_fields(contest: Contest) -> dict:
+    month_phrase = _format_contest_month(contest.month)
+    return {
+        "title": f"Submission Deadline — {contest.theme}",
+        "description": (
+            f"Last day to submit photos for the {month_phrase} contest. "
+            "Submissions close at 11:59 PM."
+        ),
+        "location": CONTEST_EVENT_LOCATION,
+        "date": _submission_deadline_date(contest.month),
+        "time": CONTEST_EVENT_TIME,
+        "end_time": None,
+        "recurrence": None,
+    }
+
+
+def _build_voting_event_fields(contest: Contest) -> dict:
+    month_phrase = _format_contest_month(contest.month)
+    return {
+        "title": f"Voting Deadline — {contest.theme}",
+        "description": (
+            f"Last day to vote in the {month_phrase} contest. "
+            "Voting closes at 11:59 PM."
+        ),
+        "location": CONTEST_EVENT_LOCATION,
+        "date": _voting_deadline_date(contest.month),
+        "time": CONTEST_EVENT_TIME,
+        "end_time": None,
+        "recurrence": None,
+    }
+
+
+async def _create_contest_events(contest: Contest, db: AsyncSession) -> None:
+    """Insert deadline events for a newly created contest.
+
+    No-op for contests created in 'completed' status (imported past contests).
+    Defensive: if a deterministic ID already exists in the events table for
+    any reason, skip creating that one rather than raising IntegrityError.
+    """
+    if contest.status == "completed":
+        return
+
+    sub_id = _submission_event_id(contest.id)
+    vote_id = _voting_event_id(contest.id)
+
+    existing = await db.execute(
+        select(Event.id).where(Event.id.in_([sub_id, vote_id]))
+    )
+    existing_ids = {row[0] for row in existing}
+
+    if sub_id not in existing_ids:
+        db.add(Event(id=sub_id, **_build_submission_event_fields(contest)))
+    if vote_id not in existing_ids:
+        db.add(Event(id=vote_id, **_build_voting_event_fields(contest)))
+
+
+async def _update_contest_events(contest: Contest, db: AsyncSession) -> None:
+    """Refresh existing deadline events when a contest is edited.
+
+    - Only updates events that already exist (respects manual deletes, and
+      respects 'no auto-create for imported contests' — since they were never
+      created, they aren't retroactively created here either).
+    - No-op while the contest is in 'completed' status: deadlines are now
+      historical, leave them as-is.
+    """
+    if contest.status == "completed":
+        return
+
+    sub_id = _submission_event_id(contest.id)
+    vote_id = _voting_event_id(contest.id)
+
+    result = await db.execute(
+        select(Event).where(Event.id.in_([sub_id, vote_id]))
+    )
+    by_id = {ev.id: ev for ev in result.scalars().all()}
+
+    if sub_id in by_id:
+        fields = _build_submission_event_fields(contest)
+        ev = by_id[sub_id]
+        ev.title = fields["title"]
+        ev.description = fields["description"]
+        ev.location = fields["location"]
+        ev.date = fields["date"]
+        ev.time = fields["time"]
+        ev.end_time = fields["end_time"]
+
+    if vote_id in by_id:
+        fields = _build_voting_event_fields(contest)
+        ev = by_id[vote_id]
+        ev.title = fields["title"]
+        ev.description = fields["description"]
+        ev.location = fields["location"]
+        ev.date = fields["date"]
+        ev.time = fields["time"]
+        ev.end_time = fields["end_time"]
+
+
+async def _delete_contest_events(contest_id: int, db: AsyncSession) -> None:
+    """Remove auto-events linked to a contest. Idempotent."""
+    sub_id = _submission_event_id(contest_id)
+    vote_id = _voting_event_id(contest_id)
+    result = await db.execute(
+        select(Event).where(Event.id.in_([sub_id, vote_id]))
+    )
+    for ev in result.scalars().all():
+        await db.delete(ev)
+
+
 # --- Contest CRUD ---
 
 
@@ -556,6 +707,8 @@ async def create_contest(
         is_imported=body.status == "completed",
     )
     db.add(contest)
+    await db.flush()  # populate contest.id before creating linked events
+    await _create_contest_events(contest, db)
     await log_activity(db, admin, "create", "contest", body.theme, f"Created contest: {body.theme}")
     await db.commit()
     await db.refresh(contest)
@@ -611,6 +764,7 @@ async def update_contest(
         for gp in gallery_result.scalars().all():
             await db.delete(gp)
 
+    await _update_contest_events(contest, db)
     await log_activity(db, admin, "update", "contest", str(contest_id), f"Updated contest: {contest.theme}")
     await db.commit()
     await db.refresh(contest)
@@ -629,6 +783,7 @@ async def delete_contest(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
     for sub in contest.submissions:
         delete_uploaded_image(sub.url)
+    await _delete_contest_events(contest_id, db)
     await log_activity(db, admin, "delete", "contest", str(contest_id), f"Deleted contest: {contest.theme}")
     await db.delete(contest)
     await db.commit()
