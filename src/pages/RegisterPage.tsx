@@ -1,8 +1,14 @@
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useTurnstile } from '../hooks/useTurnstile';
+import { resendVerification } from '../api/auth';
+import PasswordField from '../components/PasswordField';
+import { validatePassword } from '../utils/passwordValidation';
 import './AuthPage.css';
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
@@ -14,9 +20,20 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const { register } = useAuth();
+  const { addToast } = useToast();
   const turnstileRef = useRef<HTMLDivElement>(null);
   const { getToken } = useTurnstile(turnstileRef);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,14 +41,8 @@ export default function RegisterPage() {
       setError('All fields are required.');
       return;
     }
-    if (
-      password.length < 8 ||
-      !/[A-Z]/.test(password) ||
-      !/[a-z]/.test(password) ||
-      !/[0-9]/.test(password) ||
-      !/[^A-Za-z0-9]/.test(password)
-    ) {
-      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit, and a special character.');
+    if (!validatePassword(password).allMet) {
+      setError('Password does not meet all requirements.');
       return;
     }
     if (password !== confirm) {
@@ -53,12 +64,42 @@ export default function RegisterPage() {
     }
   };
 
+  const handleResend = async () => {
+    if (resending || resendCooldown > 0) return;
+    setResending(true);
+    try {
+      await resendVerification(email.trim());
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      addToast('success', 'Verification email sent. Please check your inbox.');
+    } catch {
+      addToast('error', 'Failed to send verification email. Please try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   if (successMessage) {
+    let resendLabel = 'Resend Verification Email';
+    if (resending) resendLabel = 'Sending...';
+    else if (resendCooldown > 0) resendLabel = `Sent! Resend in ${resendCooldown}s`;
+
     return (
       <div className="auth-page">
         <div className="auth-card">
           <h1>Check Your Email</h1>
-          <p>{successMessage}</p>
+          <p>
+            We sent a verification email to <strong>{email.trim()}</strong>.
+          </p>
+          <p>Didn't get it? Check your spam folder, or:</p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleResend}
+            disabled={resending || resendCooldown > 0}
+            style={{ width: '100%' }}
+          >
+            {resendLabel}
+          </button>
           <div className="auth-card__footer">
             <Link to="/login">Go to Log In</Link>
           </div>
@@ -82,6 +123,7 @@ export default function RegisterPage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="First name"
+                autoComplete="given-name"
               />
             </div>
             <div className="auth-card__field">
@@ -92,6 +134,7 @@ export default function RegisterPage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Last name"
+                autoComplete="family-name"
               />
             </div>
           </div>
@@ -103,28 +146,26 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@domain.com"
+              autoComplete="email"
             />
           </div>
-          <div className="auth-card__field">
-            <label htmlFor="reg-password">Password</label>
-            <input
-              id="reg-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-            />
-          </div>
-          <div className="auth-card__field">
-            <label htmlFor="reg-confirm">Confirm Password</label>
-            <input
-              id="reg-confirm"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password"
-            />
-          </div>
+          <PasswordField
+            id="reg-password"
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Min. 8 characters"
+            showRequirements
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="reg-confirm"
+            label="Confirm Password"
+            value={confirm}
+            onChange={setConfirm}
+            placeholder="Repeat password"
+            autoComplete="new-password"
+          />
           {/* Honeypot */}
           <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
             <label htmlFor="rg-hp">Company</label>
