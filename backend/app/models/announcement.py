@@ -37,6 +37,11 @@ class Announcement(Base):
     cta_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set to now() when admin clears dismissals. Clients with a localStorage
+    # dismissal timestamp older than this treat their entry as stale.
+    dismissals_reset_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )

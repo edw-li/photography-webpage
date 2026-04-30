@@ -10,6 +10,7 @@ export interface ActiveAnnouncement {
   isDismissable: boolean;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  dismissalsResetAt: string | null;
 }
 
 export interface Announcement {
@@ -29,5 +30,6 @@ export interface Announcement {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  dismissalsResetAt: string | null;
   dismissalCount: number;
 }

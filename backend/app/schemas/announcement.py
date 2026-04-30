@@ -119,6 +119,7 @@ class AnnouncementResponse(CamelModel):
     created_by: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
+    dismissals_reset_at: datetime | None
     dismissal_count: int = 0
 
 
@@ -132,3 +133,4 @@ class ActiveAnnouncementResponse(CamelModel):
     is_dismissable: bool
     cta_label: str | None
     cta_url: str | None
+    dismissals_reset_at: datetime | None
