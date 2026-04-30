@@ -262,9 +262,11 @@ export default function GallerySection() {
                     {(p.visible ?? true) ? 'Shown' : 'Hidden'}
                   </button>
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="admin__action-btn" onClick={() => openEdit(p)}>Edit</button>
-                  <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(p)}>Delete</button>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <button className="admin__action-btn" onClick={() => openEdit(p)}>Edit</button>
+                    <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(p)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
