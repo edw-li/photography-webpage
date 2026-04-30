@@ -24,6 +24,9 @@ class GalleryPhotoResponse(CamelModel):
     winner_place: int | None = None
     winner_category: str | None = None
     winner_placements: list[dict] | None = None
+    like_count: int = 0
+    comment_count: int = 0
+    viewer_has_liked: bool | None = None  # null when unauthenticated
 
 
 class GalleryPhotoUpdate(CamelModel):

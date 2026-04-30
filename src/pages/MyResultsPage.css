@@ -417,6 +417,23 @@
   border: 3px solid #CD7F32;
 }
 
+/* The generic .my-results__cell:last-child rule strips the right border to avoid
+   a double edge against the grid container. That rule has higher specificity
+   than the placement classes, so without these overrides the rightmost gold/
+   silver/bronze cell would lose its right border. Match the :last-child
+   specificity (and source order wins) to restore the medal edge. */
+.my-results__cell--gold:last-child {
+  border-right: 3px solid #FFD700;
+}
+
+.my-results__cell--silver:last-child {
+  border-right: 3px solid #C0C0C0;
+}
+
+.my-results__cell--bronze:last-child {
+  border-right: 3px solid #CD7F32;
+}
+
 /* Medal badge */
 .my-results__cell-badge {
   position: absolute;
@@ -544,60 +561,111 @@
 }
 
 .my-results__lightbox-header {
-  text-align: center;
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
   color: var(--color-light-100);
+  text-align: center;
   opacity: 0;
   transition: opacity 0.3s ease 50ms;
+  max-width: min(90vw, 720px);
 }
 
 .my-results__lightbox-header--loaded {
   opacity: 1;
 }
 
-.my-results__lightbox-header strong {
-  display: block;
-  font-size: 1.2rem;
-  margin-bottom: 0.15rem;
+.my-results__lightbox-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--color-light-100);
 }
 
-.my-results__lightbox-header span {
-  font-size: 0.9rem;
+/* Row of placement chips, gap-spaced and wrap-friendly */
+.my-results__lightbox-placements {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.1rem 0;
+}
+
+.my-results__lightbox-placement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  /* Dark text gives strong contrast against every medal gradient.
+     The previous .my-results__lightbox-header span rule was bleeding the
+     accent (gold) color into these badges — illegible on a gold background. */
+  color: #1a1d14;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.my-results__lightbox-placement-badge svg {
+  flex-shrink: 0;
+}
+
+.my-results__lightbox-placement-text {
+  white-space: nowrap;
+}
+
+.my-results__lightbox-placement-sep {
+  opacity: 0.55;
+  margin: 0 0.15rem;
+}
+
+.my-results__lightbox-placement-badge--gold {
+  background: linear-gradient(135deg, #FFE066, #DAA520);
+}
+
+.my-results__lightbox-placement-badge--silver {
+  background: linear-gradient(135deg, #E5E5E5, #A8A8A8);
+}
+
+.my-results__lightbox-placement-badge--bronze {
+  background: linear-gradient(135deg, #E0A472, #B86E32);
+}
+
+.my-results__lightbox-placement-badge--none {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Secondary metadata: photographer and contest, separated by a middle dot */
+.my-results__lightbox-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+.my-results__lightbox-meta-author {
   color: var(--color-accent);
   font-weight: 500;
 }
 
-.my-results__lightbox-placement-badge {
-  display: inline-block;
-  margin-top: 0.4rem;
-  padding: 0.2rem 0.8rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #fff;
+.my-results__lightbox-meta-sep {
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.my-results__lightbox-placement-badge--gold {
-  background: linear-gradient(135deg, #FFD700, #DAA520);
-}
-
-.my-results__lightbox-placement-badge--silver {
-  background: linear-gradient(135deg, #C0C0C0, #8E8E8E);
-}
-
-.my-results__lightbox-placement-badge--bronze {
-  background: linear-gradient(135deg, #CD7F32, #A0522D);
-}
-
-.my-results__lightbox-placement-badge--none {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.my-results__lightbox-contest-info {
-  display: block;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 0.3rem;
+.my-results__lightbox-meta-contest {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .my-results__lightbox-body {
@@ -708,6 +776,18 @@
 
 [data-theme="dark"] .my-results__cell--bronze {
   border-color: #A06828;
+}
+
+[data-theme="dark"] .my-results__cell--gold:last-child {
+  border-right-color: #B8960A;
+}
+
+[data-theme="dark"] .my-results__cell--silver:last-child {
+  border-right-color: #9A9A9A;
+}
+
+[data-theme="dark"] .my-results__cell--bronze:last-child {
+  border-right-color: #A06828;
 }
 
 [data-theme="dark"] .my-results__cell-badge--gold {
@@ -827,5 +907,21 @@
 @media (max-width: 480px) {
   .my-results__secondary-row {
     grid-template-columns: 1fr;
+  }
+
+  /* Stack the meta row on phones so a long photographer name + contest theme
+     don't wrap with a lonely separator dot in between. */
+  .my-results__lightbox-meta {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .my-results__lightbox-meta-sep {
+    display: none;
+  }
+
+  .my-results__lightbox-placement-badge {
+    font-size: 0.75rem;
+    padding: 0.28rem 0.7rem;
   }
 }

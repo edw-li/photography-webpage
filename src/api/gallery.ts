@@ -1,4 +1,5 @@
 import type { GalleryPhoto, PhotoExif } from '../types/gallery';
+import type { GalleryComment } from '../types/comments';
 import { apiFetch } from './client';
 
 interface PaginatedResponse<T> {
@@ -68,4 +69,60 @@ export async function toggleGalleryVisibility(id: number): Promise<GalleryPhoto>
   return apiFetch<GalleryPhoto>(`/gallery/${id}/visibility`, {
     method: 'PATCH',
   });
+}
+
+// Likes
+
+export async function likePhoto(id: number): Promise<{ liked: boolean }> {
+  return apiFetch<{ liked: boolean }>(`/gallery/${id}/like`, {
+    method: 'POST',
+  });
+}
+
+export async function unlikePhoto(id: number): Promise<void> {
+  await apiFetch(`/gallery/${id}/like`, { method: 'DELETE' });
+}
+
+export async function getPhotoLikesCount(id: number): Promise<{ count: number }> {
+  return apiFetch<{ count: number }>(`/gallery/${id}/likes/count`);
+}
+
+// Comments
+
+export async function getPhotoComments(
+  photoId: number,
+  page = 1,
+  pageSize = 20,
+): Promise<PaginatedResponse<GalleryComment>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  return apiFetch<PaginatedResponse<GalleryComment>>(
+    `/gallery/${photoId}/comments?${params.toString()}`,
+  );
+}
+
+export async function postPhotoComment(
+  photoId: number,
+  body: string,
+): Promise<GalleryComment> {
+  return apiFetch<GalleryComment>(`/gallery/${photoId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function editPhotoComment(
+  commentId: number,
+  body: string,
+): Promise<GalleryComment> {
+  return apiFetch<GalleryComment>(`/gallery/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function deletePhotoComment(commentId: number): Promise<void> {
+  await apiFetch(`/gallery/comments/${commentId}`, { method: 'DELETE' });
 }

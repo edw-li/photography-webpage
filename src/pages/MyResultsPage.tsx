@@ -173,28 +173,39 @@ function SubmissionLightbox({
         )}
 
         <div className={`my-results__lightbox-header${loaded ? ' my-results__lightbox-header--loaded' : ''}`}>
-          <strong>{sub.title}</strong>
-          <span>{sub.photographer}</span>
+          <h2 className="my-results__lightbox-title">{sub.title}</h2>
           {placements.length > 0 ? (
-            placements
-              .sort((a, b) => a.place - b.place)
-              .map((p, i) => (
-                <span
-                  key={i}
-                  className={`my-results__lightbox-placement-badge my-results__lightbox-placement-badge--${placeMedalClass(p.place)}`}
-                  style={i > 0 ? { marginLeft: '0.35rem' } : undefined}
-                >
-                  {placeLabel(p.place)} &mdash; {getCategoryLabel(p.category as VoteCategory, contest.wildcardCategory)}
-                </span>
-              ))
+            <div className="my-results__lightbox-placements">
+              {placements
+                .sort((a, b) => a.place - b.place)
+                .map((p, i) => (
+                  <span
+                    key={i}
+                    className={`my-results__lightbox-placement-badge my-results__lightbox-placement-badge--${placeMedalClass(p.place)}`}
+                  >
+                    <Trophy size={12} aria-hidden="true" />
+                    <span className="my-results__lightbox-placement-text">
+                      {placeLabel(p.place)}
+                      <span className="my-results__lightbox-placement-sep" aria-hidden="true"> &middot; </span>
+                      {getCategoryLabel(p.category as VoteCategory, contest.wildcardCategory)}
+                    </span>
+                  </span>
+                ))}
+            </div>
           ) : (
-            <span className="my-results__lightbox-placement-badge my-results__lightbox-placement-badge--none">
-              No placement
-            </span>
+            <div className="my-results__lightbox-placements">
+              <span className="my-results__lightbox-placement-badge my-results__lightbox-placement-badge--none">
+                No placement
+              </span>
+            </div>
           )}
-          <span className="my-results__lightbox-contest-info">
-            {formatMonth(contest.month)} &middot; {contest.theme}
-          </span>
+          <div className="my-results__lightbox-meta">
+            <span className="my-results__lightbox-meta-author">by {sub.photographer}</span>
+            <span className="my-results__lightbox-meta-sep" aria-hidden="true">&middot;</span>
+            <span className="my-results__lightbox-meta-contest">
+              {formatMonth(contest.month)} &mdash; {contest.theme}
+            </span>
+          </div>
         </div>
 
         <div className="my-results__lightbox-body">

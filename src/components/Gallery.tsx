@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { GalleryPhoto } from '../types/gallery';
 import type { VoteCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
@@ -6,6 +7,9 @@ import { X } from 'lucide-react';
 import { getGalleryPhotos } from '../api/gallery';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import { getImageUrl } from '../utils/imageUrl';
+import { useToast } from '../contexts/ToastContext';
+import LikeButton from './LikeButton';
+import CommentsPanel from './CommentsPanel';
 import './Gallery.css';
 
 const PAGE_SIZE = 12;
@@ -98,12 +102,16 @@ function GalleryLightbox({
   onClose,
   onPrev,
   onNext,
+  onLikeChange,
+  onCommentCountChange,
 }: {
   photos: GalleryPhoto[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onLikeChange: (photoId: number, liked: boolean, count: number) => void;
+  onCommentCountChange: (photoId: number, count: number) => void;
 }) {
   const photo = photos[index];
   const modalRef = useRef<HTMLDivElement>(null);
@@ -221,6 +229,7 @@ function GalleryLightbox({
       aria-label={`${photo.title} by ${photo.photographer}`}
     >
       <div className="gallery__lightbox" onClick={(e) => e.stopPropagation()}>
+        <div className="gallery__lightbox-media">
         <button
           className="gallery__lightbox-close"
           onClick={startClose}
@@ -233,20 +242,28 @@ function GalleryLightbox({
           {index + 1} / {photos.length}
         </span>
         <div className={`gallery__lightbox-header${fadeIn ? ' gallery__lightbox-header--loaded' : ''}`}>
-          <strong>{displayPhoto.title}</strong>
-          <span>{displayPhoto.photographer}</span>
-          {displayPhoto.winnerPlacements && displayPhoto.winnerPlacements.length > 0 && (
-            <div className="gallery__lightbox-placements">
-              {displayPhoto.winnerPlacements
-                .sort((a, b) => a.place - b.place)
-                .map((p, i) => (
-                  <span key={i} className="gallery__lightbox-placement">
-                    {p.month && <span className="gallery__lightbox-placement-month">{formatContestMonth(p.month)} · </span>}
-                    {winnerLabel(p.place)} — {getCategoryLabel(p.category as VoteCategory)}
-                  </span>
-                ))}
-            </div>
-          )}
+          <div className="gallery__lightbox-header-text">
+            <strong>{displayPhoto.title}</strong>
+            <span>{displayPhoto.photographer}</span>
+            {displayPhoto.winnerPlacements && displayPhoto.winnerPlacements.length > 0 && (
+              <div className="gallery__lightbox-placements">
+                {displayPhoto.winnerPlacements
+                  .sort((a, b) => a.place - b.place)
+                  .map((p, i) => (
+                    <span key={i} className="gallery__lightbox-placement">
+                      {p.month && <span className="gallery__lightbox-placement-month">{formatContestMonth(p.month)} · </span>}
+                      {winnerLabel(p.place)} — {getCategoryLabel(p.category as VoteCategory)}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+          <LikeButton
+            photoId={photo.id}
+            liked={!!photo.viewerHasLiked}
+            count={photo.likeCount ?? 0}
+            onChange={(liked, count) => onLikeChange(photo.id, liked, count)}
+          />
         </div>
 
         <div className="gallery__lightbox-body">
@@ -306,6 +323,15 @@ function GalleryLightbox({
         >
           &#8250;
         </button>
+        </div>
+
+        <div className="gallery__lightbox-panel">
+          <CommentsPanel
+            photoId={photo.id}
+            initialCount={photo.commentCount ?? 0}
+            onCountChange={(count) => onCommentCountChange(photo.id, count)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -325,8 +351,26 @@ export default function Gallery() {
   const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
   const [pendingPage, setPendingPage] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { addToast } = useToast();
 
   const photos = viewMode === 'winners' ? winnersPhotos : allPhotos;
+
+  // Patch a photo in both winners and all arrays so likes/comments stay in sync across view modes
+  const patchPhoto = useCallback((photoId: number, patch: Partial<GalleryPhoto>) => {
+    const update = (list: GalleryPhoto[]) =>
+      list.map((p) => (p.id === photoId ? { ...p, ...patch } : p));
+    setWinnersPhotos(update);
+    setAllPhotos(update);
+  }, []);
+
+  const handleLikeChange = useCallback((photoId: number, liked: boolean, count: number) => {
+    patchPhoto(photoId, { viewerHasLiked: liked, likeCount: count });
+  }, [patchPhoto]);
+
+  const handleCommentCountChange = useCallback((photoId: number, count: number) => {
+    patchPhoto(photoId, { commentCount: count });
+  }, [patchPhoto]);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -349,6 +393,42 @@ export default function Gallery() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Deep link support: ?photo={id} opens that photo's lightbox once data is loaded.
+  // Triggers whenever the param appears (including when Gallery is already mounted
+  // and a notification click adds the param to the current URL).
+  const photoParam = searchParams.get('photo');
+  useEffect(() => {
+    if (loading || !photoParam) return;
+    const photoId = parseInt(photoParam, 10);
+    if (Number.isNaN(photoId)) return;
+
+    const idxInAll = allPhotos.findIndex((p) => p.id === photoId);
+    const idxInWinners = winnersPhotos.findIndex((p) => p.id === photoId);
+
+    if (idxInAll < 0 && idxInWinners < 0) {
+      // Photo not in any loaded set (deleted, hidden, or beyond first 100)
+      addToast('info', 'This photo is no longer available.');
+      const next = new URLSearchParams(searchParams);
+      next.delete('photo');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
+    if (viewMode === 'winners' && idxInWinners >= 0) {
+      setSelectedIndex(idxInWinners);
+    } else if (idxInAll >= 0) {
+      if (viewMode !== 'all') setViewMode('all');
+      setSelectedIndex(idxInAll);
+    } else if (idxInWinners >= 0) {
+      if (viewMode !== 'winners') setViewMode('winners');
+      setSelectedIndex(idxInWinners);
+    }
+    // Clear the param so future navigation away and back doesn't re-trigger
+    const next = new URLSearchParams(searchParams);
+    next.delete('photo');
+    setSearchParams(next, { replace: true });
+  }, [loading, photoParam, allPhotos, winnersPhotos, viewMode, searchParams, setSearchParams, addToast]);
 
   const handleToggle = useCallback((mode: ViewMode) => {
     if (mode === viewMode || switching) return;
@@ -564,6 +644,8 @@ export default function Gallery() {
           onClose={handleClose}
           onPrev={goToPrevPhoto}
           onNext={goToNextPhoto}
+          onLikeChange={handleLikeChange}
+          onCommentCountChange={handleCommentCountChange}
         />
       )}
     </section>
