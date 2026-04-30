@@ -31,10 +31,12 @@ export default function Navbar() {
   const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
 
-  // Refetch unread count when route changes (e.g., user just left /notifications)
+  // Refetch unread count when route changes (e.g., user just left /notifications).
+  // Admin accounts don't expose the notifications dropdown link, so the badge is
+  // hidden for them — no point in fetching either.
   useEffect(() => {
-    if (isAuthenticated) refetchUnread();
-  }, [location.pathname, isAuthenticated, refetchUnread]);
+    if (isAuthenticated && !isAdmin) refetchUnread();
+  }, [location.pathname, isAuthenticated, isAdmin, refetchUnread]);
 
   // IntersectionObserver — only run on home page
   useEffect(() => {
@@ -167,7 +169,7 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
                   {isAdmin ? 'Welcome, admin!' : `Welcome, ${user?.firstName}!`}
-                  {unreadCount > 0 && (
+                  {!isAdmin && unreadCount > 0 && (
                     <span className="navbar__user-badge" aria-label={`${unreadCount} unread notifications`}>
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
@@ -206,27 +208,13 @@ export default function Navbar() {
                       </>
                     )}
                     {isAdmin && (
-                      <>
-                        <Link
-                          to="/notifications"
-                          className="navbar__user-dropdown-item"
-                          onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
-                        >
-                          My Notifications
-                          {unreadCount > 0 && (
-                            <span className="navbar__user-dropdown-badge">
-                              {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                          )}
-                        </Link>
-                        <Link
-                          to="/admin"
-                          className="navbar__user-dropdown-item"
-                          onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
-                        >
-                          Admin Dashboard
-                        </Link>
-                      </>
+                      <Link
+                        to="/admin"
+                        className="navbar__user-dropdown-item"
+                        onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                      >
+                        Admin Dashboard
+                      </Link>
                     )}
                     <button
                       className="navbar__user-dropdown-item"

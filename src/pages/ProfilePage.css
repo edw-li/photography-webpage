@@ -4,54 +4,49 @@
   background: var(--color-bg);
 }
 
-/* Hero */
+/* Hero — mirrors .my-results__hero / .notif-page__hero so all three account
+   pages share an identical dark-green page header. */
 .profile-page__hero {
   position: relative;
-  min-height: 350px;
+  min-height: 280px;
   display: flex;
   align-items: flex-end;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--color-dark-900) 0%, #2f4a26 50%, var(--color-dark-800) 100%);
 }
 
-.profile-page__hero-bg {
-  position: absolute;
-  inset: 0;
-}
-
-.profile-page__hero-bg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.profile-page__hero-bg::after {
+.profile-page__hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.15) 0%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%);
 }
 
 .profile-page__hero-content {
   position: relative;
   z-index: 1;
-  padding-top: 80px;
-  padding-bottom: 2.5rem;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 80px 1.5rem 2.5rem;
 }
 
 .profile-page__hero-content h1 {
   color: #fff;
   font-family: var(--font-heading);
   font-size: clamp(2rem, 4vw, 3rem);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .profile-page__hero-content p {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1.05rem;
+}
+
+@media (max-width: 768px) {
+  .profile-page__hero {
+    min-height: 200px;
+  }
 }
 
 .profile-page__inner {
