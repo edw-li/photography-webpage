@@ -12,7 +12,8 @@ import type {
 } from '../types/announcement';
 import {
   addLocalDismissal,
-  isLocallyDismissed,
+  getLocalDismissal,
+  removeLocalDismissal,
 } from '../utils/dismissedAnnouncements';
 import './AnnouncementBanner.css';
 
@@ -36,13 +37,33 @@ export default function AnnouncementBanner() {
   const fetchActive = useCallback(async () => {
     try {
       const a = await getActiveAnnouncement();
-      // Skip the localStorage filter for non-dismissable banners — admin's
-      // "force visibility" toggle must override prior local dismissals too.
-      if (a && a.isDismissable && isLocallyDismissed(a.id)) {
+      if (!a) {
         setAnnouncement(null);
-      } else {
-        setAnnouncement(a);
+        return;
       }
+      // Non-dismissable banners override prior local dismissals — admin
+      // explicitly wants force-visibility. Show without checking localStorage.
+      if (!a.isDismissable) {
+        setAnnouncement(a);
+        return;
+      }
+      const local = getLocalDismissal(a.id);
+      if (!local) {
+        setAnnouncement(a);
+        return;
+      }
+      // If the admin reset dismissals AFTER this device's dismissal, the
+      // local entry is stale — show the banner and clean up the entry so
+      // we don't keep doing this comparison on every fetch.
+      const serverReset = a.dismissalsResetAt ? Date.parse(a.dismissalsResetAt) : null;
+      const localAt = Date.parse(local.at);
+      if (serverReset !== null && !Number.isNaN(localAt) && localAt < serverReset) {
+        removeLocalDismissal(a.id);
+        setAnnouncement(a);
+        return;
+      }
+      // Local dismissal is current — keep banner hidden.
+      setAnnouncement(null);
     } catch {
       // Fail-soft: never break the page over a missing banner.
       setAnnouncement(null);

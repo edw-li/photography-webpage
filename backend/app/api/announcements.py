@@ -63,6 +63,7 @@ def _to_response(a: Announcement, dismissal_count: int = 0) -> AnnouncementRespo
         created_by=a.created_by,
         created_at=a.created_at,
         updated_at=a.updated_at,
+        dismissals_reset_at=a.dismissals_reset_at,
         dismissal_count=dismissal_count,
     )
 
@@ -76,6 +77,7 @@ def _to_active_response(a: Announcement) -> ActiveAnnouncementResponse:
         is_dismissable=a.is_dismissable,
         cta_label=a.cta_label,
         cta_url=a.cta_url,
+        dismissals_reset_at=a.dismissals_reset_at,
     )
 
 
@@ -488,9 +490,13 @@ async def reset_announcement_dismissals(
             AnnouncementDismissal.announcement_id == announcement_id
         )
     )
-    # Touch updated_at so the admin list reflects the most recent admin action
-    # on this row, even though no announcement column was directly mutated.
-    a.updated_at = datetime.now(timezone.utc)
+    # Stamp dismissals_reset_at so client-side localStorage dismissals older
+    # than this timestamp are recognized as stale on the next /active fetch.
+    # This is what actually makes the banner reappear for users who dismissed
+    # it — DB-only deletion can't reach their localStorage.
+    now = datetime.now(timezone.utc)
+    a.dismissals_reset_at = now
+    a.updated_at = now
     await log_activity(
         db,
         admin,
