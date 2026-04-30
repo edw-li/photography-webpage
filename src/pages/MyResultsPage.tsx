@@ -14,6 +14,7 @@ import type {
 import type { PhotoExif } from '../types/gallery';
 import { getImageUrl } from '../utils/imageUrl';
 import { useImageLoaded } from '../hooks/useImageLoaded';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 import { Trophy, Award, TrendingUp, Calendar, Star, X } from 'lucide-react';
 import './MyResultsPage.css';
 
@@ -362,6 +363,7 @@ function StatCard({
 export default function MyResultsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  useScrollReveal();
 
   const [data, setData] = useState<MyResultsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -454,7 +456,7 @@ export default function MyResultsPage() {
     <div className="my-results">
       {/* Hero */}
       <section className="my-results__hero">
-        <div className="my-results__hero-content">
+        <div className="my-results__hero-content fade-in-up">
           <h1>My Results</h1>
           <p>Your competition performance and submission history</p>
         </div>
@@ -502,9 +504,9 @@ export default function MyResultsPage() {
         {!loading && !error && data && s && lb && data.contests.length > 0 && (
           <>
             {/* Stats Panel */}
-            <h2 className="my-results__section-title">Performance Overview</h2>
+            <h2 className="my-results__section-title fade-in-up">Performance Overview</h2>
 
-            <div className="my-results__podium-row">
+            <div className="my-results__podium-row fade-in-up delay-1">
               <StatCard
                 icon={<Trophy size={32} />}
                 value={s.firstPlaceFinishes}
@@ -528,7 +530,7 @@ export default function MyResultsPage() {
               />
             </div>
 
-            <div className="my-results__secondary-row">
+            <div className="my-results__secondary-row fade-in-up delay-2">
               <StatCard
                 icon={<TrendingUp size={24} />}
                 value={s.totalVotes}
@@ -564,7 +566,7 @@ export default function MyResultsPage() {
             </div>
 
             {/* Competition History Grid */}
-            <div className="my-results__grid-wrapper">
+            <div className="my-results__grid-wrapper fade-in-up">
               <h2 className="my-results__section-title">Competition History</h2>
 
               <div className="my-results__grid">

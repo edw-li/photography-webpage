@@ -10,6 +10,7 @@ import {
   type ListNotificationsOptions,
 } from '../api/notifications';
 import useUnreadCount from '../hooks/useUnreadCount';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 import NotificationItem from '../components/NotificationItem';
 import type { AppNotification, NotificationType } from '../types/notifications';
 import './NotificationsPage.css';
@@ -34,6 +35,7 @@ export default function NotificationsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  useScrollReveal();
   // Live global unread count (synced via UNREAD_COUNT_EVENT) — used for the
   // "unread" tab badge so it stays accurate beyond the loaded page.
   const { count: liveUnreadCount } = useUnreadCount();
@@ -151,14 +153,14 @@ export default function NotificationsPage() {
   return (
     <main className="notif-page">
       <section className="notif-page__hero">
-        <div className="notif-page__hero-content">
+        <div className="notif-page__hero-content fade-in-up">
           <h1>Notifications</h1>
           <p>Activity across the photography club.</p>
         </div>
       </section>
 
       <div className="notif-page__container">
-        <div className="notif-page__toolbar">
+        <div className="notif-page__toolbar fade-in-up delay-1">
           <div className="notif-page__tabs" role="tablist">
             {(['all', 'unread', 'likes', 'comments', 'contests'] as Filter[]).map((f) => (
               <button
@@ -187,7 +189,7 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        <div className="notif-page__list">
+        <div className="notif-page__list fade-in-up delay-2">
           {loading ? (
             <div className="notif-page__loading">
               <Loader2 size={20} className="notif-page__spinner" />
