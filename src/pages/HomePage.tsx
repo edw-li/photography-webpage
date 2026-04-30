@@ -16,7 +16,7 @@ export default function HomePage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
 
-  // Handle cross-page scroll-to-section navigation
+  // Handle cross-page scroll-to-section navigation and direct hash links
   useEffect(() => {
     const state = location.state as { scrollTo?: string } | null;
     if (state?.scrollTo) {
@@ -26,8 +26,13 @@ export default function HomePage() {
       }, 100);
       // Clear the state so it doesn't re-scroll on re-render
       window.history.replaceState({}, '');
+    } else if (location.hash) {
+      setTimeout(() => {
+        const id = location.hash.replace('#', '');
+        scrollToSection(id);
+      }, 100);
     }
-  }, [location.state]);
+  }, [location.state, location.hash]);
 
   useScrollReveal();
 
