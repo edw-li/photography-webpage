@@ -19,6 +19,9 @@ export interface GalleryPhoto {
   winnerPlace?: number | null;
   winnerCategory?: string | null;
   winnerPlacements?: { place: number; category: string; month?: string }[] | null;
+  likeCount?: number;
+  commentCount?: number;
+  viewerHasLiked?: boolean | null;  // null when unauthenticated
 }
 
 export interface GalleryConfig {

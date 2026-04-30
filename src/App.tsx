@@ -19,6 +19,7 @@ import UnsubscribePage from './pages/UnsubscribePage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import MyResultsPage from './pages/MyResultsPage';
+import NotificationsPage from './pages/NotificationsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function AppRoutes() {
@@ -36,6 +37,7 @@ function AppRoutes() {
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/my-results" element={<MyResultsPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

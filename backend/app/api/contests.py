@@ -17,6 +17,11 @@ from ..models.contest import (
     MAX_VOTES_PER_CATEGORY,
 )
 from ..models.event import Event
+from ..models.notification import (
+    NOTIFICATION_TYPE_CONTEST_COMPLETED,
+    NOTIFICATION_TYPE_CONTEST_VOTING_OPEN,
+    Notification,
+)
 from ..models.user import User
 from ..schemas.common import PaginatedResponse
 from ..schemas.contest import (
@@ -470,6 +475,52 @@ async def _delete_contest_events(contest_id: int, db: AsyncSession) -> None:
         await db.delete(ev)
 
 
+# --- Notifications for contest transitions ---
+
+
+async def _notify_submitters_for_contest_transition(
+    contest: Contest,
+    notification_type: str,
+    db: AsyncSession,
+) -> None:
+    """Insert a notification for each unique submitter (with a linked user) of this contest.
+
+    Idempotent per (user_id, type, contestId): if a matching notification already
+    exists, it is not duplicated. This protects against admins toggling status
+    voting → active → voting and emitting duplicate batches.
+    """
+    submitter_user_ids = {
+        sub.user_id for sub in contest.submissions if sub.user_id is not None
+    }
+    if not submitter_user_ids:
+        return
+
+    # Find which submitters already have a notification of this type for this contest
+    existing_result = await db.execute(
+        select(Notification.user_id).where(
+            Notification.type == notification_type,
+            Notification.user_id.in_(submitter_user_ids),
+            Notification.payload["contestId"].astext == str(contest.id),
+        )
+    )
+    already_notified = {row[0] for row in existing_result}
+    targets = submitter_user_ids - already_notified
+    if not targets:
+        return
+
+    payload = {
+        "contestId": contest.id,
+        "contestTheme": contest.theme,
+        "contestMonth": contest.month,
+    }
+    for uid in targets:
+        db.add(Notification(
+            user_id=uid,
+            type=notification_type,
+            payload=payload,
+        ))
+
+
 # --- Contest CRUD ---
 
 
@@ -748,6 +799,17 @@ async def update_contest(
     if old_status == "voting" and contest.status == "completed":
         await _auto_calculate_winners(contest, db)
         await _populate_gallery_from_contest(contest, db, update_winners=True)
+
+    # Notify submitters when contest enters voting or completed status
+    if old_status != contest.status:
+        if contest.status == "voting":
+            await _notify_submitters_for_contest_transition(
+                contest, NOTIFICATION_TYPE_CONTEST_VOTING_OPEN, db,
+            )
+        elif contest.status == "completed":
+            await _notify_submitters_for_contest_transition(
+                contest, NOTIFICATION_TYPE_CONTEST_COMPLETED, db,
+            )
 
     # Clear winners when reverting from completed
     if old_status == "completed" and contest.status in ("voting", "active"):

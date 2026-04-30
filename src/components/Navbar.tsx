@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import useUnreadCount from '../hooks/useUnreadCount';
 import navIcon from '../assets/selah-icon.png';
 import './Navbar.css';
 
@@ -25,9 +26,15 @@ export default function Navbar() {
 
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { addToast } = useToast();
+  const { count: unreadCount, refetch: refetchUnread } = useUnreadCount();
   const location = useLocation();
   const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
+
+  // Refetch unread count when route changes (e.g., user just left /notifications)
+  useEffect(() => {
+    if (isAuthenticated) refetchUnread();
+  }, [location.pathname, isAuthenticated, refetchUnread]);
 
   // IntersectionObserver — only run on home page
   useEffect(() => {
@@ -160,6 +167,11 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
                   {isAdmin ? 'Welcome, admin!' : `Welcome, ${user?.firstName}!`}
+                  {unreadCount > 0 && (
+                    <span className="navbar__user-badge" aria-label={`${unreadCount} unread notifications`}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </button>
                 {userMenuOpen && (
                   <div className="navbar__user-dropdown">
@@ -173,6 +185,18 @@ export default function Navbar() {
                           My Profile
                         </Link>
                         <Link
+                          to="/notifications"
+                          className="navbar__user-dropdown-item"
+                          onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                        >
+                          My Notifications
+                          {unreadCount > 0 && (
+                            <span className="navbar__user-dropdown-badge">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                          )}
+                        </Link>
+                        <Link
                           to="/my-results"
                           className="navbar__user-dropdown-item"
                           onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
@@ -182,13 +206,27 @@ export default function Navbar() {
                       </>
                     )}
                     {isAdmin && (
-                      <Link
-                        to="/admin"
-                        className="navbar__user-dropdown-item"
-                        onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
-                      >
-                        Admin Dashboard
-                      </Link>
+                      <>
+                        <Link
+                          to="/notifications"
+                          className="navbar__user-dropdown-item"
+                          onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                        >
+                          My Notifications
+                          {unreadCount > 0 && (
+                            <span className="navbar__user-dropdown-badge">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                          )}
+                        </Link>
+                        <Link
+                          to="/admin"
+                          className="navbar__user-dropdown-item"
+                          onClick={() => { setUserMenuOpen(false); setMenuOpen(false); }}
+                        >
+                          Admin Dashboard
+                        </Link>
+                      </>
                     )}
                     <button
                       className="navbar__user-dropdown-item"

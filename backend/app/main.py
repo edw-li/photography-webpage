@@ -17,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 
 from .config import settings
 from .rate_limit import limiter
-from .api import auth, members, gallery, events, newsletters, contests, contact, activity, uploads
+from .api import auth, members, gallery, events, newsletters, contests, contact, activity, notifications, uploads
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +86,7 @@ app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["news
 app.include_router(contests.router, prefix="/api/v1/contests", tags=["contests"])
 app.include_router(contact.router, prefix="/api/v1/contact", tags=["contact"])
 app.include_router(activity.router, prefix="/api/v1/activity", tags=["activity"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(uploads.router, prefix="/api/v1/uploads", tags=["uploads"])
 
 # Mount static files for uploaded images (local dev only; OCI mode serves from cloud)

@@ -6,3 +6,4 @@ limiter = Limiter(key_func=get_remote_address)
 PUBLIC_POST = "5/minute"
 AUTH_ATTEMPT = "10/minute"
 EMAIL_TRIGGER = "3/minute"
+SOCIAL_ACTION = "30/minute"

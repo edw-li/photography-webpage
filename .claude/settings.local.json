@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Skill(code-review:code-review)"
     ]
   }
 }
