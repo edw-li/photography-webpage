@@ -11,6 +11,7 @@ from .subscriber import NewsletterSubscriber
 from .activity import ActivityLog
 from .notification import Notification
 from .revoked_token import RevokedToken
+from .announcement import Announcement, AnnouncementDismissal
 
 __all__ = [
     "User", "Member", "SocialLink", "SamplePhoto", "GalleryPhoto",
@@ -20,4 +21,5 @@ __all__ = [
     "ContactSubmission", "NewsletterSubscriber",
     "ActivityLog", "Notification",
     "RevokedToken",
+    "Announcement", "AnnouncementDismissal",
 ]

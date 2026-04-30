@@ -7,6 +7,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import ToastContainer from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import HomePage from './pages/HomePage';
 import ContestPage from './pages/ContestPage';
 import LoginPage from './pages/LoginPage';
@@ -52,6 +53,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
+          <AnnouncementBanner />
           <Navbar />
           <AppRoutes />
           <button
