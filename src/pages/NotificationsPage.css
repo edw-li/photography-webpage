@@ -1,31 +1,66 @@
 .notif-page {
-  min-height: calc(100vh - 80px);
-  padding: 4rem 0 5rem;
-  background: var(--color-bg, #fff);
+  min-height: 100vh;
+  padding: 0 0 3rem;
+  background: var(--color-bg);
 }
 
-.notif-page__header {
-  margin-bottom: 1.5rem;
+/* Hero — mirrors .my-results__hero exactly so /notifications and /my-results
+   share the same dark-green page header. The dark gradient also gives the
+   navbar the contrast it needs against an otherwise pale page. */
+.notif-page__hero {
+  position: relative;
+  min-height: 280px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-dark-900) 0%, #2f4a26 50%, var(--color-dark-800) 100%);
 }
 
-.notif-page__title-row {
+.notif-page__hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%);
+}
+
+.notif-page__hero-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 80px 1.5rem 2.5rem;
+}
+
+.notif-page__hero-content h1 {
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin-bottom: 0.25rem;
+}
+
+.notif-page__hero-content p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.05rem;
+}
+
+/* Body container below the hero */
+.notif-page__container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0;
+}
+
+/* Tabs + Mark-all-as-read share a row above the list */
+.notif-page__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-}
-
-.notif-page__title-row h1 {
-  margin: 0;
-  font-size: 1.7rem;
-  color: var(--color-text);
-}
-
-.notif-page__subtitle {
-  margin: 0.4rem 0 1.25rem;
-  color: var(--color-text-muted);
-  font-size: 0.92rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .notif-page__mark-all {
@@ -56,8 +91,6 @@
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.75rem;
 }
 
 .notif-page__tab {
@@ -261,6 +294,12 @@
   height: 8px;
   border-radius: 50%;
   background: var(--color-accent);
+}
+
+@media (max-width: 768px) {
+  .notif-page__hero {
+    min-height: 200px;
+  }
 }
 
 @media (max-width: 480px) {

@@ -150,23 +150,15 @@ export default function NotificationsPage() {
 
   return (
     <main className="notif-page">
-      <div className="container">
-        <div className="notif-page__header">
-          <div className="notif-page__title-row">
-            <h1>Notifications</h1>
-            {showMarkAll && (
-              <button
-                type="button"
-                className="notif-page__mark-all"
-                onClick={handleMarkAllRead}
-                disabled={busy}
-              >
-                <CheckCheck size={14} /> Mark all as read
-              </button>
-            )}
-          </div>
-          <p className="notif-page__subtitle">Activity across the photography club.</p>
+      <section className="notif-page__hero">
+        <div className="notif-page__hero-content">
+          <h1>Notifications</h1>
+          <p>Activity across the photography club.</p>
+        </div>
+      </section>
 
+      <div className="notif-page__container">
+        <div className="notif-page__toolbar">
           <div className="notif-page__tabs" role="tablist">
             {(['all', 'unread', 'likes', 'comments', 'contests'] as Filter[]).map((f) => (
               <button
@@ -183,6 +175,16 @@ export default function NotificationsPage() {
               </button>
             ))}
           </div>
+          {showMarkAll && (
+            <button
+              type="button"
+              className="notif-page__mark-all"
+              onClick={handleMarkAllRead}
+              disabled={busy}
+            >
+              <CheckCheck size={14} /> Mark all as read
+            </button>
+          )}
         </div>
 
         <div className="notif-page__list">

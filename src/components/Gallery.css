@@ -272,10 +272,15 @@
   max-height: 95vh;
 }
 
+/* Close + counter sit at the viewport corners (matches MyResultsPage's lightbox
+   pattern). They were temporarily moved into .gallery__lightbox-media when the
+   comments panel landed, but that caused them to overlap the lightbox header's
+   title text (counter) and the LikeButton (close). Pinning them to the viewport
+   keeps them clear of the header content at every size. */
 .gallery__lightbox-close {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
@@ -294,9 +299,9 @@
 }
 
 .gallery__lightbox-counter {
-  position: absolute;
-  top: 0.85rem;
-  left: 0.85rem;
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.45);
@@ -330,7 +335,11 @@
 }
 
 .gallery__lightbox-img {
-  max-width: 90vw;
+  /* The image must leave room for the 340px comments panel + 1rem gap inside the
+     95vw lightbox. min() picks whichever cap is tighter at the current viewport
+     width, so the image scales smoothly with the panel as the window narrows
+     instead of overlapping it and snapping later. */
+  max-width: min(90vw, calc(95vw - 356px));
   max-height: 75vh;
   object-fit: contain;
   border-radius: var(--radius-sm);
@@ -550,6 +559,14 @@
     width: 100%;
     max-height: 50vh;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  /* Lightbox stacks vertically here, so the image no longer competes with the
+     panel horizontally — go back to a viewport-relative cap, but tightened so
+     the image + panel fit within the lightbox's 95vh max-height. */
+  .gallery__lightbox-img {
+    max-width: 100vw;
+    max-height: 50vh;
   }
 
   .gallery__lightbox-header {
