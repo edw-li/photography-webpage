@@ -5,8 +5,6 @@ import random
 from datetime import datetime, timezone
 from uuid import uuid4
 
-import bleach
-import markdown
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +25,7 @@ from ..schemas.newsletter import (
 )
 from ..config import settings
 from ..services.email_service import send_newsletter_email, send_verification_email
+from ..services.markdown_service import render_markdown
 from .activity import log_activity
 from .deps import get_db, require_admin, verify_turnstile_token
 
@@ -35,28 +34,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-_BLEACH_ALLOWED_TAGS = [
-    "p", "h1", "h2", "h3", "h4", "h5", "h6",
-    "a", "strong", "em", "ul", "ol", "li", "br", "img",
-    "blockquote", "code", "pre", "hr",
-    "table", "thead", "tbody", "tr", "th", "td",
-]
-_BLEACH_ALLOWED_ATTRS = {
-    "a": ["href", "title", "target", "rel"],
-    "img": ["src", "alt", "title", "width", "height"],
-    "th": ["align"],
-    "td": ["align"],
-}
-
-
 def _render_md(body_md: str) -> str:
-    raw_html = markdown.markdown(body_md, extensions=["extra"])
-    return bleach.clean(
-        raw_html,
-        tags=_BLEACH_ALLOWED_TAGS,
-        attributes=_BLEACH_ALLOWED_ATTRS,
-        strip=True,
-    )
+    return render_markdown(body_md)
 
 
 async def _send_newsletter_emails(

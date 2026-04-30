@@ -1,0 +1,241 @@
+/* Banner sits above the navbar; the body class below shifts the navbar down. */
+
+.announcement-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.5rem 1rem;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  animation: announcement-banner-slide 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-banner {
+    animation: none;
+  }
+}
+
+@keyframes announcement-banner-slide {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* When a banner shows, reserve space above the navbar AND push page content
+ * down so neither the navbar nor first-paint content gets hidden by the banner.
+ * Without this, position:fixed banner would overlap whatever was at body top:0.
+ * Uses :has() so scroll-padding-top can be adjusted on the scrolling root (html).
+ */
+body.has-announcement-banner {
+  padding-top: 48px;
+}
+
+body.has-announcement-banner .navbar {
+  top: 48px;
+}
+
+html:has(body.has-announcement-banner) {
+  scroll-padding-top: 118px;
+}
+
+@media (max-width: 600px) {
+  body.has-announcement-banner {
+    padding-top: 64px;
+  }
+  body.has-announcement-banner .navbar {
+    top: 64px;
+  }
+  html:has(body.has-announcement-banner) {
+    scroll-padding-top: 134px;
+  }
+}
+
+.announcement-banner__inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.announcement-banner__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.announcement-banner__content {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  min-width: 0;
+}
+
+.announcement-banner__title {
+  font-weight: 700;
+}
+
+.announcement-banner__body {
+  font-weight: 400;
+}
+
+/* Inline-only markdown — collapse paragraph margins so the banner stays compact. */
+.announcement-banner__body p {
+  display: inline;
+  margin: 0;
+}
+
+.announcement-banner__body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.announcement-banner__body a:hover {
+  opacity: 0.85;
+}
+
+.announcement-banner__body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  padding: 0.05rem 0.3rem;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+}
+
+.announcement-banner__body ul,
+.announcement-banner__body ol {
+  display: inline;
+  padding: 0;
+  margin: 0;
+}
+
+.announcement-banner__body li {
+  display: inline;
+  margin-right: 0.5rem;
+}
+
+.announcement-banner__cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.announcement-banner__cta:hover {
+  background: #fff;
+}
+
+.announcement-banner__cta:active {
+  transform: translateY(1px);
+}
+
+.announcement-banner__close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  padding: 0.35rem;
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.announcement-banner__close:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.announcement-banner__close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.announcement-banner__close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Severity variants — colors derived from theme but with their own identity. */
+.announcement-banner--info {
+  background: linear-gradient(180deg, #d6e9f8 0%, #c4dff5 100%);
+  color: #0d3a5d;
+  border-bottom-color: rgba(13, 58, 93, 0.2);
+}
+
+.announcement-banner--warning {
+  background: linear-gradient(180deg, #fbe8c2 0%, #f5d99a 100%);
+  color: #5a3d05;
+  border-bottom-color: rgba(90, 61, 5, 0.25);
+}
+
+.announcement-banner--critical {
+  background: linear-gradient(180deg, #f5cfcf 0%, #ecb0b0 100%);
+  color: #6a1414;
+  border-bottom-color: rgba(106, 20, 20, 0.3);
+}
+
+/* Dark theme adjustments — keep contrast in dark mode. */
+[data-theme='dark'] .announcement-banner--info {
+  background: linear-gradient(180deg, #1d3a5a 0%, #163050 100%);
+  color: #d8eaff;
+}
+
+[data-theme='dark'] .announcement-banner--warning {
+  background: linear-gradient(180deg, #604219 0%, #4d350f 100%);
+  color: #ffe5b8;
+}
+
+[data-theme='dark'] .announcement-banner--critical {
+  background: linear-gradient(180deg, #5a2020 0%, #421313 100%);
+  color: #ffd4d4;
+}
+
+[data-theme='dark'] .announcement-banner__cta {
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a1a1a;
+}
+
+@media (max-width: 600px) {
+  .announcement-banner {
+    min-height: 64px;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .announcement-banner__inner {
+    gap: 0.5rem;
+  }
+
+  .announcement-banner__cta {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+  }
+}
