@@ -6,6 +6,7 @@ import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updat
 import type { SocialLinks } from '../types/members';
 import ImageUploadField from '../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 import './ProfilePage.css';
 
 const PLATFORMS = ['Instagram', 'Twitter', 'Flickr', 'Facebook', 'YouTube', 'LinkedIn'] as const;
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const { user, isAuthenticated, loading, refreshUser } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  useScrollReveal();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -331,14 +333,14 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <section className="profile-page__hero">
-        <div className="profile-page__hero-content">
+        <div className="profile-page__hero-content fade-in-up">
           <h1>My Profile</h1>
           <p>Manage your photography club profile</p>
         </div>
       </section>
       <div className="profile-page__inner">
         {/* Personal Info */}
-        <div className="profile-section">
+        <div className="profile-section fade-in-up">
           <h2>Personal Info</h2>
           <div className="profile-row">
             <div className="profile-field">
@@ -390,7 +392,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Details */}
-        <div className="profile-section">
+        <div className="profile-section fade-in-up delay-1">
           <h2>Profile Details</h2>
           <div className="profile-field">
             <label>Avatar</label>
@@ -448,7 +450,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Social Links */}
-        <div className="profile-section">
+        <div className="profile-section fade-in-up delay-2">
           <h2>Social Media Links</h2>
           {socialRows.map((row, i) => (
             <div key={i} className="profile-list-row">
@@ -499,7 +501,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Newsletter Subscription */}
-        <div className="profile-section">
+        <div className="profile-section fade-in-up">
           <h2>Newsletter Subscription</h2>
           <div className="profile-subscription-row">
             <span>Receive newsletter emails</span>
@@ -519,7 +521,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Sample Photos */}
-        <div className="profile-section">
+        <div className="profile-section fade-in-up">
           <h2>Sample Photos</h2>
           <p className="profile-section__hint">Photos are saved automatically when uploaded or removed. Save below applies to caption changes.</p>
           <MultiImageUploadField
