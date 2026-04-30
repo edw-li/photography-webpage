@@ -41,12 +41,6 @@ def upgrade() -> None:
         sa.Column("cta_url", sa.String(500), nullable=True),
         sa.Column("starts_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ends_at", sa.DateTime(timezone=True), nullable=True),
-        # When admin clicks "Reset Dismissals", this is set to now(). Clients
-        # compare their localStorage dismissal timestamp against it; older
-        # local dismissals are considered stale (the banner reappears).
-        sa.Column(
-            "dismissals_reset_at", sa.DateTime(timezone=True), nullable=True
-        ),
         sa.Column(
             "is_active",
             sa.Boolean(),
