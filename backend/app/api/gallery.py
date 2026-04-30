@@ -209,6 +209,33 @@ async def _photo_owner_user_id(photo: GalleryPhoto, db: AsyncSession) -> uuid.UU
     return row[0]
 
 
+async def auto_like_photo_owner(
+    photo: GalleryPhoto,
+    db: AsyncSession,
+    *,
+    owner_user_id: uuid.UUID | None = None,
+) -> None:
+    """Insert a self-like for the photo's owner (Reddit-style implicit endorsement).
+
+    Idempotent: ON CONFLICT DO NOTHING handles the case where a like already
+    exists. Skips silently if the photo has no resolvable owner (no member_id,
+    or the linked member has no user_id). The existing self-actor filter on
+    the like_photo notification path means no notification fires either way —
+    this helper does not touch notifications.
+
+    Pass `owner_user_id` explicitly to skip the Member lookup when the caller
+    already knows it (e.g., contest gallery population).
+    """
+    if owner_user_id is None:
+        owner_user_id = await _photo_owner_user_id(photo, db)
+    if owner_user_id is None:
+        return
+    stmt = pg_insert(GalleryPhotoLike).values(
+        photo_id=photo.id, user_id=owner_user_id
+    ).on_conflict_do_nothing(index_elements=["photo_id", "user_id"])
+    await db.execute(stmt)
+
+
 _GALLERY_NOTIFICATION_TYPES = (
     NOTIFICATION_TYPE_GALLERY_LIKE,
     NOTIFICATION_TYPE_GALLERY_COMMENT,
@@ -337,10 +364,13 @@ async def upload_gallery_photo(
         exif_shutter_speed=exif_shutter_speed,
     )
     db.add(photo)
+    await db.flush()  # populate photo.id for the auto-like below
+    await auto_like_photo_owner(photo, db)
     await log_activity(db, admin, "upload", "gallery", title, f"Uploaded gallery photo: {title}")
     await db.commit()
     await db.refresh(photo)
-    return _photo_to_response(photo)
+    items = await _build_photo_responses([photo], db, admin)
+    return items[0]
 
 
 @router.post("", response_model=GalleryPhotoResponse, status_code=status.HTTP_201_CREATED)
@@ -364,10 +394,13 @@ async def create_gallery_photo(
         photo.exif_aperture = body.exif.aperture
         photo.exif_shutter_speed = body.exif.shutter_speed
     db.add(photo)
+    await db.flush()  # populate photo.id for the auto-like below
+    await auto_like_photo_owner(photo, db)
     await log_activity(db, admin, "create", "gallery", body.title, f"Created gallery photo: {body.title}")
     await db.commit()
     await db.refresh(photo)
-    return _photo_to_response(photo)
+    items = await _build_photo_responses([photo], db, admin)
+    return items[0]
 
 
 @router.put("/{photo_id}", response_model=GalleryPhotoResponse)

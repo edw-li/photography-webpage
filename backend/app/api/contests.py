@@ -1,5 +1,6 @@
 import calendar
 import math
+import uuid
 from collections import defaultdict
 from datetime import date, datetime
 
@@ -8,7 +9,7 @@ from sqlalchemy import case, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .gallery import validate_image_upload
+from .gallery import auto_like_photo_owner, validate_image_upload
 from ..models.contest import (
     Contest,
     ContestSubmission,
@@ -289,6 +290,10 @@ async def _populate_gallery_from_contest(
         for row in member_result:
             member_by_user[str(row.user_id)] = row.id
 
+    # Collect newly created photos so we can auto-like them in one pass after
+    # flushing — flushing populates photo.id, which the like row needs.
+    new_photos: list[tuple[GalleryPhoto, uuid.UUID | None]] = []
+
     for sub in contest.submissions:
         is_winner = sub.id in winner_map
         place, category = winner_map[sub.id] if is_winner else (None, None)
@@ -324,6 +329,15 @@ async def _populate_gallery_from_contest(
             winner_placements=placements,
         )
         db.add(photo)
+        # We already know the owner's user_id from the submission — pass it
+        # directly so the helper can skip the Member lookup it would otherwise
+        # do via photo.member_id.
+        new_photos.append((photo, sub.user_id))
+
+    if new_photos:
+        await db.flush()  # populate photo.id for each newly added photo
+        for photo, owner_user_id in new_photos:
+            await auto_like_photo_owner(photo, db, owner_user_id=owner_user_id)
 
 
 # --- Auto-scheduled deadline events ---
