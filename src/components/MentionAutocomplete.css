@@ -1,0 +1,43 @@
+.mention-autocomplete {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  left: 0;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: rgba(15, 22, 12, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 240px;
+  overflow-y: auto;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mention-autocomplete__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.mention-autocomplete__item:hover,
+.mention-autocomplete__item--active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mention-autocomplete__name {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+}
+
+.mention-autocomplete__specialty {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.75rem;
+}

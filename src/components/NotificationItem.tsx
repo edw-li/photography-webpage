@@ -6,6 +6,8 @@ import type {
   ContestNotificationPayload,
   GalleryCommentPayload,
   GalleryLikePayload,
+  GalleryMentionPayload,
+  GalleryReplyPayload,
 } from '../types/notifications';
 import { formatRelativeTime } from '../utils/relativeTime';
 import { getImageUrl } from '../utils/imageUrl';
@@ -68,6 +70,26 @@ export default function NotificationItem({ notification, onMarkRead }: Notificat
         return {
           icon: <MessageCircle size={18} className="notif__type-icon notif__type-icon--comment" />,
           title: <><strong>{p.actorName}</strong> commented on your photo</>,
+          subtitle: `"${p.bodyPreview}${p.bodyPreview.length >= 140 ? '…' : ''}"`,
+          thumb: p.photoUrl,
+          target: `/?photo=${p.photoId}`,
+        };
+      }
+      case 'gallery_reply': {
+        const p = notification.payload as GalleryReplyPayload;
+        return {
+          icon: <MessageCircle size={18} className="notif__type-icon notif__type-icon--comment" />,
+          title: <><strong>{p.actorName}</strong> replied to your comment</>,
+          subtitle: `"${p.bodyPreview}${p.bodyPreview.length >= 140 ? '…' : ''}"`,
+          thumb: p.photoUrl,
+          target: `/?photo=${p.photoId}`,
+        };
+      }
+      case 'gallery_mention': {
+        const p = notification.payload as GalleryMentionPayload;
+        return {
+          icon: <MessageCircle size={18} className="notif__type-icon notif__type-icon--comment" />,
+          title: <><strong>{p.actorName}</strong> mentioned you in a comment</>,
           subtitle: `"${p.bodyPreview}${p.bodyPreview.length >= 140 ? '…' : ''}"`,
           thumb: p.photoUrl,
           target: `/?photo=${p.photoId}`,

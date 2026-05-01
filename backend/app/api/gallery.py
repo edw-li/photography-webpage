@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Upl
 from PIL import Image
 from sqlalchemy import delete as sql_delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -17,8 +18,11 @@ from ..models.member import Member
 from ..models.notification import (
     NOTIFICATION_TYPE_GALLERY_COMMENT,
     NOTIFICATION_TYPE_GALLERY_LIKE,
+    NOTIFICATION_TYPE_GALLERY_MENTION,
+    NOTIFICATION_TYPE_GALLERY_REPLY,
     Notification,
 )
+from ..services.mentions import format_body_preview, parse_mentions
 from ..models.user import User
 from ..rate_limit import limiter, AUTH_ATTEMPT, SOCIAL_ACTION
 from ..schemas.common import PaginatedResponse
@@ -239,6 +243,14 @@ async def auto_like_photo_owner(
 _GALLERY_NOTIFICATION_TYPES = (
     NOTIFICATION_TYPE_GALLERY_LIKE,
     NOTIFICATION_TYPE_GALLERY_COMMENT,
+    NOTIFICATION_TYPE_GALLERY_REPLY,
+    NOTIFICATION_TYPE_GALLERY_MENTION,
+)
+
+_COMMENT_NOTIFICATION_TYPES = (
+    NOTIFICATION_TYPE_GALLERY_COMMENT,
+    NOTIFICATION_TYPE_GALLERY_REPLY,
+    NOTIFICATION_TYPE_GALLERY_MENTION,
 )
 
 
@@ -253,10 +265,10 @@ async def _delete_notifications_for_photo(photo_id: int, db: AsyncSession) -> No
 
 
 async def _delete_notifications_for_comment(comment_id: int, db: AsyncSession) -> None:
-    """Remove the comment notification whose payload references the deleted comment."""
+    """Remove comment-related notifications whose payload references the deleted comment."""
     await db.execute(
         sql_delete(Notification).where(
-            Notification.type == NOTIFICATION_TYPE_GALLERY_COMMENT,
+            Notification.type.in_(_COMMENT_NOTIFICATION_TYPES),
             Notification.payload["commentId"].astext == str(comment_id),
         )
     )
@@ -572,6 +584,7 @@ def _comment_to_response(
     return GalleryCommentResponse(
         id=comment.id,
         photo_id=comment.photo_id,
+        parent_id=comment.parent_id,
         user_id=str(comment.user_id) if comment.user_id else None,
         author_name=author_name,
         author_avatar=author_avatar,
@@ -619,26 +632,54 @@ async def list_photo_comments(
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
-    count_result = await db.execute(
+    # `total` keeps existing semantics: ALL comments for this photo (top-level
+    # + replies), so the header badge "X comments" stays accurate.
+    total_result = await db.execute(
         select(func.count()).select_from(GalleryPhotoComment).where(
             GalleryPhotoComment.photo_id == photo_id
         )
     )
-    total = count_result.scalar_one()
+    total = total_result.scalar_one()
 
-    result = await db.execute(
+    # Pagination is over top-level threads. Each page returns the next N
+    # top-level comments along with ALL of their replies, so the client always
+    # receives complete threads (avoiding orphaned replies on later pages).
+    tops_count_result = await db.execute(
+        select(func.count()).select_from(GalleryPhotoComment).where(
+            GalleryPhotoComment.photo_id == photo_id,
+            GalleryPhotoComment.parent_id.is_(None),
+        )
+    )
+    tops_count = tops_count_result.scalar_one()
+
+    tops_result = await db.execute(
         select(GalleryPhotoComment)
-        .where(GalleryPhotoComment.photo_id == photo_id)
+        .where(
+            GalleryPhotoComment.photo_id == photo_id,
+            GalleryPhotoComment.parent_id.is_(None),
+        )
         .order_by(GalleryPhotoComment.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    comments = list(result.scalars().all())
-    authors = await _resolve_comment_authors(comments, db)
+    tops = list(tops_result.scalars().all())
+
+    if tops:
+        replies_result = await db.execute(
+            select(GalleryPhotoComment)
+            .where(GalleryPhotoComment.parent_id.in_([t.id for t in tops]))
+            .order_by(GalleryPhotoComment.created_at.asc())
+        )
+        replies = list(replies_result.scalars().all())
+    else:
+        replies = []
+
+    all_comments = tops + replies
+    authors = await _resolve_comment_authors(all_comments, db)
 
     viewer_id = user.id if user else None
     items: list[GalleryCommentResponse] = []
-    for c in comments:
+    for c in all_comments:
         if c.user_id and c.user_id in authors:
             name, avatar = authors[c.user_id]
         else:
@@ -655,7 +696,7 @@ async def list_photo_comments(
         total=total,
         page=page,
         page_size=page_size,
-        pages=math.ceil(total / page_size) if total > 0 else 0,
+        pages=math.ceil(tops_count / page_size) if tops_count > 0 else 0,
     )
 
 
@@ -677,34 +718,123 @@ async def post_photo_comment(
     if not text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment cannot be empty")
 
+    parent_id = body.parent_id
+    parent: GalleryPhotoComment | None = None
+    if parent_id is not None:
+        parent_result = await db.execute(
+            select(GalleryPhotoComment).where(GalleryPhotoComment.id == parent_id)
+        )
+        parent = parent_result.scalar_one_or_none()
+        if parent is None or parent.photo_id != photo_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Parent comment not found",
+            )
+        if parent.parent_id is not None:
+            # Two-tier only — replies cannot be replied to.
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot reply to a reply",
+            )
+
     comment = GalleryPhotoComment(
         photo_id=photo_id,
         user_id=user.id,
+        parent_id=parent_id,
         body=text,
     )
-    db.add(comment)
-    await db.flush()  # populate comment.id
 
-    # Notification to photo owner if owner != actor
-    owner_user_id = await _photo_owner_user_id(photo, db)
-    if owner_user_id is not None and owner_user_id != user.id:
+    try:
+        db.add(comment)
+        await db.flush()  # FK validation runs here; populates comment.id on success.
+
         actor_name = f"{user.first_name} {user.last_name}".strip() or user.email
-        body_preview = text[:140]
-        db.add(Notification(
-            user_id=owner_user_id,
-            type=NOTIFICATION_TYPE_GALLERY_COMMENT,
-            payload={
-                "photoId": photo.id,
-                "photoTitle": photo.title,
-                "photoUrl": photo.url,
-                "commentId": comment.id,
-                "bodyPreview": body_preview,
-                "actorUserId": str(user.id),
-                "actorName": actor_name,
-            },
-        ))
+        body_preview = format_body_preview(text)
 
-    await db.commit()
+        # Track recipients we've already queued a notification for so that a
+        # comment which both replies to / lands on someone's photo AND mentions
+        # them only fires one notification per (user, comment) pair.
+        already_notified: set[uuid.UUID] = set()
+
+        if parent is not None and parent.user_id is not None and parent.user_id != user.id:
+            # Reply → notify the parent author. We deliberately don't also notify
+            # the photo owner here; they were already pinged on the original
+            # top-level comment.
+            db.add(Notification(
+                user_id=parent.user_id,
+                type=NOTIFICATION_TYPE_GALLERY_REPLY,
+                payload={
+                    "photoId": photo.id,
+                    "photoTitle": photo.title,
+                    "photoUrl": photo.url,
+                    "commentId": comment.id,
+                    "parentCommentId": parent.id,
+                    "bodyPreview": body_preview,
+                    "actorUserId": str(user.id),
+                    "actorName": actor_name,
+                },
+            ))
+            already_notified.add(parent.user_id)
+        elif parent is None:
+            # Top-level comment → notify the photo owner if not the actor.
+            owner_user_id = await _photo_owner_user_id(photo, db)
+            if owner_user_id is not None and owner_user_id != user.id:
+                db.add(Notification(
+                    user_id=owner_user_id,
+                    type=NOTIFICATION_TYPE_GALLERY_COMMENT,
+                    payload={
+                        "photoId": photo.id,
+                        "photoTitle": photo.title,
+                        "photoUrl": photo.url,
+                        "commentId": comment.id,
+                        "bodyPreview": body_preview,
+                        "actorUserId": str(user.id),
+                        "actorName": actor_name,
+                    },
+                ))
+                already_notified.add(owner_user_id)
+
+        # Mention notifications — for each unique mentioned member with an
+        # account, except the actor and except anyone already getting a
+        # reply/comment notification for this same comment.
+        mentioned_member_ids = parse_mentions(text)
+        if mentioned_member_ids:
+            members_result = await db.execute(
+                select(Member).where(Member.id.in_(mentioned_member_ids))
+            )
+            for m in members_result.scalars().all():
+                if m.user_id is None or m.user_id == user.id or m.user_id in already_notified:
+                    continue
+                already_notified.add(m.user_id)
+                db.add(Notification(
+                    user_id=m.user_id,
+                    type=NOTIFICATION_TYPE_GALLERY_MENTION,
+                    payload={
+                        "photoId": photo.id,
+                        "photoTitle": photo.title,
+                        "photoUrl": photo.url,
+                        "commentId": comment.id,
+                        "bodyPreview": body_preview,
+                        "actorUserId": str(user.id),
+                        "actorName": actor_name,
+                    },
+                ))
+
+        await db.commit()
+    except IntegrityError:
+        # Most common cause: parent comment was deleted between our SELECT and
+        # the FK enforcement at flush time. Translate to a 400 so the client
+        # sees the same error as if validation had caught it earlier.
+        # For non-reply inserts we don't expect IntegrityError; re-raise so it
+        # surfaces as 500 rather than misattributing it to a missing parent.
+        await db.rollback()
+        if parent_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Parent comment not found",
+            )
+        raise
+
     await db.refresh(comment)
 
     authors = await _resolve_comment_authors([comment], db)
@@ -777,6 +907,26 @@ async def delete_photo_comment(
     is_owner = comment.user_id == user.id
     if not (is_admin or is_owner):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete another user's comment")
+
+    # If this is a top-level comment, gather reply IDs and clean their
+    # notifications BEFORE the DB cascade removes the rows.
+    if comment.parent_id is None:
+        reply_ids_result = await db.execute(
+            select(GalleryPhotoComment.id).where(
+                GalleryPhotoComment.parent_id == comment.id
+            )
+        )
+        reply_ids = [rid for rid in reply_ids_result.scalars().all()]
+        if reply_ids:
+            await db.execute(
+                sql_delete(Notification).where(
+                    Notification.type.in_(_COMMENT_NOTIFICATION_TYPES),
+                    Notification.payload["commentId"].astext.in_(
+                        [str(rid) for rid in reply_ids]
+                    ),
+                )
+            )
+
     await _delete_notifications_for_comment(comment.id, db)
     await db.delete(comment)
     await db.commit()

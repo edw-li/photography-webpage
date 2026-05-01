@@ -19,7 +19,7 @@ type Filter = 'all' | 'unread' | 'likes' | 'comments' | 'contests';
 
 const TYPE_FILTER: Record<Exclude<Filter, 'all' | 'unread'>, NotificationType[]> = {
   likes: ['gallery_like'],
-  comments: ['gallery_comment'],
+  comments: ['gallery_comment', 'gallery_reply', 'gallery_mention'],
   contests: ['contest_voting_open', 'contest_completed'],
 };
 

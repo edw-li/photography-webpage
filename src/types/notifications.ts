@@ -1,6 +1,8 @@
 export type NotificationType =
   | 'gallery_like'
   | 'gallery_comment'
+  | 'gallery_reply'
+  | 'gallery_mention'
   | 'contest_voting_open'
   | 'contest_completed';
 
@@ -22,6 +24,27 @@ export interface GalleryCommentPayload {
   actorName: string;
 }
 
+export interface GalleryReplyPayload {
+  photoId: number;
+  photoTitle: string;
+  photoUrl: string;
+  commentId: number;
+  parentCommentId: number;
+  bodyPreview: string;
+  actorUserId: string;
+  actorName: string;
+}
+
+export interface GalleryMentionPayload {
+  photoId: number;
+  photoTitle: string;
+  photoUrl: string;
+  commentId: number;
+  bodyPreview: string;
+  actorUserId: string;
+  actorName: string;
+}
+
 export interface ContestNotificationPayload {
   contestId: number;
   contestTheme: string;
@@ -31,6 +54,8 @@ export interface ContestNotificationPayload {
 export type NotificationPayload =
   | GalleryLikePayload
   | GalleryCommentPayload
+  | GalleryReplyPayload
+  | GalleryMentionPayload
   | ContestNotificationPayload;
 
 export interface AppNotification {

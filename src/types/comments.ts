@@ -1,6 +1,7 @@
 export interface GalleryComment {
   id: number;
   photoId: number;
+  parentId: number | null;
   userId: string | null;
   authorName: string | null;
   authorAvatar: string | null;

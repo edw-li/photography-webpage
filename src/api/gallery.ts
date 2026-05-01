@@ -106,10 +106,11 @@ export async function getPhotoComments(
 export async function postPhotoComment(
   photoId: number,
   body: string,
+  parentId?: number | null,
 ): Promise<GalleryComment> {
   return apiFetch<GalleryComment>(`/gallery/${photoId}/comments`, {
     method: 'POST',
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, parentId: parentId ?? null }),
   });
 }
 

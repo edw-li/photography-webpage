@@ -11,6 +11,8 @@ from ..database import Base
 # Notification type constants — keep in sync with frontend types/notifications.ts
 NOTIFICATION_TYPE_GALLERY_LIKE = "gallery_like"
 NOTIFICATION_TYPE_GALLERY_COMMENT = "gallery_comment"
+NOTIFICATION_TYPE_GALLERY_REPLY = "gallery_reply"
+NOTIFICATION_TYPE_GALLERY_MENTION = "gallery_mention"
 NOTIFICATION_TYPE_CONTEST_VOTING_OPEN = "contest_voting_open"
 NOTIFICATION_TYPE_CONTEST_COMPLETED = "contest_completed"
 
