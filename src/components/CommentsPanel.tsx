@@ -6,16 +6,12 @@ import { useToast } from '../contexts/ToastContext';
 import { getPhotoComments, postPhotoComment } from '../api/gallery';
 import CommentItem from './CommentItem';
 import MentionAutocomplete from './MentionAutocomplete';
+import { buildBodyForSubmit } from '../utils/parseMentions';
 import type { GalleryComment } from '../types/comments';
 import './CommentsPanel.css';
 
 const MAX_BODY = 1000;
 const PAGE_SIZE = 20;
-
-const SHORTCUT_LABEL =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform)
-    ? '⌘ Enter'
-    : 'Ctrl+Enter';
 
 interface CommentTreeNode {
   comment: GalleryComment;
@@ -55,6 +51,7 @@ function ReplyForm({ photoId, parentId, onCancel, onPosted }: ReplyFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursor, setCursor] = useState(0);
+  const mentionsRef = useRef<Map<string, number>>(new Map());
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,7 +59,8 @@ function ReplyForm({ photoId, parentId, onCancel, onPosted }: ReplyFormProps) {
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
-      const created = await postPhotoComment(photoId, trimmed, parentId);
+      const tokenized = buildBodyForSubmit(trimmed, mentionsRef.current);
+      const created = await postPhotoComment(photoId, tokenized, parentId);
       onPosted(created);
     } catch {
       addToast('error', 'Failed to post reply');
@@ -104,7 +102,8 @@ function ReplyForm({ photoId, parentId, onCancel, onPosted }: ReplyFormProps) {
           value={draft}
           cursor={cursor}
           anchorRef={textareaRef}
-          onInsert={(newValue, newCursor) => {
+          onInsert={(newValue, newCursor, mention) => {
+            mentionsRef.current.set(mention.name, mention.memberId);
             setDraft(newValue);
             setCursor(newCursor);
             requestAnimationFrame(() => {
@@ -125,9 +124,6 @@ function ReplyForm({ photoId, parentId, onCancel, onPosted }: ReplyFormProps) {
         >
           {counter}
         </span>
-        <kbd className="comments-panel__shortcut" aria-hidden="true">
-          {SHORTCUT_LABEL}
-        </kbd>
         <button
           type="button"
           className="comments-panel__cancel"
@@ -170,6 +166,7 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursor, setCursor] = useState(0);
+  const mentionsRef = useRef<Map<string, number>>(new Map());
 
   // Hold latest onCountChange in a ref so it doesn't drive useCallback identity
   // (parent passes an inline arrow that re-creates each render — without the
@@ -220,7 +217,8 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
-      const created = await postPhotoComment(photoId, trimmed);
+      const tokenized = buildBodyForSubmit(trimmed, mentionsRef.current);
+      const created = await postPhotoComment(photoId, tokenized);
       setComments((prev) => [created, ...prev]);
       setTotal((t) => {
         const next = t + 1;
@@ -228,6 +226,7 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
         return next;
       });
       setDraft('');
+      mentionsRef.current.clear();
     } catch {
       addToast('error', 'Failed to post comment');
     } finally {
@@ -362,7 +361,8 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
               value={draft}
               cursor={cursor}
               anchorRef={textareaRef}
-              onInsert={(newValue, newCursor) => {
+              onInsert={(newValue, newCursor, mention) => {
+                mentionsRef.current.set(mention.name, mention.memberId);
                 setDraft(newValue);
                 setCursor(newCursor);
                 requestAnimationFrame(() => {
@@ -384,11 +384,6 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
           >
             {counter}
           </span>
-          {isAuthenticated && (
-            <kbd className="comments-panel__shortcut" aria-hidden="true">
-              {SHORTCUT_LABEL}
-            </kbd>
-          )}
           <button
             type="submit"
             className="comments-panel__submit"

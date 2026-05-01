@@ -47,3 +47,34 @@ export function tokenizeComment(body: string): CommentSegment[] {
 export function sanitizeMentionName(name: string): string {
   return name.replace(/\]/g, '').replace(/\s+/g, ' ').trim();
 }
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Convert any plain `@<Name>` substrings in `body` to `@[<id>:<Name>]` tokens
+ * for storage, using the (name → memberId) mapping captured by the autocomplete.
+ *
+ * Replacement rules:
+ *  - The `@` must be at start-of-string or follow whitespace.
+ *  - The `Name` immediately follows `@`, with no leading space.
+ *  - The character after `Name` must NOT be a word character (so `@Edward` in
+ *    "@EdwardLi" doesn't accidentally match a known "@Edward").
+ *  - Longer names are tried first so that "@Edward Li" wins over "@Edward".
+ *  - Names already wrapped in `@[id:Name]` tokens are left alone.
+ */
+export function buildBodyForSubmit(
+  body: string,
+  mentions: ReadonlyMap<string, number>,
+): string {
+  if (mentions.size === 0) return body;
+  const names = [...mentions.keys()].sort((a, b) => b.length - a.length);
+  let result = body;
+  for (const name of names) {
+    const memberId = mentions.get(name)!;
+    const re = new RegExp(`(^|\\s)@${escapeRegex(name)}(?!\\w)`, 'g');
+    result = result.replace(re, `$1@[${memberId}:${name}]`);
+  }
+  return result;
+}
