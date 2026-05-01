@@ -7,7 +7,7 @@ import './MentionAutocomplete.css';
 interface MentionAutocompleteProps {
   value: string;
   cursor: number;
-  onInsert: (newValue: string, newCursor: number) => void;
+  onInsert: (newValue: string, newCursor: number, mention: { memberId: number; name: string }) => void;
   anchorRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -136,12 +136,15 @@ export default function MentionAutocomplete({
   const insertMember = (member: Member) => {
     if (!trigger || member.id == null) return;
     const safeName = sanitizeMentionName(member.name) || `Member ${member.id}`;
-    const token = `@[${member.id}:${safeName}] `;
+    // Insert just the visible `@<Name> ` (no `[id:]` wrapper). The parent
+    // tracks `(name -> memberId)` and converts these substrings to the
+    // storage token format on submit.
+    const visible = `@${safeName} `;
     const before = value.slice(0, trigger.start);
     const after = value.slice(cursor);
-    const newValue = before + token + after;
-    const newCursor = (before + token).length;
-    onInsert(newValue, newCursor);
+    const newValue = before + visible + after;
+    const newCursor = (before + visible).length;
+    onInsert(newValue, newCursor, { memberId: member.id, name: safeName });
   };
 
   if (!trigger || results.length === 0) return null;
