@@ -17,6 +17,15 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
+/* Position-aware variant: opened above the textarea when there isn't
+   enough room below (e.g. main composer pinned at the bottom of the panel,
+   or a reply form near the bottom). */
+.mention-autocomplete--above {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 0.25rem 0;
+}
+
 .mention-autocomplete__item {
   display: flex;
   flex-direction: column;
