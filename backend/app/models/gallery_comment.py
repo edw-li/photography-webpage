@@ -18,6 +18,11 @@ class GalleryPhotoComment(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("gallery_photo_comments.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")

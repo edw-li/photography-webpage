@@ -5,6 +5,7 @@ import { editPhotoComment, deletePhotoComment } from '../api/gallery';
 import { formatRelativeTime } from '../utils/relativeTime';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import ConfirmDialog from './ConfirmDialog';
+import { tokenizeComment } from '../utils/parseMentions';
 import type { GalleryComment } from '../types/comments';
 
 const USER_PLACEHOLDER_ICON = (
@@ -19,11 +20,20 @@ const MAX_BODY = 1000;
 interface CommentItemProps {
   comment: GalleryComment;
   isAdmin: boolean;
+  canReply?: boolean;
+  onReplyClick?: () => void;
   onUpdated: (next: GalleryComment) => void;
   onDeleted: (id: number) => void;
 }
 
-export default function CommentItem({ comment, isAdmin, onUpdated, onDeleted }: CommentItemProps) {
+export default function CommentItem({
+  comment,
+  isAdmin,
+  canReply,
+  onReplyClick,
+  onUpdated,
+  onDeleted,
+}: CommentItemProps) {
   const { addToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
@@ -133,10 +143,34 @@ export default function CommentItem({ comment, isAdmin, onUpdated, onDeleted }: 
               </div>
             </form>
           ) : (
-            <p className="comment-item__body">{comment.body}</p>
+            <p className="comment-item__body">
+              {tokenizeComment(comment.body).map((seg, i) =>
+                seg.type === 'mention' ? (
+                  <span
+                    key={i}
+                    className="comment-item__mention"
+                    data-member-id={seg.memberId}
+                  >
+                    @{seg.displayName}
+                  </span>
+                ) : (
+                  <span key={i}>{seg.value}</span>
+                ),
+              )}
+            </p>
           )}
-          {!editing && (canEdit || canDelete) && (
+          {!editing && (canEdit || canDelete || (canReply && onReplyClick)) && (
             <div className="comment-item__actions">
+              {canReply && onReplyClick && (
+                <button
+                  type="button"
+                  className="comment-item__action"
+                  onClick={onReplyClick}
+                  aria-label="Reply to comment"
+                >
+                  Reply
+                </button>
+              )}
               {canEdit && (
                 <button
                   type="button"

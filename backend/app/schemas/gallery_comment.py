@@ -7,6 +7,7 @@ from .common import CamelModel
 
 class GalleryCommentCreate(CamelModel):
     body: str = Field(..., min_length=1, max_length=1000)
+    parent_id: int | None = None
 
 
 class GalleryCommentUpdate(CamelModel):
@@ -16,6 +17,7 @@ class GalleryCommentUpdate(CamelModel):
 class GalleryCommentResponse(CamelModel):
     id: int
     photo_id: int
+    parent_id: int | None  # null for top-level
     user_id: str | None  # null if commenter's account was deleted
     author_name: str | None  # snapshot from member at fetch time; null if user deleted
     author_avatar: str | None

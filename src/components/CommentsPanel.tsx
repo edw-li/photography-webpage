@@ -5,11 +5,148 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getPhotoComments, postPhotoComment } from '../api/gallery';
 import CommentItem from './CommentItem';
+import MentionAutocomplete from './MentionAutocomplete';
 import type { GalleryComment } from '../types/comments';
 import './CommentsPanel.css';
 
 const MAX_BODY = 1000;
 const PAGE_SIZE = 20;
+
+const SHORTCUT_LABEL =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform)
+    ? '⌘ Enter'
+    : 'Ctrl+Enter';
+
+interface CommentTreeNode {
+  comment: GalleryComment;
+  replies: GalleryComment[];
+}
+
+function buildCommentTree(items: GalleryComment[]): CommentTreeNode[] {
+  const repliesByParent = new Map<number, GalleryComment[]>();
+  for (const c of items) {
+    if (c.parentId == null) continue;
+    const arr = repliesByParent.get(c.parentId) ?? [];
+    arr.push(c);
+    repliesByParent.set(c.parentId, arr);
+  }
+  // Tops appear in newest-first order from the API; replies sorted oldest-first
+  // so threads read top-down chronologically.
+  return items
+    .filter((c) => c.parentId == null)
+    .map((top) => ({
+      comment: top,
+      replies: (repliesByParent.get(top.id) ?? [])
+        .slice()
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    }));
+}
+
+interface ReplyFormProps {
+  photoId: number;
+  parentId: number;
+  onCancel: () => void;
+  onPosted: (reply: GalleryComment) => void;
+}
+
+function ReplyForm({ photoId, parentId, onCancel, onPosted }: ReplyFormProps) {
+  const { addToast } = useToast();
+  const [draft, setDraft] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cursor, setCursor] = useState(0);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = draft.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    try {
+      const created = await postPhotoComment(photoId, trimmed, parentId);
+      onPosted(created);
+    } catch {
+      addToast('error', 'Failed to post reply');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onCmdEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      submit(e as unknown as FormEvent);
+    }
+  };
+
+  const counter = `${draft.length}/${MAX_BODY}`;
+
+  return (
+    <form className="comments-panel__reply-form" onSubmit={submit}>
+      <div className="comments-panel__composer">
+        <textarea
+          ref={textareaRef}
+          className="comments-panel__input"
+          autoFocus
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value.slice(0, MAX_BODY));
+            setCursor(e.target.selectionStart ?? e.target.value.length);
+          }}
+          onSelect={(e) => {
+            setCursor(e.currentTarget.selectionStart ?? 0);
+          }}
+          onKeyDown={onCmdEnter}
+          placeholder="Write a reply… use @ to mention"
+          maxLength={MAX_BODY}
+          rows={2}
+          disabled={submitting}
+        />
+        <MentionAutocomplete
+          value={draft}
+          cursor={cursor}
+          anchorRef={textareaRef}
+          onInsert={(newValue, newCursor) => {
+            setDraft(newValue);
+            setCursor(newCursor);
+            requestAnimationFrame(() => {
+              const el = textareaRef.current;
+              if (!el) return;
+              el.focus();
+              el.setSelectionRange(newCursor, newCursor);
+            });
+          }}
+        />
+      </div>
+      <div className="comments-panel__form-row">
+        <span
+          className={`comments-panel__counter${
+            draft.length > MAX_BODY * 0.9 ? ' comments-panel__counter--warn' : ''
+          }`}
+          aria-live="polite"
+        >
+          {counter}
+        </span>
+        <kbd className="comments-panel__shortcut" aria-hidden="true">
+          {SHORTCUT_LABEL}
+        </kbd>
+        <button
+          type="button"
+          className="comments-panel__cancel"
+          onClick={onCancel}
+          disabled={submitting}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="comments-panel__submit"
+          disabled={submitting || !draft.trim()}
+        >
+          {submitting ? 'Posting…' : 'Reply'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 interface CommentsPanelProps {
   photoId: number;
@@ -30,6 +167,9 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
 
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cursor, setCursor] = useState(0);
 
   // Hold latest onCountChange in a ref so it doesn't drive useCallback identity
   // (parent passes an inline arrow that re-creates each render — without the
@@ -58,6 +198,7 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
     setLoading(true);
     setPage(1);
     setComments([]);
+    setReplyingTo(null);
     loadPage(1, true).finally(() => setLoading(false));
   }, [photoId, loadPage]);
 
@@ -120,23 +261,70 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
           </div>
         ) : (
           <>
-            {comments.map((c) => (
-              <CommentItem
-                key={c.id}
-                comment={c}
-                isAdmin={isAdmin}
-                onUpdated={(updated) =>
-                  setComments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
-                }
-                onDeleted={(id) => {
-                  setComments((prev) => prev.filter((x) => x.id !== id));
-                  setTotal((t) => {
-                    const next = Math.max(0, t - 1);
-                    onCountChangeRef.current?.(next);
-                    return next;
-                  });
-                }}
-              />
+            {buildCommentTree(comments).map((node) => (
+              <div key={node.comment.id} className="comments-panel__thread">
+                <CommentItem
+                  comment={node.comment}
+                  isAdmin={isAdmin}
+                  canReply={isAuthenticated}
+                  onReplyClick={() =>
+                    setReplyingTo((curr) => (curr === node.comment.id ? null : node.comment.id))
+                  }
+                  onUpdated={(updated) =>
+                    setComments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                  }
+                  onDeleted={(id) => {
+                    // The DB cascades replies on parent delete — mirror locally.
+                    const removedCount = 1 + comments.filter((x) => x.parentId === id).length;
+                    setComments((prev) => prev.filter((x) => x.id !== id && x.parentId !== id));
+                    setTotal((t) => {
+                      const next = Math.max(0, t - removedCount);
+                      onCountChangeRef.current?.(next);
+                      return next;
+                    });
+                    if (replyingTo === id) setReplyingTo(null);
+                  }}
+                />
+                {node.replies.length > 0 && (
+                  <div className="comments-panel__replies">
+                    {node.replies.map((r) => (
+                      <CommentItem
+                        key={r.id}
+                        comment={r}
+                        isAdmin={isAdmin}
+                        canReply={false}
+                        onUpdated={(updated) =>
+                          setComments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                        }
+                        onDeleted={(id) => {
+                          setComments((prev) => prev.filter((x) => x.id !== id));
+                          setTotal((t) => {
+                            const next = Math.max(0, t - 1);
+                            onCountChangeRef.current?.(next);
+                            return next;
+                          });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                {replyingTo === node.comment.id && (
+                  <ReplyForm
+                    photoId={photoId}
+                    parentId={node.comment.id}
+                    onCancel={() => setReplyingTo(null)}
+                    onPosted={(reply) => {
+                      setComments((prev) => [...prev, reply]);
+                      setTotal((t) => {
+                        const next = t + 1;
+                        onCountChangeRef.current?.(next);
+                        return next;
+                      });
+                      setReplyingTo(null);
+                    }}
+                  />
+                )}
+              </div>
             ))}
             {page < pages && (
               <button
@@ -151,19 +339,55 @@ export default function CommentsPanel({ photoId, initialCount, onCountChange }: 
         )}
       </div>
       <form className="comments-panel__form" onSubmit={handleSubmit}>
-        <textarea
-          className="comments-panel__input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, MAX_BODY))}
-          onKeyDown={onCmdEnter}
-          placeholder={isAuthenticated ? 'Share your thoughts…' : 'Log in to comment'}
-          maxLength={MAX_BODY}
-          rows={2}
-          disabled={!isAuthenticated || submitting}
-        />
+        <div className="comments-panel__composer">
+          <textarea
+            ref={textareaRef}
+            className="comments-panel__input"
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value.slice(0, MAX_BODY));
+              setCursor(e.target.selectionStart ?? e.target.value.length);
+            }}
+            onSelect={(e) => {
+              setCursor(e.currentTarget.selectionStart ?? 0);
+            }}
+            onKeyDown={onCmdEnter}
+            placeholder={isAuthenticated ? 'Share your thoughts… use @ to mention' : 'Log in to comment'}
+            maxLength={MAX_BODY}
+            rows={2}
+            disabled={!isAuthenticated || submitting}
+          />
+          {isAuthenticated && (
+            <MentionAutocomplete
+              value={draft}
+              cursor={cursor}
+              anchorRef={textareaRef}
+              onInsert={(newValue, newCursor) => {
+                setDraft(newValue);
+                setCursor(newCursor);
+                requestAnimationFrame(() => {
+                  const el = textareaRef.current;
+                  if (!el) return;
+                  el.focus();
+                  el.setSelectionRange(newCursor, newCursor);
+                });
+              }}
+            />
+          )}
+        </div>
         <div className="comments-panel__form-row">
-          {draft.length > MAX_BODY * 0.8 && (
-            <span className="comments-panel__counter">{counter}</span>
+          <span
+            className={`comments-panel__counter${
+              draft.length > MAX_BODY * 0.9 ? ' comments-panel__counter--warn' : ''
+            }`}
+            aria-live="polite"
+          >
+            {counter}
+          </span>
+          {isAuthenticated && (
+            <kbd className="comments-panel__shortcut" aria-hidden="true">
+              {SHORTCUT_LABEL}
+            </kbd>
           )}
           <button
             type="submit"
