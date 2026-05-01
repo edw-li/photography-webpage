@@ -3,9 +3,16 @@ import { Pencil, Trash2, X, Check } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { editPhotoComment, deletePhotoComment } from '../api/gallery';
 import { formatRelativeTime } from '../utils/relativeTime';
-import { getImageUrl } from '../utils/imageUrl';
+import { useImageLoaded } from '../hooks/useImageLoaded';
 import ConfirmDialog from './ConfirmDialog';
 import type { GalleryComment } from '../types/comments';
+
+const USER_PLACEHOLDER_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M20 21a8 8 0 0 0-16 0" />
+  </svg>
+);
 
 const MAX_BODY = 1000;
 
@@ -23,6 +30,8 @@ export default function CommentItem({ comment, isAdmin, onUpdated, onDeleted }: 
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const avatarUrl = comment.authorAvatar ?? undefined;
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(avatarUrl);
 
   const canEdit = comment.isOwn;
   const canDelete = comment.isOwn || isAdmin;
@@ -66,16 +75,23 @@ export default function CommentItem({ comment, isAdmin, onUpdated, onDeleted }: 
   };
 
   const displayName = comment.authorName ?? '[deleted user]';
-  const initial = (comment.authorName ?? '?').charAt(0).toUpperCase();
 
   return (
     <>
       <div className="comment-item">
         <div className="comment-item__avatar">
-          {comment.authorAvatar ? (
-            <img src={getImageUrl(comment.authorAvatar, 'thumb')} alt="" />
+          {!avatarUrl || errored ? (
+            <div className="img-error-fallback">{USER_PLACEHOLDER_ICON}</div>
           ) : (
-            <span aria-hidden="true">{initial}</span>
+            <img
+              ref={imgRef}
+              src={avatarUrl}
+              alt=""
+              loading="lazy"
+              className={`img-fade${loaded ? ' img-fade--loaded' : ''}`}
+              onLoad={handleLoad}
+              onError={handleError}
+            />
           )}
         </div>
         <div className="comment-item__main">
