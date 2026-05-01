@@ -316,10 +316,21 @@
 }
 
 .comments-panel__reply-form {
+  /*
+   * Visual goal: equal spacing from content edges to the yellow bar (left)
+   * and to the panel edge (right).
+   *
+   *   Left gap  = padding-left                                  = 0.6rem
+   *   Right gap = padding-right + margin-right + list padding-right
+   *             = 0.35rem      + 0           + 0.25rem         = 0.6rem
+   *
+   * The list (`.comments-panel__list`) contributes 0.25rem on its right
+   * which we account for here so the math is symmetric.
+   */
   margin-left: 1.5rem;
-  margin-right: 0.5rem;
+  margin-right: 0;
   padding-left: 0.6rem;
-  padding-right: 0.4rem;
+  padding-right: 0.35rem;
   border-left: 2px solid var(--color-accent);
   display: flex;
   flex-direction: column;

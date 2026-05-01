@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getMembers } from '../api/members';
 import type { Member } from '../types/members';
 import { sanitizeMentionName } from '../utils/parseMentions';
@@ -50,6 +50,11 @@ function detectTrigger(value: string, cursor: number): ActiveTrigger | null {
   return null;
 }
 
+// Approximate dropdown height when full (max-height in CSS is 240px; add a
+// little for margin/padding). Used to decide whether there's enough room
+// below the textarea to open down without being clipped by the viewport.
+const DROPDOWN_HEIGHT_ESTIMATE = 260;
+
 export default function MentionAutocomplete({
   value,
   cursor,
@@ -59,6 +64,7 @@ export default function MentionAutocomplete({
   const trigger = useMemo(() => detectTrigger(value, cursor), [value, cursor]);
   const [results, setResults] = useState<Member[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [openAbove, setOpenAbove] = useState(false);
   const reqIdRef = useRef(0);
 
   // Fetch members when the trigger is active and its query changes.
@@ -86,6 +92,26 @@ export default function MentionAutocomplete({
     // alone should not refire the request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger?.query]);
+
+  // Choose orientation: open below by default; flip above when the textarea
+  // is too close to the bottom of the viewport. Re-measure whenever the
+  // dropdown's contents could change height (`results.length`) or the user
+  // moves to a different trigger.
+  useLayoutEffect(() => {
+    if (!trigger || results.length === 0) {
+      setOpenAbove(false);
+      return;
+    }
+    const el = anchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    // Only flip up if there isn't room below AND there's more room above —
+    // otherwise stick with the default (below) so the dropdown's own
+    // overflow-y handles whatever clipping remains.
+    setOpenAbove(spaceBelow < DROPDOWN_HEIGHT_ESTIMATE && spaceAbove > spaceBelow);
+  }, [trigger, results.length, anchorRef]);
 
   // Close the dropdown when the textarea loses focus (clicked outside, Tabbed
   // out). Item clicks are protected by onMouseDown.preventDefault so they
@@ -151,7 +177,9 @@ export default function MentionAutocomplete({
 
   return (
     <ul
-      className="mention-autocomplete"
+      className={`mention-autocomplete${
+        openAbove ? ' mention-autocomplete--above' : ''
+      }`}
       role="listbox"
       aria-label="Mention suggestions"
       onMouseDown={(e) => {
