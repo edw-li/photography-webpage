@@ -404,12 +404,6 @@ export default function NewslettersSection() {
             <input type="checkbox" id="nl-featured" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />
             <label htmlFor="nl-featured">Featured</label>
           </div>
-          {!editingId && (
-            <div className="afm-checkbox-row">
-              <input type="checkbox" id="nl-send" checked={form.sendToSubscribers} onChange={(e) => setForm({ ...form, sendToSubscribers: e.target.checked })} />
-              <label htmlFor="nl-send">Email to subscribers on create</label>
-            </div>
-          )}
           <div className="afm-field">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.4rem' }}>
               <label className="afm-label" style={{ marginBottom: 0 }}>Content (Markdown) *</label>
