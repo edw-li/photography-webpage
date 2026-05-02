@@ -29,7 +29,7 @@ from ..schemas.newsletter import (
 from ..config import settings
 from ..services.email_service import send_newsletter_email, send_verification_email
 from ..services.markdown_service import render_markdown
-from ..services.storage import absolutize_upload_url, save_uploaded_image
+from ..services.storage import absolutize_upload_url, delete_uploaded_directory, save_uploaded_image
 from .activity import log_activity
 from .deps import get_db, require_admin, verify_turnstile_token
 from .uploads import UploadResponse
@@ -540,9 +540,33 @@ async def delete_newsletter(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    _validate_newsletter_id(newsletter_id)
     result = await db.execute(select(Newsletter).where(Newsletter.id == newsletter_id))
     nl = result.scalar_one_or_none()
     if nl is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Newsletter not found")
+    title = nl.title
+
+    # Commit the DB delete first so the row is gone before we touch storage. If
+    # storage cleanup fails afterwards, we'd rather have orphans on disk than a
+    # ghost newsletter row pointing at deleted images.
+    await log_activity(
+        db, admin, "delete", "newsletter", newsletter_id,
+        f"Deleted newsletter: {title}",
+    )
     await db.delete(nl)
     await db.commit()
+
+    # Storage cleanup runs in a worker thread so blocking I/O (shutil.rmtree or
+    # serial OCI HTTP calls for many keys) doesn't stall the event loop. We
+    # narrow the except: programmer errors (ValueError from _safe_path_segment)
+    # propagate so a future caller's bug crashes loudly instead of silently
+    # leaving files behind.
+    try:
+        await asyncio.to_thread(delete_uploaded_directory, "newsletters", newsletter_id)
+    except ValueError:
+        raise
+    except Exception:
+        logger.warning(
+            "Failed to clean up image folder for newsletter %s", newsletter_id, exc_info=True
+        )
