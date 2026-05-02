@@ -506,6 +506,11 @@
   border-color: var(--color-accent);
 }
 
+.admin__md-editor--drag {
+  border-color: var(--color-accent);
+  background: rgba(239, 216, 125, 0.08);
+}
+
 .admin__md-preview {
   padding: 0.75rem;
   border: 1px solid var(--color-border);
@@ -559,6 +564,14 @@
 
 .admin__md-preview a:hover {
   opacity: 0.8;
+}
+
+.admin__md-preview img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75rem auto;
+  border-radius: var(--radius-sm, 4px);
 }
 
 /* ─── Drop Zone (Gallery Upload) ─── */

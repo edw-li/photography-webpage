@@ -95,3 +95,31 @@ export async function verifySubscription(token: string): Promise<{ message: stri
 export async function unsubscribeNewsletter(token: string): Promise<{ message: string }> {
   return apiFetch(`/newsletters/unsubscribe?token=${encodeURIComponent(token)}`);
 }
+
+export async function uploadNewsletterImage(
+  file: File,
+  newsletterId: string,
+): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch<{ url: string }>(
+    `/newsletters/${encodeURIComponent(newsletterId)}/uploads`,
+    { method: 'POST', body: fd, headers: {} },
+  );
+  return res.url;
+}
+
+export interface NewsletterTestSendResult {
+  sent: boolean;
+  toEmail: string;
+}
+
+export async function sendTestNewsletter(
+  id: string,
+  toEmail: string,
+): Promise<NewsletterTestSendResult> {
+  return apiFetch<NewsletterTestSendResult>(
+    `/newsletters/${encodeURIComponent(id)}/send-test`,
+    { method: 'POST', body: JSON.stringify({ toEmail }) },
+  );
+}

@@ -248,8 +248,33 @@ def _convert_heic_to_jpeg(content: bytes) -> tuple[bytes, str]:
 # Public API (unchanged signatures)
 # ---------------------------------------------------------------------------
 
-async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool = True, user_slug: str | None = None) -> str:
-    """Save uploaded image, optionally with thumbnails. Return URL path."""
+# All current callers (make_user_slug, make_photographer_slug, frontend slugify)
+# produce lowercase alphanumeric + hyphens, starting with [a-z0-9]. Be strict
+# defense-in-depth — refuse anything that could include path separators, '..',
+# leading dots, or non-ASCII.
+_PATH_SEGMENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,199}$")
+
+
+def _safe_path_segment(segment: str) -> str:
+    """Return segment if it's a safe single-path component, else raise ValueError."""
+    if not _PATH_SEGMENT_RE.fullmatch(segment):
+        raise ValueError(f"Unsafe path segment: {segment!r}")
+    return segment
+
+
+async def save_uploaded_image(
+    file: UploadFile,
+    category: str,
+    thumbnails: bool = True,
+    user_slug: str | None = None,
+    subdir: str | None = None,
+) -> str:
+    """Save uploaded image, optionally with thumbnails. Return URL path.
+
+    Pass `subdir` to nest under `{category}/{subdir}/` (used for newsletter-scoped
+    uploads). `subdir` is sanitized; takes precedence over `user_slug` when both
+    are passed.
+    """
     ext = Path(file.filename or "image.jpg").suffix or ".jpg"
     content = await file.read()
 
@@ -258,7 +283,12 @@ async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool 
         content, ext = _convert_heic_to_jpeg(content)
 
     unique_name = f"{uuid4().hex}{ext}"
-    effective_category = f"{category}/{user_slug}" if user_slug else category
+
+    nested = subdir if subdir is not None else user_slug
+    if nested is not None:
+        effective_category = f"{category}/{_safe_path_segment(nested)}"
+    else:
+        effective_category = category
 
     if settings.oci_configured:
         if thumbnails:
@@ -273,6 +303,22 @@ async def save_uploaded_image(file: UploadFile, category: str, thumbnails: bool 
     dest = dest_dir / unique_name
     dest.write_bytes(content)
     return f"/uploads/{effective_category}/{unique_name}"
+
+
+def absolutize_upload_url(url: str) -> str:
+    """Return an absolute URL for an upload path.
+
+    OCI/external URLs are passed through. Relative paths are prefixed with
+    `settings.frontend_url` so they work in email clients (which can't
+    resolve relative URLs).
+    """
+    if not url:
+        return url
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    base = settings.frontend_url.rstrip("/")
+    path = url if url.startswith("/") else f"/{url}"
+    return f"{base}{path}"
 
 
 def delete_uploaded_image(url: str, thumbnails: bool = True) -> None:

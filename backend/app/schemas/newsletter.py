@@ -40,6 +40,15 @@ class NewsletterSendResponse(CamelModel):
     emailed_at: datetime
 
 
+class NewsletterTestSendRequest(CamelModel):
+    to_email: EmailStr
+
+
+class NewsletterTestSendResponse(CamelModel):
+    sent: bool
+    to_email: str
+
+
 class NewsletterUpdate(CamelModel):
     title: str | None = None
     date: str | None = None

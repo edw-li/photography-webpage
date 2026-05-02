@@ -507,6 +507,14 @@
   font-style: italic;
 }
 
+.newsletter__modal-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.25rem auto;
+  border-radius: var(--radius-md);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 1024px) {
