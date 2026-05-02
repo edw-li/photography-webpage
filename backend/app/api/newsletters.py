@@ -2,14 +2,15 @@ import asyncio
 import logging
 import math
 import random
+import re
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..rate_limit import limiter, PUBLIC_POST
+from ..rate_limit import limiter, AUTH_ATTEMPT, PUBLIC_POST
 
 from ..models.newsletter import Newsletter
 from ..models.subscriber import NewsletterSubscriber
@@ -19,6 +20,8 @@ from ..schemas.newsletter import (
     NewsletterCreate,
     NewsletterResponse,
     NewsletterSendResponse,
+    NewsletterTestSendRequest,
+    NewsletterTestSendResponse,
     NewsletterUpdate,
     SubscribeRequest,
     SubscriberResponse,
@@ -26,12 +29,30 @@ from ..schemas.newsletter import (
 from ..config import settings
 from ..services.email_service import send_newsletter_email, send_verification_email
 from ..services.markdown_service import render_markdown
+from ..services.storage import absolutize_upload_url, save_uploaded_image
 from .activity import log_activity
 from .deps import get_db, require_admin, verify_turnstile_token
+from .uploads import UploadResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+_NEWSLETTER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,199}$")
+
+
+def _validate_newsletter_id(newsletter_id: str) -> None:
+    """Reject IDs containing path separators, traversal sequences, or odd characters.
+
+    Newsletter IDs come from the frontend's slugify(title) + '-' + date pattern,
+    so they're always lowercase alnum + hyphens. Anything else is suspect.
+    """
+    if not _NEWSLETTER_ID_RE.fullmatch(newsletter_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid newsletter id (lowercase letters, digits, and hyphens only)",
+        )
 
 
 def _render_md(body_md: str) -> str:
@@ -345,6 +366,103 @@ async def create_newsletter(
         await db.refresh(nl)
 
     return _newsletter_to_response(nl)
+
+
+@router.post(
+    "/{newsletter_id}/uploads",
+    response_model=UploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+@limiter.limit(AUTH_ATTEMPT)
+async def upload_newsletter_image(
+    request: Request,
+    newsletter_id: str,
+    file: UploadFile,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload an image for use inside a newsletter's markdown body.
+
+    The newsletter row need not exist yet — uploads happen during draft editing.
+    The returned URL is absolute so the markdown stored in body_md works in
+    both the browser and email clients without further transformation.
+    """
+    _validate_newsletter_id(newsletter_id)
+
+    # Reuse gallery's strict image validation (size, MIME, magic bytes, PIL verify).
+    from .gallery import validate_image_upload
+    await validate_image_upload(file)
+
+    relative_url = await save_uploaded_image(
+        file, "newsletters", subdir=newsletter_id
+    )
+    absolute_url = absolutize_upload_url(relative_url)
+
+    await log_activity(
+        db, admin, "upload", "newsletter", newsletter_id,
+        f"Uploaded image to newsletter '{newsletter_id}'",
+    )
+    await db.commit()
+
+    return UploadResponse(url=absolute_url)
+
+
+@router.post(
+    "/{newsletter_id}/send-test",
+    response_model=NewsletterTestSendResponse,
+)
+@limiter.limit(AUTH_ATTEMPT)
+async def send_newsletter_test(
+    request: Request,
+    newsletter_id: str,
+    body: NewsletterTestSendRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a single-recipient preview of a saved newsletter.
+
+    Does NOT touch emailed_at, does NOT iterate subscribers, and prefixes
+    the subject + injects a banner so the recipient knows it's a preview.
+    """
+    _validate_newsletter_id(newsletter_id)
+
+    result = await db.execute(select(Newsletter).where(Newsletter.id == newsletter_id))
+    nl = result.scalar_one_or_none()
+    if nl is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Newsletter not found")
+
+    test_banner = (
+        '<div style="background:#fffbcc;border:1px solid #f0d97a;'
+        'padding:10px 14px;margin:0 0 16px;font-size:13px;color:#7a5b00;'
+        'border-radius:4px;font-family:Arial,Helvetica,sans-serif;">'
+        '<strong>Test send</strong> &mdash; this newsletter has not been '
+        'broadcast to subscribers.</div>'
+    )
+    test_html = test_banner + (nl.html or "")
+
+    try:
+        await send_newsletter_email(
+            body.to_email,
+            "Preview",
+            nl.title,
+            test_html,
+            unsubscribe_url="",
+            subject_prefix="[TEST] ",
+        )
+    except Exception:
+        logger.error("Failed to send test newsletter %s to %s", nl.id, body.to_email, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to send test email; check SMTP configuration",
+        )
+
+    await log_activity(
+        db, admin, "send-test", "newsletter", nl.id,
+        f"Sent test of '{nl.title}' to {body.to_email}",
+    )
+    await db.commit()
+
+    return NewsletterTestSendResponse(sent=True, to_email=body.to_email)
 
 
 @router.post("/{newsletter_id}/send", response_model=NewsletterSendResponse)

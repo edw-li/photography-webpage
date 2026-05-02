@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import MarkdownIt from 'markdown-it';
 import {
@@ -9,13 +9,27 @@ import {
   updateNewsletter,
   deleteNewsletter,
   sendNewsletter,
+  sendTestNewsletter,
+  uploadNewsletterImage,
 } from '../../api/newsletters';
 import type { Newsletter } from '../../types/newsletter';
+import { ApiError } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
+import NewsletterImageInserter from './NewsletterImageInserter';
+import AltTextModal from './AltTextModal';
+import { compressImage, isImageFile } from '../../utils/compressImage';
 import { formatDate } from './types';
 import Pagination from './Pagination';
+
+function altFromFilename(filename: string): string {
+  const stem = filename.replace(/\.[^.]+$/, '');
+  return stem.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'image';
+}
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 const md = new MarkdownIt();
 
@@ -36,6 +50,7 @@ const emptyForm = {
 
 export default function NewslettersSection() {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [items, setItems] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -52,7 +67,135 @@ export default function NewslettersSection() {
   const [deleting, setDeleting] = useState(false);
   const [sendTarget, setSendTarget] = useState<Newsletter | null>(null);
   const [sending, setSending] = useState(false);
+  const [testTarget, setTestTarget] = useState<Newsletter | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [dropUploading, setDropUploading] = useState(false);
+  const [pendingAlt, setPendingAlt] = useState<{ url: string; defaultAlt: string; insertPos: number } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pageSize = 20;
+
+  // Compute the newsletter ID — for new drafts this matches what create_newsletter
+  // will use server-side (slugify(title) + '-' + date), so uploads land in the
+  // same folder once the newsletter is saved. A title like "!" slugifies to ""
+  // and cannot produce a valid ID — the inserter is disabled until both fields
+  // produce a non-empty slug.
+  const titleSlug = slugify(form.title.trim());
+  const draftNewsletterId = editingId ?? (titleSlug && form.date
+    ? `${titleSlug}-${form.date}`
+    : '');
+  const canInsertImages = Boolean(draftNewsletterId);
+
+  const currentInsertPos = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return form.bodyMd.length;
+    return el.selectionStart;
+  }, [form.bodyMd.length]);
+
+  const queueImageInsert = useCallback((url: string, filename: string) => {
+    setPendingAlt({
+      url,
+      defaultAlt: altFromFilename(filename),
+      insertPos: currentInsertPos(),
+    });
+  }, [currentInsertPos]);
+
+  const finalizeInsert = useCallback((alt: string) => {
+    if (!pendingAlt) return;
+    const snippet = `\n![${alt}](${pendingAlt.url})\n\n`;
+    const insertPos = pendingAlt.insertPos;
+    setForm((f) => {
+      const safePos = Math.min(Math.max(insertPos, 0), f.bodyMd.length);
+      return {
+        ...f,
+        bodyMd: f.bodyMd.slice(0, safePos) + snippet + f.bodyMd.slice(safePos),
+      };
+    });
+    setPendingAlt(null);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const pos = Math.min(insertPos + snippet.length, el.value.length);
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }, [pendingAlt]);
+
+  const handleEditorDrop = useCallback(async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    // Block additional drops while a previous upload is in flight or waiting
+    // for alt-text confirmation — otherwise the second upload would overwrite
+    // pendingAlt and orphan the first file.
+    if (dropUploading || pendingAlt) {
+      addToast('info', 'Finish the current image insert first');
+      return;
+    }
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!canInsertImages) {
+      addToast('error', 'Set the title and date before adding images');
+      return;
+    }
+    if (!isImageFile(file)) {
+      addToast('error', 'Please drop an image file');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      addToast('error', 'Image must be under 10MB');
+      return;
+    }
+    setDropUploading(true);
+    try {
+      const { file: compressed } = await compressImage(file, { maxSizeMB: 10 });
+      const url = await uploadNewsletterImage(compressed, draftNewsletterId);
+      queueImageInsert(url, file.name);
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setDropUploading(false);
+    }
+  }, [addToast, canInsertImages, draftNewsletterId, dropUploading, pendingAlt, queueImageInsert]);
+
+  const handleSendTest = async () => {
+    if (!testTarget) return;
+    const trimmed = testEmail.trim();
+    if (!trimmed) {
+      addToast('error', 'Enter an email address');
+      return;
+    }
+    // Fast-path client-side check — backend EmailStr does the real validation,
+    // but Pydantic 422s render as raw arrays in toasts, so we pre-empt the
+    // common case for a friendlier UX.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      addToast('error', 'Enter a valid email address');
+      return;
+    }
+    setTestSending(true);
+    try {
+      await sendTestNewsletter(testTarget.id, trimmed);
+      addToast('success', `Test email sent to ${trimmed}`);
+      setTestTarget(null);
+      setTestEmail('');
+    } catch (err) {
+      let msg = 'Failed to send test email';
+      if (err instanceof ApiError) {
+        if (err.status === 422) msg = 'Enter a valid email address';
+        else if (err.status === 429) msg = 'Too many test sends — please wait a minute';
+        else if (typeof err.message === 'string' && err.message.length > 0 && !err.message.startsWith('[object'))
+          msg = err.message;
+      }
+      addToast('error', msg);
+    }
+    setTestSending(false);
+  };
+
+  const openTestDialog = (nl: Newsletter) => {
+    setTestTarget(nl);
+    setTestEmail(user?.email ?? '');
+  };
 
   const load = useCallback(async (p: number) => {
     setLoading(true);
@@ -201,6 +344,7 @@ export default function NewslettersSection() {
                 <td style={{ verticalAlign: 'middle' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
                     <button className="admin__action-btn" onClick={() => openEdit(nl)}>Edit</button>
+                    <button className="admin__action-btn" onClick={() => openTestDialog(nl)}>Test</button>
                     <button className="admin__action-btn admin__action-btn--accent" onClick={() => setSendTarget(nl)}>Send</button>
                     <button className="admin__action-btn admin__action-btn--danger" onClick={() => setDeleteTarget(nl)}>Delete</button>
                   </div>
@@ -267,19 +411,56 @@ export default function NewslettersSection() {
             </div>
           )}
           <div className="afm-field">
-            <label className="afm-label">Content (Markdown) *</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.4rem' }}>
+              <label className="afm-label" style={{ marginBottom: 0 }}>Content (Markdown) *</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <NewsletterImageInserter
+                  newsletterId={draftNewsletterId}
+                  enabled={canInsertImages}
+                  onUploaded={queueImageInsert}
+                />
+                {editingId && (
+                  <button
+                    type="button"
+                    className="admin__action-btn"
+                    onClick={() => {
+                      const current = items.find((n) => n.id === editingId);
+                      if (current) openTestDialog(current);
+                    }}
+                    disabled={isDirty}
+                    title={isDirty
+                      ? 'Save your changes first — the test would otherwise send the previously saved version'
+                      : 'Send a single-recipient preview email'}
+                  >
+                    Send test email
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="admin__split-pane">
               <textarea
-                className="admin__md-editor"
+                ref={textareaRef}
+                className={`admin__md-editor${dragOver ? ' admin__md-editor--drag' : ''}`}
                 value={form.bodyMd}
                 onChange={(e) => setForm({ ...form, bodyMd: e.target.value })}
-                placeholder="Write markdown here..."
+                onDragOver={(e) => { e.preventDefault(); if (canInsertImages) setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleEditorDrop}
+                placeholder={canInsertImages
+                  ? 'Write markdown here. Drop an image anywhere to upload and insert it.'
+                  : 'Write markdown here...'}
+                disabled={dropUploading}
               />
               <div
                 className="admin__md-preview"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(md.render(form.bodyMd || '')) }}
               />
             </div>
+            {dropUploading && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+                Uploading dropped image…
+              </p>
+            )}
           </div>
         </AdminFormModal>
       )}
@@ -309,6 +490,64 @@ export default function NewslettersSection() {
           onConfirm={handleSend}
           onCancel={() => setSendTarget(null)}
         />
+      )}
+
+      {pendingAlt && (
+        <AltTextModal
+          url={pendingAlt.url}
+          defaultAlt={pendingAlt.defaultAlt}
+          onConfirm={finalizeInsert}
+          onCancel={() => setPendingAlt(null)}
+        />
+      )}
+
+      {testTarget && (
+        <div
+          className="confirm-overlay"
+          onClick={testSending ? undefined : () => setTestTarget(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Send test email"
+        >
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <h3 className="confirm-dialog__title">Send test email</h3>
+            <p className="confirm-dialog__message">
+              Send a preview of <strong>{testTarget.title}</strong> to a single address. Subscribers will not be emailed.
+            </p>
+            <input
+              autoFocus
+              type="email"
+              className="afm-input"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="your@email.com"
+              disabled={testSending}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !testSending) { e.preventDefault(); handleSendTest(); }
+                if (e.key === 'Escape' && !testSending) { e.preventDefault(); setTestTarget(null); }
+              }}
+              style={{ marginBottom: '1rem' }}
+            />
+            <div className="confirm-dialog__actions">
+              <button
+                type="button"
+                className="confirm-dialog__btn confirm-dialog__btn--cancel"
+                onClick={() => setTestTarget(null)}
+                disabled={testSending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-dialog__btn confirm-dialog__btn--confirm"
+                onClick={handleSendTest}
+                disabled={testSending}
+              >
+                {testSending ? 'Sending…' : 'Send test'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

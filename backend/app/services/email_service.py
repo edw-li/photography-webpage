@@ -1,12 +1,71 @@
 import html
 import logging
+import re
 
 import aiosmtplib
 from email.message import EmailMessage
 
 from ..config import settings
+from .storage import absolutize_upload_url
 
 logger = logging.getLogger(__name__)
+
+
+# Inline style applied to every <img> in newsletter emails. Email clients
+# ignore external CSS, so the constraint must be inline. max-width:100% keeps
+# images inside the 600px column even on mobile; height:auto preserves aspect
+# ratio; display:block removes the inline whitespace gap below images in some
+# clients; margin gives breathing room between images and surrounding text.
+_EMAIL_IMG_STYLE = (
+    "max-width:100%;height:auto;display:block;"
+    "border-radius:4px;margin:16px 0;"
+)
+
+
+# Match a single <img ...> tag (self-closing or not). Tags inside the bleached
+# pipeline have a constrained attribute set so a regex is safe here.
+_IMG_TAG_RE = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE)
+_SRC_ATTR_RE = re.compile(r"""\bsrc\s*=\s*(['"])(.*?)\1""", re.IGNORECASE)
+_DIM_ATTR_RE = re.compile(r"""\s*\b(?:width|height)\s*=\s*(['"]).*?\1""", re.IGNORECASE)
+_STYLE_ATTR_RE = re.compile(r"""\bstyle\s*=\s*(['"]).*?\1""", re.IGNORECASE)
+
+
+def prepare_email_html(body_html: str) -> str:
+    """Adapt rendered newsletter HTML for email-client compatibility.
+
+    1. Rewrite relative `/uploads/...` `src` attributes to absolute URLs
+       (email clients can't resolve relative paths).
+    2. Strip width/height attributes that would override the responsive style.
+    3. Inject inline style on every <img> so it fits the 600px email column
+       and scales down on mobile.
+    """
+
+    def fix_img(match: re.Match) -> str:
+        attrs = match.group(1)
+
+        # Absolutize src
+        src_m = _SRC_ATTR_RE.search(attrs)
+        if src_m:
+            quote, url = src_m.group(1), src_m.group(2)
+            absolute = absolutize_upload_url(url)
+            if absolute != url:
+                attrs = (
+                    attrs[: src_m.start()]
+                    + f"src={quote}{absolute}{quote}"
+                    + attrs[src_m.end():]
+                )
+
+        # Strip dimension attributes (the inline style handles sizing)
+        attrs = _DIM_ATTR_RE.sub("", attrs)
+
+        # Replace any existing style with our canonical one
+        attrs = _STYLE_ATTR_RE.sub("", attrs)
+        attrs = attrs.rstrip()
+        attrs += f' style="{_EMAIL_IMG_STYLE}"'
+
+        return f"<img{attrs} />"
+
+    return _IMG_TAG_RE.sub(fix_img, body_html)
 
 
 async def send_email(
@@ -41,10 +100,38 @@ async def send_email(
 async def send_newsletter_email(
     to: str, subscriber_name: str, newsletter_title: str, newsletter_html: str,
     unsubscribe_url: str = "",
+    subject_prefix: str = "",
 ) -> None:
-    """Build and send a newsletter email to a subscriber."""
+    """Build and send a newsletter email to a subscriber.
+
+    Pass `subject_prefix="[TEST] "` for test sends. Pass `unsubscribe_url=""`
+    to omit the subscriber footer + List-Unsubscribe headers (also for test
+    sends, since the recipient may not be a real subscriber).
+    """
     subscriber_name = html.escape(subscriber_name)
     banner_url = f"{settings.frontend_url}/og-banner-selah-photography.jpg"
+    body_html = prepare_email_html(newsletter_html)
+
+    if unsubscribe_url:
+        footer = f"""\
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
+              <p style="margin:0;font-size:12px;color:#999;text-align:center;">
+                You received this because you're subscribed to Selah Photography Club newsletters.
+                <a href="{unsubscribe_url}" style="color:#999;">Unsubscribe</a> from these emails.
+              </p>
+            </td>
+          </tr>"""
+    else:
+        footer = """\
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
+              <p style="margin:0;font-size:12px;color:#999;text-align:center;">
+                This is a preview email and was not sent to subscribers.
+              </p>
+            </td>
+          </tr>"""
+
     html_body = f"""\
 <!DOCTYPE html>
 <html>
@@ -69,18 +156,11 @@ async def send_newsletter_email(
                 {newsletter_title}
               </h2>
               <div style="font-size:14px;color:#333;line-height:1.6;">
-                {newsletter_html}
+                {body_html}
               </div>
             </td>
           </tr>
-          <tr>
-            <td style="padding:16px 32px 24px;border-top:1px solid #eee;">
-              <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-                You received this because you're subscribed to Selah Photography Club newsletters.
-                <a href="{unsubscribe_url}" style="color:#999;">Unsubscribe</a> from these emails.
-              </p>
-            </td>
-          </tr>
+{footer}
         </table>
       </td>
     </tr>
@@ -93,8 +173,9 @@ async def send_newsletter_email(
         headers["List-Unsubscribe"] = f"<{unsubscribe_url}>"
         headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 
+    subject = f"{subject_prefix}{newsletter_title} — Selah Photography Club"
     await send_email(
-        to, f"{newsletter_title} — Selah Photography Club", html_body,
+        to, subject, html_body,
         headers=headers if headers else None,
     )
 
