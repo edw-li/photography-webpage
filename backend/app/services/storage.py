@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+import shutil
 import unicodedata
 import uuid
 from pathlib import Path
@@ -370,6 +371,73 @@ def _delete_local(url: str) -> None:
     stem, ext = path.stem, path.suffix
     for file in [path] + [path.parent / f"{stem}_{s}{ext}" for s in THUMBNAIL_SIZES]:
         file.unlink(missing_ok=True)
+
+
+def _delete_local_directory(path: Path) -> None:
+    """Recursively delete a local directory if it exists.
+
+    Missing directories are a silent no-op. Permission/IO errors are swallowed
+    so a transient failure can't block the caller (which has typically already
+    decided to remove the parent resource).
+    """
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def _delete_oci_prefix(prefix: str) -> None:
+    """Delete every OCI object whose key starts with `prefix`.
+
+    Pages through `list_objects_v2` and batches keys into `delete_objects` calls
+    of up to 1000 keys each (S3/OCI's documented batch cap). Per-batch failures
+    are logged but don't propagate.
+    """
+    client = _get_s3_client()
+    paginator = client.get_paginator("list_objects_v2")
+
+    batch: list[dict[str, str]] = []
+
+    def flush() -> None:
+        if not batch:
+            return
+        try:
+            client.delete_objects(
+                Bucket=settings.oci_bucket_name,
+                Delete={"Objects": batch, "Quiet": True},
+            )
+        except Exception:
+            logger.warning(
+                "Failed to delete OCI batch under prefix %s (%d keys)",
+                prefix, len(batch), exc_info=True,
+            )
+        batch.clear()
+
+    try:
+        for page in paginator.paginate(Bucket=settings.oci_bucket_name, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                batch.append({"Key": obj["Key"]})
+                if len(batch) >= 1000:
+                    flush()
+        flush()
+    except Exception:
+        logger.warning(
+            "Failed to list OCI objects under prefix %s", prefix, exc_info=True,
+        )
+
+
+def delete_uploaded_directory(category: str, subdir: str) -> None:
+    """Delete every file under uploads/{category}/{subdir}/ in either OCI or local mode.
+
+    Used for resource-scoped cleanup (e.g. a newsletter's image folder on delete).
+    Catches originals + thumbnails + any orphaned uploads in one operation —
+    no markdown/HTML parsing needed. Path segments are validated for safety.
+    Missing directories / empty prefixes are a silent no-op.
+    """
+    safe_category = _safe_path_segment(category)
+    safe_subdir = _safe_path_segment(subdir)
+
+    if settings.oci_configured:
+        _delete_oci_prefix(f"uploads/{safe_category}/{safe_subdir}/")
+    else:
+        _delete_local_directory(UPLOAD_DIR / safe_category / safe_subdir)
 
 
 async def save_gallery_image(file: UploadFile, user_slug: str | None = None) -> str:
