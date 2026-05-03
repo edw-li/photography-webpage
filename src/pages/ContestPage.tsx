@@ -41,6 +41,15 @@ function formatExif(exif?: PhotoExif): string {
   return parts.join(' · ');
 }
 
+function shuffleArray<T>(items: readonly T[]): T[] {
+  const a = items.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 /* --- Tab config --- */
 
 type TabId = 'submit' | 'vote' | 'rules' | 'gallery' | 'podium' | 'full-results';
@@ -498,6 +507,25 @@ function TabVote({
     return [...categories.map((c) => getCategoryLabel(c, contest.wildcardCategory)), 'Review'];
   }, [categories, contest.wildcardCategory]);
 
+  // Per-voter, per-session shuffled ballot. We shuffle the ID list (not the
+  // submission objects) and look each one up by id at render time, so an admin
+  // edit landing during a voting session reflects the latest title/url without
+  // resorting the ballot. The shuffle is keyed on the sorted-id signature so it
+  // only re-shuffles if a submission is added or removed.
+  const submissionIdsKey = useMemo(
+    () => contest.submissions.map((s) => s.id).slice().sort((a, b) => a - b).join(','),
+    [contest.submissions],
+  );
+  const shuffledIds = useMemo(
+    () => shuffleArray(contest.submissions.map((s) => s.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [submissionIdsKey],
+  );
+  const subById = useMemo(
+    () => new Map(contest.submissions.map((s) => [s.id, s])),
+    [contest.submissions],
+  );
+
   const [currentStep, setCurrentStep] = useState(0);
   const [selections, setSelections] = useState<Record<VoteCategory, Set<number>>>(() => ({
     theme: new Set(),
@@ -586,7 +614,9 @@ function TabVote({
             {currentSelectionCount} of 3 selected
           </div>
           <div className="contest__vote-grid">
-            {contest.submissions.map((sub) => {
+            {shuffledIds.map((id) => {
+              const sub = subById.get(id);
+              if (!sub) return null;
               const selected = selections[currentCategory].has(sub.id);
               const maxReached = selections[currentCategory].size >= 3;
               const disabled = !selected && maxReached;
@@ -605,7 +635,7 @@ function TabVote({
                   role="checkbox"
                   aria-checked={selected}
                   aria-disabled={disabled}
-                  aria-label={`${sub.title} by ${sub.photographer}`}
+                  aria-label={sub.title}
                 >
                   <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
                   {selected && (
@@ -615,7 +645,6 @@ function TabVote({
                   )}
                   <div className="contest__vote-info">
                     <span className="contest__vote-title">{sub.title}</span>
-                    <span className="contest__vote-photographer">{sub.photographer}</span>
                   </div>
                 </div>
               );
@@ -785,9 +814,11 @@ function TabGallery({ contest }: { contest: Contest }) {
           />
           <div className="contest__gallery-expanded-info">
             <h3>{expandedSub.title}</h3>
-            <p className="contest__gallery-expanded-photographer">
-              {expandedSub.photographer}
-            </p>
+            {expandedSub.photographer && (
+              <p className="contest__gallery-expanded-photographer">
+                {expandedSub.photographer}
+              </p>
+            )}
             {exifStr && (
               <p className="contest__gallery-expanded-exif">{exifStr}</p>
             )}
@@ -813,7 +844,7 @@ function TabGallery({ contest }: { contest: Contest }) {
             }}
             tabIndex={0}
             role="button"
-            aria-label={`View ${sub.title} by ${sub.photographer}`}
+            aria-label={sub.photographer ? `View ${sub.title} by ${sub.photographer}` : `View ${sub.title}`}
           >
             <img
               src={getImageUrl(sub.url, 'medium')}
@@ -822,7 +853,9 @@ function TabGallery({ contest }: { contest: Contest }) {
             />
             <div className="contest__gallery-item-overlay">
               <span className="contest__gallery-item-title">{sub.title}</span>
-              <span className="contest__gallery-item-photographer">{sub.photographer}</span>
+              {sub.photographer && (
+                <span className="contest__gallery-item-photographer">{sub.photographer}</span>
+              )}
             </div>
           </div>
         ))}
