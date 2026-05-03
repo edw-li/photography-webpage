@@ -608,6 +608,13 @@
   display: block;
 }
 
+/* Image-only positioning wrapper — anchors the centered selection check and
+   the top-right expand button to the image area, not the whole card (which
+   would include the title row below and pull the check visually low). */
+.contest__vote-thumb-image {
+  position: relative;
+}
+
 .contest__vote-thumb-expand {
   position: absolute;
   top: 6px;
