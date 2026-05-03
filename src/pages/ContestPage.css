@@ -375,7 +375,7 @@
 }
 
 .contest__tab--active {
-  color: var(--color-accent);
+  color: var(--color-active);
 }
 
 .contest__tab--disabled {
@@ -387,7 +387,7 @@
 }
 
 .contest__tab:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-active);
   outline-offset: -2px;
   border-radius: var(--radius-sm);
 }
@@ -397,7 +397,7 @@
   bottom: 0;
   left: 0;
   height: 2px;
-  background: var(--color-accent);
+  background: var(--color-active);
   transition: left 0.25s ease, width 0.25s ease;
 }
 
@@ -593,11 +593,11 @@
 }
 
 .contest__vote-thumb--selected {
-  border-color: var(--color-accent);
+  border-color: var(--color-active);
 }
 
 .contest__vote-thumb:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-active);
   outline-offset: 2px;
 }
 
@@ -1224,7 +1224,7 @@
 }
 
 .contest__wizard-step--active {
-  color: var(--color-accent);
+  color: var(--color-active);
 }
 
 .contest__wizard-step--completed {
@@ -1246,9 +1246,9 @@
 }
 
 .contest__wizard-step--active .contest__wizard-step-dot {
-  border-color: var(--color-accent);
-  background: rgba(239, 216, 125, 0.15);
-  color: var(--color-accent);
+  border-color: var(--color-active);
+  background: var(--color-active-soft);
+  color: var(--color-active);
 }
 
 .contest__wizard-step--completed .contest__wizard-step-dot {
@@ -1264,12 +1264,56 @@
   text-overflow: ellipsis;
 }
 
-.contest__wizard-counter {
-  text-align: center;
-  font-size: 0.8rem;
+.contest__vote-header {
+  margin-bottom: 1rem;
+}
+
+.contest__vote-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.contest__vote-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: var(--color-text-muted);
-  margin-bottom: 0.75rem;
+  color: var(--color-text);
+}
+
+.contest__vote-header-title svg {
+  color: var(--color-active);
+  flex-shrink: 0;
+}
+
+.contest__vote-header-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--color-active-soft);
+  color: var(--color-active);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.contest__vote-header-chip--full {
+  background: var(--color-active);
+  color: #ffffff;
+}
+
+.contest__vote-header-action {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-active);
 }
 
 /* Disabled vote thumb */
