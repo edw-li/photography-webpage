@@ -53,6 +53,12 @@
   --color-text-muted: #7a8a76;
   --color-border: #d5e0cf;
 
+  /* Active/selected indicator — readable green for text/border on light surfaces.
+     Use for active tabs, selected items, and progress steps where gold accent
+     would fail contrast against white. Solid-fill buttons keep --color-accent. */
+  --color-active: #15803d;
+  --color-active-soft: rgba(21, 128, 61, 0.12);
+
   /* Dark accent sections (Contact, Footer, Calendar header, Navbar) */
   --color-dark-bg: #2a3d22;
   --color-dark-surface: #354d2c;
@@ -70,6 +76,9 @@
   --color-text-secondary: #b4cbb1;
   --color-text-muted: #7a9c77;
   --color-border: #3d5a34;
+
+  --color-active: #22c55e;
+  --color-active-soft: rgba(34, 197, 94, 0.18);
 
   --color-dark-bg: #0f1a0c;
   --color-dark-surface: #192813;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { Camera, Users, Check, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
+import { Camera, Users, Check, Trophy, Heart, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
@@ -49,6 +50,12 @@ function shuffleArray<T>(items: readonly T[]): T[] {
   }
   return a;
 }
+
+const CATEGORY_ICON: Record<VoteCategory, LucideIcon> = {
+  theme: Trophy,
+  favorite: Heart,
+  wildcard: Sparkles,
+};
 
 /* --- Tab config --- */
 
@@ -605,13 +612,26 @@ function TabVote({
       <WizardProgressBar steps={stepLabels} currentStep={currentStep} />
 
       {/* Category step */}
-      {currentCategory && (
+      {currentCategory && (() => {
+        const Icon = CATEGORY_ICON[currentCategory];
+        return (
         <>
-          <p className="contest__modal-subtitle">
-            {getCategoryLabel(currentCategory, contest.wildcardCategory)} — Select up to 3 photos
-          </p>
-          <div className="contest__wizard-counter">
-            {currentSelectionCount} of 3 selected
+          <div className="contest__vote-header">
+            <div className="contest__vote-header-row">
+              <h3 className="contest__vote-header-title">
+                <Icon size={18} aria-hidden="true" />
+                {getCategoryLabel(currentCategory, contest.wildcardCategory)}
+              </h3>
+              <span
+                className={`contest__vote-header-chip${
+                  currentSelectionCount === 3 ? ' contest__vote-header-chip--full' : ''
+                }`}
+                aria-live="polite"
+              >
+                {currentSelectionCount} / 3
+              </span>
+            </div>
+            <p className="contest__vote-header-action">Select up to 3 photos</p>
           </div>
           <div className="contest__vote-grid">
             {shuffledIds.map((id) => {
@@ -651,7 +671,8 @@ function TabVote({
             })}
           </div>
         </>
-      )}
+        );
+      })()}
 
       {/* Review step */}
       {isReviewStep && (
