@@ -1,11 +1,12 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { Camera, Users, Check, Trophy, Heart, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
+import { Camera, Users, Check, Trophy, Heart, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, Lock, Maximize2, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
 import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
+import { useImageLoaded } from '../hooks/useImageLoaded';
 import { useAuth } from '../contexts/AuthContext';
 import { getContests, submitPhoto, castVote } from '../api/contests';
 import Footer from '../components/Footer';
@@ -56,6 +57,190 @@ const CATEGORY_ICON: Record<VoteCategory, LucideIcon> = {
   favorite: Heart,
   wildcard: Sparkles,
 };
+
+/* --- Vote Lightbox (overlays the voting modal during ballot review) --- */
+
+function VoteLightbox({
+  sub,
+  index,
+  total,
+  isSelected,
+  atSelectionCap,
+  onClose,
+  onPrev,
+  onNext,
+  onToggleSelect,
+}: {
+  sub: ContestSubmission;
+  index: number;
+  total: number;
+  isSelected: boolean;
+  atSelectionCap: boolean;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onToggleSelect: () => void;
+}) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const fullSrc = getImageUrl(sub.url, 'full');
+  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(fullSrc);
+  const exifStr = formatExif(sub.exif);
+
+  const canSelect = isSelected || !atSelectionCap;
+  const hasPrev = index > 0;
+  const hasNext = index >= 0 && index < total - 1;
+
+  // Auto-focus the close button on open so keyboard users can act immediately.
+  useEffect(() => {
+    closeBtnRef.current?.focus();
+  }, []);
+
+  // Keyboard handling — registered in capture phase so we can stopImmediatePropagation
+  // BEFORE the outer ModalShell's bubble-phase listener sees the event. Without this,
+  // pressing Escape would close both the lightbox and the underlying voting modal.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'ArrowLeft') {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (hasPrev) onPrev();
+      } else if (e.key === 'ArrowRight') {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (hasNext) onNext();
+      } else if (e.key === 'Tab') {
+        // Lightbox-local focus trap; intercept before the outer modal's trap fires.
+        const el = panelRef.current;
+        if (!el) return;
+        const focusable = el.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href]'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey && active === first) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          first.focus();
+        } else if (active && !el.contains(active)) {
+          // Focus drifted outside (rare) — reel it back in.
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, [onClose, onPrev, onNext, hasPrev, hasNext]);
+
+  return (
+    <div
+      className="contest__lightbox-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contest-lightbox-title"
+      onClick={onClose}
+    >
+      <div
+        className="contest__lightbox-panel"
+        ref={panelRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="contest__lightbox-close"
+          ref={closeBtnRef}
+          onClick={onClose}
+          aria-label="Close image preview"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="contest__lightbox-image-wrap">
+          {!loaded && !errored && <div className="contest__lightbox-spinner" aria-hidden="true" />}
+          {errored ? (
+            <div className="contest__lightbox-error">
+              <p>Failed to load full image.</p>
+            </div>
+          ) : (
+            <img
+              ref={imgRef}
+              src={fullSrc}
+              alt={sub.title}
+              onLoad={handleLoad}
+              onError={handleError}
+              className={`contest__lightbox-image${loaded ? ' contest__lightbox-image--loaded' : ''}`}
+            />
+          )}
+        </div>
+
+        <div className="contest__lightbox-info">
+          <div className="contest__lightbox-meta">
+            <h3 id="contest-lightbox-title" className="contest__lightbox-title">{sub.title}</h3>
+            {exifStr && <span className="contest__lightbox-exif">{exifStr}</span>}
+          </div>
+
+          <div className="contest__lightbox-actions">
+            <div className="contest__lightbox-nav">
+              <button
+                type="button"
+                className="contest__lightbox-nav-btn"
+                onClick={onPrev}
+                disabled={!hasPrev}
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="contest__lightbox-counter" aria-live="polite">
+                {index + 1} of {total}
+              </span>
+              <button
+                type="button"
+                className="contest__lightbox-nav-btn"
+                onClick={onNext}
+                disabled={!hasNext}
+                aria-label="Next image"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
+            <div className="contest__lightbox-select">
+              <button
+                type="button"
+                className={`contest__modal-btn${isSelected ? ' contest__lightbox-select-btn--remove' : ''}`}
+                onClick={onToggleSelect}
+                disabled={!canSelect}
+                style={{ marginTop: 0 }}
+              >
+                {isSelected ? (<><Check size={16} aria-hidden="true" /> Selected — click to deselect</>) : 'Select'}
+              </button>
+              {!isSelected && atSelectionCap && (
+                <span className="contest__lightbox-cap-note">
+                  3 of 3 already chosen — deselect one to swap.
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* --- Tab config --- */
 
@@ -543,6 +728,48 @@ function TabVote({
   const [submittingVote, setSubmittingVote] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
 
+  // Track step direction so the wrapper can pick the matching slide animation.
+  // Starts equal to currentStep so the first paint is "forward" with no prior step
+  // to slide from — the user just sees the initial step appear.
+  const prevStepRef = useRef(currentStep);
+  const direction: 'forward' | 'backward' =
+    currentStep < prevStepRef.current ? 'backward' : 'forward';
+  useLayoutEffect(() => {
+    prevStepRef.current = currentStep;
+  }, [currentStep]);
+
+  // Lightbox state — null when closed; otherwise holds the submission id being viewed.
+  const [lightboxId, setLightboxId] = useState<number | null>(null);
+  const lightboxIndex = lightboxId == null ? -1 : shuffledIds.indexOf(lightboxId);
+  const lightboxSub = lightboxId == null ? null : subById.get(lightboxId) ?? null;
+
+  // The element that opened the lightbox — used to restore focus on close.
+  const triggerElRef = useRef<HTMLElement | null>(null);
+  const hadLightboxRef = useRef(false);
+  useEffect(() => {
+    if (lightboxId != null) {
+      hadLightboxRef.current = true;
+    } else if (hadLightboxRef.current) {
+      triggerElRef.current?.focus();
+      triggerElRef.current = null;
+      hadLightboxRef.current = false;
+    }
+  }, [lightboxId]);
+
+  // If the open submission disappears (admin edit during voting), close the lightbox.
+  useEffect(() => {
+    if (lightboxId != null && !subById.has(lightboxId)) {
+      setLightboxId(null);
+    }
+  }, [lightboxId, subById]);
+
+  // Defensive: any wizard step change closes the lightbox. Today the focus trap
+  // and visual obscuring make this unreachable through the UI; this effect
+  // guards future programmatic step changes from leaving stale lightbox state.
+  useEffect(() => {
+    setLightboxId(null);
+  }, [currentStep]);
+
   const isReviewStep = currentStep === categories.length;
   const currentCategory = isReviewStep ? null : categories[currentStep];
 
@@ -611,108 +838,129 @@ function TabVote({
     <div role="tabpanel" aria-label="Vote">
       <WizardProgressBar steps={stepLabels} currentStep={currentStep} />
 
-      {/* Category step */}
-      {currentCategory && (() => {
-        const Icon = CATEGORY_ICON[currentCategory];
-        return (
-        <>
-          <div className="contest__vote-header">
-            <div className="contest__vote-header-row">
-              <h3 className="contest__vote-header-title">
-                <Icon size={18} aria-hidden="true" />
-                {getCategoryLabel(currentCategory, contest.wildcardCategory)}
-              </h3>
-              <span
-                className={`contest__vote-header-chip${
-                  currentSelectionCount === 3 ? ' contest__vote-header-chip--full' : ''
-                }`}
-                aria-live="polite"
-              >
-                {currentSelectionCount} / 3
-              </span>
-            </div>
-            <p className="contest__vote-header-action">Select up to 3 photos</p>
-          </div>
-          <div className="contest__vote-grid">
-            {shuffledIds.map((id) => {
-              const sub = subById.get(id);
-              if (!sub) return null;
-              const selected = selections[currentCategory].has(sub.id);
-              const maxReached = selections[currentCategory].size >= 3;
-              const disabled = !selected && maxReached;
-              return (
-                <div
-                  key={sub.id}
-                  className={`contest__vote-thumb${selected ? ' contest__vote-thumb--selected' : ''}${disabled ? ' contest__vote-thumb--disabled' : ''}`}
-                  onClick={() => !disabled && toggleSelection(currentCategory, sub.id)}
-                  onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
-                      e.preventDefault();
-                      toggleSelection(currentCategory, sub.id);
-                    }
-                  }}
-                  tabIndex={disabled ? -1 : 0}
-                  role="checkbox"
-                  aria-checked={selected}
-                  aria-disabled={disabled}
-                  aria-label={sub.title}
+      <div
+        key={currentStep}
+        className={`contest__vote-step contest__vote-step--${direction}`}
+      >
+        {/* Category step */}
+        {currentCategory && (() => {
+          const Icon = CATEGORY_ICON[currentCategory];
+          return (
+          <>
+            <div className="contest__vote-header">
+              <div className="contest__vote-header-row">
+                <h3 className="contest__vote-header-title">
+                  <Icon size={18} aria-hidden="true" />
+                  {getCategoryLabel(currentCategory, contest.wildcardCategory)}
+                </h3>
+                <span
+                  className={`contest__vote-header-chip${
+                    currentSelectionCount === 3 ? ' contest__vote-header-chip--full' : ''
+                  }`}
+                  aria-live="polite"
                 >
-                  <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
-                  {selected && (
-                    <div className="contest__vote-check">
-                      <Check size={24} />
+                  {currentSelectionCount} / 3
+                </span>
+              </div>
+              <p className="contest__vote-header-action">Select up to 3 photos</p>
+            </div>
+            <div className="contest__vote-grid">
+              {shuffledIds.map((id) => {
+                const sub = subById.get(id);
+                if (!sub) return null;
+                const selected = selections[currentCategory].has(sub.id);
+                const maxReached = selections[currentCategory].size >= 3;
+                const disabled = !selected && maxReached;
+                return (
+                  <div
+                    key={sub.id}
+                    className={`contest__vote-thumb${selected ? ' contest__vote-thumb--selected' : ''}${disabled ? ' contest__vote-thumb--disabled' : ''}`}
+                    onClick={() => !disabled && toggleSelection(currentCategory, sub.id)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+                        e.preventDefault();
+                        toggleSelection(currentCategory, sub.id);
+                      }
+                    }}
+                    tabIndex={disabled ? -1 : 0}
+                    role="checkbox"
+                    aria-checked={selected}
+                    aria-disabled={disabled}
+                    aria-label={sub.title}
+                  >
+                    <button
+                      type="button"
+                      className="contest__vote-thumb-expand"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerElRef.current = e.currentTarget;
+                        setLightboxId(sub.id);
+                      }}
+                      onKeyDown={(e) => {
+                        // Stop Enter/Space from bubbling to the thumb's selection toggle.
+                        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                      }}
+                      aria-label={`Expand ${sub.title}`}
+                    >
+                      <Maximize2 size={14} aria-hidden="true" />
+                    </button>
+                    <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
+                    {selected && (
+                      <div className="contest__vote-check">
+                        <Check size={24} />
+                      </div>
+                    )}
+                    <div className="contest__vote-info">
+                      <span className="contest__vote-title">{sub.title}</span>
                     </div>
-                  )}
-                  <div className="contest__vote-info">
-                    <span className="contest__vote-title">{sub.title}</span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-        );
-      })()}
-
-      {/* Review step */}
-      {isReviewStep && (
-        <div className="contest__wizard-review">
-          <p className="contest__modal-subtitle">Review your selections</p>
-          {voteError && <p className="contest__submit-error">{voteError}</p>}
-          {categories.map((cat) => (
-            <div key={cat} className="contest__wizard-review-category">
-              <div className="contest__wizard-review-header">
-                <span>{getCategoryLabel(cat, contest.wildcardCategory)}</span>
-                <button
-                  className="contest__wizard-review-edit"
-                  onClick={() => setCurrentStep(categories.indexOf(cat))}
-                >
-                  Edit
-                </button>
-              </div>
-              <div className="contest__wizard-review-photos">
-                {[...selections[cat]].map((subId) => {
-                  const sub = contest.submissions.find((s) => s.id === subId);
-                  if (!sub) return null;
-                  return (
-                    <div key={subId} className="contest__wizard-review-photo">
-                      <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} />
-                      <span>{sub.title}</span>
-                    </div>
-                  );
-                })}
-                {selections[cat].size === 0 && (
-                  <span className="contest__wizard-review-empty">No selections</span>
-                )}
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      )}
+          </>
+          );
+        })()}
 
-      {isReviewStep && (
-        <p className="contest__submit-disclaimer">Once submitted, your vote cannot be changed.</p>
-      )}
+        {/* Review step */}
+        {isReviewStep && (
+          <div className="contest__wizard-review">
+            <p className="contest__modal-subtitle">Review your selections</p>
+            {voteError && <p className="contest__submit-error">{voteError}</p>}
+            {categories.map((cat) => (
+              <div key={cat} className="contest__wizard-review-category">
+                <div className="contest__wizard-review-header">
+                  <span>{getCategoryLabel(cat, contest.wildcardCategory)}</span>
+                  <button
+                    className="contest__wizard-review-edit"
+                    onClick={() => setCurrentStep(categories.indexOf(cat))}
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="contest__wizard-review-photos">
+                  {[...selections[cat]].map((subId) => {
+                    const sub = contest.submissions.find((s) => s.id === subId);
+                    if (!sub) return null;
+                    return (
+                      <div key={subId} className="contest__wizard-review-photo">
+                        <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} />
+                        <span>{sub.title}</span>
+                      </div>
+                    );
+                  })}
+                  {selections[cat].size === 0 && (
+                    <span className="contest__wizard-review-empty">No selections</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isReviewStep && (
+          <p className="contest__submit-disclaimer">Once submitted, your vote cannot be changed.</p>
+        )}
+      </div>
 
       {/* Wizard footer */}
       <div className="contest__wizard-footer">
@@ -743,6 +991,26 @@ function TabVote({
           </button>
         )}
       </div>
+
+      {lightboxId != null && lightboxSub && currentCategory != null && (
+        <VoteLightbox
+          sub={lightboxSub}
+          index={lightboxIndex}
+          total={shuffledIds.length}
+          isSelected={selections[currentCategory].has(lightboxSub.id)}
+          atSelectionCap={selections[currentCategory].size >= 3}
+          onClose={() => setLightboxId(null)}
+          onPrev={() => {
+            if (lightboxIndex > 0) setLightboxId(shuffledIds[lightboxIndex - 1]);
+          }}
+          onNext={() => {
+            if (lightboxIndex >= 0 && lightboxIndex < shuffledIds.length - 1) {
+              setLightboxId(shuffledIds[lightboxIndex + 1]);
+            }
+          }}
+          onToggleSelect={() => toggleSelection(currentCategory, lightboxSub.id)}
+        />
+      )}
     </div>
   );
 }

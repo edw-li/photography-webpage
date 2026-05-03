@@ -608,6 +608,36 @@
   display: block;
 }
 
+.contest__vote-thumb-expand {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+  z-index: 2;
+}
+
+.contest__vote-thumb-expand:hover,
+.contest__vote-thumb-expand:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.contest__vote-thumb-expand:focus-visible {
+  outline: 2px solid var(--color-active);
+  outline-offset: 2px;
+}
+
 .contest__vote-check {
   position: absolute;
   top: 0.4rem;
@@ -1539,14 +1569,255 @@
    Reduced Motion
    ============================================= */
 
+/* =============================================
+   Vote step transition (between wizard categories)
+   ============================================= */
+
+@keyframes contestVoteStepEnterForward {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes contestVoteStepEnterBackward {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.contest__vote-step--forward {
+  animation: contestVoteStepEnterForward 0.22s ease;
+}
+
+.contest__vote-step--backward {
+  animation: contestVoteStepEnterBackward 0.22s ease;
+}
+
+/* =============================================
+   Vote Lightbox (full-image preview overlay)
+   ============================================= */
+
+.contest__lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1010;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: contestModalFadeIn 0.2s ease;
+}
+
+.contest__lightbox-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(90vw, 1200px);
+  max-height: 90vh;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1rem 1.25rem;
+  box-shadow: var(--shadow-lg);
+  animation: contestModalSlideUp 0.25s ease;
+}
+
+.contest__lightbox-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  z-index: 2;
+}
+
+.contest__lightbox-close:hover,
+.contest__lightbox-close:focus-visible {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.contest__lightbox-image-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-md);
+}
+
+.contest__lightbox-image {
+  max-width: 100%;
+  max-height: calc(90vh - 200px);
+  object-fit: contain;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.contest__lightbox-image--loaded {
+  opacity: 1;
+}
+
+.contest__lightbox-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Margin-based centering instead of transform, since the rotate keyframe
+     animates transform and would clobber translate(-50%, -50%). */
+  margin: -16px 0 0 -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-active);
+  animation: contestLightboxSpin 0.8s linear infinite;
+}
+
+@keyframes contestLightboxSpin {
+  to { transform: rotate(360deg); }
+}
+
+.contest__lightbox-error {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+.contest__lightbox-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contest__lightbox-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.contest__lightbox-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.contest__lightbox-exif {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.contest__lightbox-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.contest__lightbox-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contest__lightbox-nav-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.contest__lightbox-nav-btn:hover:not(:disabled),
+.contest__lightbox-nav-btn:focus-visible:not(:disabled) {
+  border-color: var(--color-active);
+  color: var(--color-active);
+}
+
+.contest__lightbox-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.contest__lightbox-counter {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 4ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.contest__lightbox-select {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.contest__lightbox-select-btn--remove {
+  background: transparent;
+  color: var(--color-active);
+  border: 1px solid var(--color-active);
+}
+
+.contest__lightbox-select-btn--remove:hover {
+  background: var(--color-active-soft);
+  color: var(--color-active);
+}
+
+.contest__lightbox-cap-note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 600px) {
+  .contest__lightbox-backdrop { padding: 0.75rem; }
+  .contest__lightbox-panel { padding: 0.75rem 0.75rem 1rem; }
+  .contest__lightbox-image { max-height: calc(90vh - 240px); }
+  .contest__lightbox-actions { flex-direction: column; align-items: stretch; }
+  .contest__lightbox-select { align-items: stretch; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .contest-page,
   .contest__modal-backdrop,
   .contest__modal-backdrop--closing,
   .contest__modal,
   .contest__tab-content,
-  .contest__carousel-slide {
+  .contest__carousel-slide,
+  .contest__vote-step--forward,
+  .contest__vote-step--backward,
+  .contest__lightbox-backdrop,
+  .contest__lightbox-panel,
+  .contest__lightbox-spinner {
     animation: none;
+  }
+
+  .contest__lightbox-image {
+    transition: none;
+    opacity: 1;
   }
 
   .contest__tab-indicator {
