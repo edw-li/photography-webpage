@@ -1,10 +1,13 @@
+import asyncio
 import calendar
 import math
+import mimetypes
 import uuid
 from collections import defaultdict
 from datetime import date, datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response, UploadFile, status
 from sqlalchemy import case, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,6 +61,7 @@ router = APIRouter()
 def _submission_to_response(
     sub: ContestSubmission,
     category_votes: CategoryVotesSchema | None = None,
+    anonymize: bool = False,
 ) -> ContestSubmissionResponse:
     exif = None
     if any([sub.exif_camera, sub.exif_focal_length, sub.exif_aperture, sub.exif_shutter_speed, sub.exif_iso]):
@@ -68,11 +72,19 @@ def _submission_to_response(
             shutter_speed=sub.exif_shutter_speed,
             iso=sub.exif_iso,
         )
+    if anonymize:
+        # Route the image through the API proxy so the storage path (which
+        # contains the photographer's name slug) never reaches the client.
+        url = f"/api/v1/contests/{sub.contest_id}/submissions/{sub.id}/image"
+        photographer = ""
+    else:
+        url = sub.url
+        photographer = sub.photographer
     return ContestSubmissionResponse(
         id=sub.id,
-        url=sub.url,
+        url=url,
         title=sub.title,
-        photographer=sub.photographer,
+        photographer=photographer,
         is_assigned=sub.user_id is not None,
         votes=sub.vote_count if sub.vote_count else None,
         exif=exif,
@@ -114,8 +126,10 @@ async def _contest_to_response(
                     sub_category_votes[sid] = CategoryVotesSchema()
                 setattr(sub_category_votes[sid], row.category, row.cnt)
 
+    is_admin = user is not None and user.role == "admin"
+    anonymize = contest.status == "voting" and not is_admin
     submissions = [
-        _submission_to_response(s, sub_category_votes.get(s.id))
+        _submission_to_response(s, sub_category_votes.get(s.id), anonymize=anonymize)
         for s in contest.submissions
     ]
     submission_count = len(contest.submissions)
@@ -561,6 +575,7 @@ async def list_contests(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
 ):
     count_result = await db.execute(select(func.count()).select_from(Contest))
     total = count_result.scalar_one()
@@ -578,7 +593,7 @@ async def list_contests(
     contests = result.scalars().unique().all()
 
     return PaginatedResponse(
-        items=[await _contest_to_response(c, db) for c in contests],
+        items=[await _contest_to_response(c, db, user) for c in contests],
         total=total,
         page=page,
         page_size=page_size,
@@ -753,6 +768,50 @@ async def get_contest(
     if contest is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
     return await _contest_to_response(contest, db, user)
+
+
+_VALID_IMAGE_SIZES = {"thumb", "medium", "full", "original"}
+
+
+@router.get("/{contest_id}/submissions/{submission_id}/image")
+async def get_anonymous_submission_image(
+    contest_id: int,
+    submission_id: int,
+    size: str = Query("original"),
+    db: AsyncSession = Depends(get_db),
+):
+    # Streams submission image bytes through the API so the underlying storage
+    # path (which embeds the photographer's name slug) is never exposed during
+    # anonymous voting. Public on purpose; submission IDs aren't sensitive and
+    # this is the one place voters fetch ballot images.
+    if size not in _VALID_IMAGE_SIZES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid size")
+
+    result = await db.execute(
+        select(ContestSubmission).where(
+            ContestSubmission.id == submission_id,
+            ContestSubmission.contest_id == contest_id,
+        )
+    )
+    sub = result.scalar_one_or_none()
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    actual_url = sub.url
+    if size != "original" and "." in actual_url:
+        stem, _, ext = actual_url.rpartition(".")
+        actual_url = f"{stem}_{size}.{ext}"
+
+    content = await asyncio.to_thread(read_image_bytes, actual_url)
+    if content is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+
+    media_type = mimetypes.guess_type(Path(sub.url).name)[0] or "image/jpeg"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @router.post("", response_model=ContestResponse, status_code=status.HTTP_201_CREATED)

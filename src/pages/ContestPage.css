@@ -638,11 +638,6 @@
   text-overflow: ellipsis;
 }
 
-.contest__vote-photographer {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
 .contest__vote-footer {
   position: sticky;
   bottom: 0;
