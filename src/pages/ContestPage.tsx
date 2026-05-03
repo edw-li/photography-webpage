@@ -85,7 +85,6 @@ function VoteLightbox({
   const panelRef = useRef<HTMLDivElement>(null);
   const fullSrc = getImageUrl(sub.url, 'full');
   const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(fullSrc);
-  const exifStr = formatExif(sub.exif);
 
   const canSelect = isSelected || !atSelectionCap;
   const hasPrev = index > 0;
@@ -191,7 +190,6 @@ function VoteLightbox({
         <div className="contest__lightbox-info">
           <div className="contest__lightbox-meta">
             <h3 id="contest-lightbox-title" className="contest__lightbox-title">{sub.title}</h3>
-            {exifStr && <span className="contest__lightbox-exif">{exifStr}</span>}
           </div>
 
           <div className="contest__lightbox-actions">
@@ -906,8 +904,8 @@ function TabVote({
                     </button>
                     <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
                     {selected && (
-                      <div className="contest__vote-check">
-                        <Check size={24} />
+                      <div className="contest__vote-check" aria-hidden="true">
+                        <Check size={40} strokeWidth={3} />
                       </div>
                     )}
                     <div className="contest__vote-info">
