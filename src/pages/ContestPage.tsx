@@ -886,28 +886,30 @@ function TabVote({
                     aria-disabled={disabled}
                     aria-label={sub.title}
                   >
-                    <button
-                      type="button"
-                      className="contest__vote-thumb-expand"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        triggerElRef.current = e.currentTarget;
-                        setLightboxId(sub.id);
-                      }}
-                      onKeyDown={(e) => {
-                        // Stop Enter/Space from bubbling to the thumb's selection toggle.
-                        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
-                      }}
-                      aria-label={`Expand ${sub.title}`}
-                    >
-                      <Maximize2 size={14} aria-hidden="true" />
-                    </button>
-                    <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
-                    {selected && (
-                      <div className="contest__vote-check" aria-hidden="true">
-                        <Check size={40} strokeWidth={3} />
-                      </div>
-                    )}
+                    <div className="contest__vote-thumb-image">
+                      <button
+                        type="button"
+                        className="contest__vote-thumb-expand"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerElRef.current = e.currentTarget;
+                          setLightboxId(sub.id);
+                        }}
+                        onKeyDown={(e) => {
+                          // Stop Enter/Space from bubbling to the thumb's selection toggle.
+                          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                        }}
+                        aria-label={`Expand ${sub.title}`}
+                      >
+                        <Maximize2 size={14} aria-hidden="true" />
+                      </button>
+                      <img src={getImageUrl(sub.url, 'thumb')} alt={sub.title} loading="lazy" />
+                      {selected && (
+                        <div className="contest__vote-check" aria-hidden="true">
+                          <Check size={40} strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
                     <div className="contest__vote-info">
                       <span className="contest__vote-title">{sub.title}</span>
                     </div>
