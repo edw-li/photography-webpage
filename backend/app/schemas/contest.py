@@ -21,6 +21,7 @@ class ContestSubmissionResponse(CamelModel):
     title: str
     photographer: str
     is_assigned: bool = False
+    is_own: bool = False
     votes: int | None = None
     exif: SubmissionExifSchema | None = None
     category_votes: CategoryVotesSchema | None = None
