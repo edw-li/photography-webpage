@@ -952,9 +952,6 @@ function TabVote({
                           <Check size={40} strokeWidth={3} />
                         </div>
                       )}
-                      {isOwn && (
-                        <span className="contest__vote-thumb-own-pill">Your submission</span>
-                      )}
                     </div>
                     <div className="contest__vote-info">
                       <span className="contest__vote-title">{sub.title}</span>

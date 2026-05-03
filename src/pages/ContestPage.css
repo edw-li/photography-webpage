@@ -1390,20 +1390,6 @@
   filter: saturate(0.7);
 }
 
-.contest__vote-thumb-own-pill {
-  position: absolute;
-  bottom: 6px;
-  left: 6px;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  pointer-events: none;
-  z-index: 2;
-}
 
 /* Wizard Review */
 .contest__wizard-review {
