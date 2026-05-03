@@ -62,6 +62,7 @@ def _submission_to_response(
     sub: ContestSubmission,
     category_votes: CategoryVotesSchema | None = None,
     anonymize: bool = False,
+    current_user_id: uuid.UUID | None = None,
 ) -> ContestSubmissionResponse:
     exif = None
     if any([sub.exif_camera, sub.exif_focal_length, sub.exif_aperture, sub.exif_shutter_speed, sub.exif_iso]):
@@ -80,12 +81,14 @@ def _submission_to_response(
     else:
         url = sub.url
         photographer = sub.photographer
+    is_own = current_user_id is not None and sub.user_id == current_user_id
     return ContestSubmissionResponse(
         id=sub.id,
         url=url,
         title=sub.title,
         photographer=photographer,
         is_assigned=sub.user_id is not None,
+        is_own=is_own,
         votes=sub.vote_count if sub.vote_count else None,
         exif=exif,
         category_votes=category_votes,
@@ -128,8 +131,14 @@ async def _contest_to_response(
 
     is_admin = user is not None and user.role == "admin"
     anonymize = contest.status == "voting" and not is_admin
+    current_user_id = user.id if user is not None else None
     submissions = [
-        _submission_to_response(s, sub_category_votes.get(s.id), anonymize=anonymize)
+        _submission_to_response(
+            s,
+            sub_category_votes.get(s.id),
+            anonymize=anonymize,
+            current_user_id=current_user_id,
+        )
         for s in contest.submissions
     ]
     submission_count = len(contest.submissions)
@@ -1040,11 +1049,20 @@ async def cast_vote(
     if contest.wildcard_category:
         valid_categories.add("wildcard")
 
-    # Get all submission IDs for this contest
+    # Get all submission IDs for this contest, plus the subset owned by the
+    # voting user (used to reject self-votes — defense-in-depth, since the
+    # frontend already disables those affordances).
     sub_result = await db.execute(
-        select(ContestSubmission.id).where(ContestSubmission.contest_id == contest_id)
+        select(ContestSubmission.id, ContestSubmission.user_id).where(
+            ContestSubmission.contest_id == contest_id
+        )
     )
-    valid_sub_ids = {row[0] for row in sub_result}
+    valid_sub_ids: set[int] = set()
+    own_sub_ids: set[int] = set()
+    for sub_id, owner_id in sub_result:
+        valid_sub_ids.add(sub_id)
+        if owner_id == user.id:
+            own_sub_ids.add(sub_id)
 
     # Validate and create votes
     votes_to_add = []
@@ -1074,6 +1092,11 @@ async def cast_vote(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Submission {sub_id} not found in this contest",
+                )
+            if sub_id in own_sub_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="You cannot vote for your own submissions",
                 )
             votes_to_add.append(
                 ContestVote(

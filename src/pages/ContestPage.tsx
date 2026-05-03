@@ -66,6 +66,7 @@ function VoteLightbox({
   total,
   isSelected,
   atSelectionCap,
+  isOwn,
   onClose,
   onPrev,
   onNext,
@@ -76,6 +77,7 @@ function VoteLightbox({
   total: number;
   isSelected: boolean;
   atSelectionCap: boolean;
+  isOwn: boolean;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -86,7 +88,9 @@ function VoteLightbox({
   const fullSrc = getImageUrl(sub.url, 'full');
   const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(fullSrc);
 
-  const canSelect = isSelected || !atSelectionCap;
+  // Own submissions are never selectable; otherwise users can deselect anytime
+  // and select only when below the cap.
+  const canSelect = !isOwn && (isSelected || !atSelectionCap);
   const hasPrev = index > 0;
   const hasNext = index >= 0 && index < total - 1;
 
@@ -179,7 +183,7 @@ function VoteLightbox({
             <img
               ref={imgRef}
               src={fullSrc}
-              alt={sub.title}
+              alt={isOwn ? `${sub.title} (your submission)` : sub.title}
               onLoad={handleLoad}
               onError={handleError}
               className={`contest__lightbox-image${loaded ? ' contest__lightbox-image--loaded' : ''}`}
@@ -218,20 +222,30 @@ function VoteLightbox({
             </div>
 
             <div className="contest__lightbox-select">
-              <button
-                type="button"
-                className={`contest__modal-btn${isSelected ? ' contest__lightbox-select-btn--remove' : ''}`}
-                onClick={onToggleSelect}
-                disabled={!canSelect}
-                style={{ marginTop: 0 }}
-              >
-                {isSelected ? (<><Check size={16} aria-hidden="true" /> Selected — click to deselect</>) : 'Select'}
-              </button>
-              {!isSelected && atSelectionCap && (
-                <span className="contest__lightbox-cap-note">
-                  3 of 3 already chosen — deselect one to swap.
-                </span>
+              {isOwn ? (
+                <div className="contest__lightbox-own-label" role="status">
+                  Your submission
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={`contest__modal-btn${isSelected ? ' contest__lightbox-select-btn--remove' : ''}`}
+                  onClick={onToggleSelect}
+                  disabled={!canSelect}
+                  style={{ marginTop: 0 }}
+                >
+                  {isSelected
+                    ? (<><Check size={16} aria-hidden="true" /> Selected — click to deselect</>)
+                    : 'Select'}
+                </button>
               )}
+              <span className="contest__lightbox-cap-note" aria-live="polite">
+                {isOwn
+                  ? "You can't vote for your own submission."
+                  : !isSelected && atSelectionCap
+                    ? '3 of 3 already chosen — deselect one to swap.'
+                    : ''}
+              </span>
             </div>
           </div>
         </div>
@@ -761,6 +775,30 @@ function TabVote({
     }
   }, [lightboxId, subById]);
 
+  // Prune selections that have become invalid since they were chosen — either
+  // the submission was removed (admin delete) or its ownership flipped to the
+  // current user (admin reassign). Without this, the user could submit a vote
+  // that the backend rejects with a generic 400 and have no way to recover.
+  useEffect(() => {
+    setSelections((prev) => {
+      let changed = false;
+      const next: Record<VoteCategory, Set<number>> = { ...prev };
+      for (const cat of categories) {
+        const ids = prev[cat];
+        const filtered = new Set<number>();
+        for (const id of ids) {
+          const s = subById.get(id);
+          if (s && s.isOwn !== true) filtered.add(id);
+        }
+        if (filtered.size !== ids.size) {
+          next[cat] = filtered;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [subById, categories]);
+
   // Defensive: any wizard step change closes the lightbox. Today the focus trap
   // and visual obscuring make this unreachable through the UI; this effect
   // guards future programmatic step changes from leaving stale lightbox state.
@@ -866,25 +904,30 @@ function TabVote({
               {shuffledIds.map((id) => {
                 const sub = subById.get(id);
                 if (!sub) return null;
+                const isOwn = sub.isOwn === true;
                 const selected = selections[currentCategory].has(sub.id);
                 const maxReached = selections[currentCategory].size >= 3;
-                const disabled = !selected && maxReached;
+                const capped = !selected && maxReached;
+                // Selection is gated by both reasons; the visual state (and class) tracks
+                // each separately so users get the right helper text in the lightbox.
+                const selectionDisabled = isOwn || capped;
+                const ariaLabel = isOwn ? `${sub.title} (your submission, not eligible to vote)` : sub.title;
                 return (
                   <div
                     key={sub.id}
-                    className={`contest__vote-thumb${selected ? ' contest__vote-thumb--selected' : ''}${disabled ? ' contest__vote-thumb--disabled' : ''}`}
-                    onClick={() => !disabled && toggleSelection(currentCategory, sub.id)}
+                    className={`contest__vote-thumb${selected ? ' contest__vote-thumb--selected' : ''}${capped ? ' contest__vote-thumb--disabled' : ''}${isOwn ? ' contest__vote-thumb--own' : ''}`}
+                    onClick={() => !selectionDisabled && toggleSelection(currentCategory, sub.id)}
                     onKeyDown={(e) => {
-                      if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+                      if ((e.key === 'Enter' || e.key === ' ') && !selectionDisabled) {
                         e.preventDefault();
                         toggleSelection(currentCategory, sub.id);
                       }
                     }}
-                    tabIndex={disabled ? -1 : 0}
+                    tabIndex={selectionDisabled ? -1 : 0}
                     role="checkbox"
                     aria-checked={selected}
-                    aria-disabled={disabled}
-                    aria-label={sub.title}
+                    aria-disabled={selectionDisabled}
+                    aria-label={ariaLabel}
                   >
                     <div className="contest__vote-thumb-image">
                       <button
@@ -908,6 +951,9 @@ function TabVote({
                         <div className="contest__vote-check" aria-hidden="true">
                           <Check size={40} strokeWidth={3} />
                         </div>
+                      )}
+                      {isOwn && (
+                        <span className="contest__vote-thumb-own-pill">Your submission</span>
                       )}
                     </div>
                     <div className="contest__vote-info">
@@ -999,6 +1045,7 @@ function TabVote({
           total={shuffledIds.length}
           isSelected={selections[currentCategory].has(lightboxSub.id)}
           atSelectionCap={selections[currentCategory].size >= 3}
+          isOwn={lightboxSub.isOwn === true}
           onClose={() => setLightboxId(null)}
           onPrev={() => {
             if (lightboxIndex > 0) setLightboxId(shuffledIds[lightboxIndex - 1]);

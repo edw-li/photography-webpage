@@ -14,6 +14,7 @@ export interface ContestSubmission {
   title: string;
   photographer: string;
   isAssigned?: boolean;
+  isOwn?: boolean;
   votes?: number;
   exif?: PhotoExif;
   categoryVotes?: CategoryVotes;
