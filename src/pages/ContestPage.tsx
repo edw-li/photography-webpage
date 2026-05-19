@@ -1295,22 +1295,23 @@ function TabPodium({ contest }: { contest: Contest }) {
             {winnersForCat.length === 0 && (
               <p className="contest__modal-subtitle">No winners announced for this category.</p>
             )}
-            {winnersForCat.map((p, i) => (
+            {winnersForCat.map((p) => (
               <div
                 key={p.id}
                 className={`contest__podium-place contest__podium-place--${p.place}`}
-                style={{ order: [2, 1, 3][i] }}
               >
                 <div className="contest__podium-photo">
                   <img src={getImageUrl(p.url, 'thumb')} alt={p.title} />
                 </div>
-                <Trophy size={24} color={trophyColor(p.place)} />
-                <span className="contest__podium-label" style={{ color: trophyColor(p.place) }}>
-                  {placeLabel(p.place)}
-                </span>
-                <span className="contest__podium-title">{p.title}</span>
-                <span className="contest__podium-photographer">{p.photographer}</span>
-                <span className="contest__podium-votes">{(p.categoryVotes ? p.categoryVotes[currentCat] : (p.votes ?? 0))} votes</span>
+                <div className="contest__podium-text">
+                  <Trophy size={24} color={trophyColor(p.place)} />
+                  <span className="contest__podium-label" style={{ color: trophyColor(p.place) }}>
+                    {placeLabel(p.place)}
+                  </span>
+                  <span className="contest__podium-title">{p.title}</span>
+                  <span className="contest__podium-photographer">{p.photographer}</span>
+                  <span className="contest__podium-votes">{(p.categoryVotes ? p.categoryVotes[currentCat] : (p.votes ?? 0))} votes</span>
+                </div>
               </div>
             ))}
           </div>
@@ -1530,12 +1531,37 @@ function ContestModal({
   const tabContentRef = useRef<HTMLDivElement>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
+  // Track mobile viewport so we can skip the height-locking mechanism below.
+  // Locking the tab-content height to the podium tab's offsetHeight makes the
+  // modal stable across tab switches on desktop, but on mobile the podium's
+  // column layout is much taller than the 92vh modal — locking it would clip
+  // the bottom of every tab (Issue 6). On mobile we just let flex: 1 +
+  // overflow-y: auto handle sizing.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    const onChange = () => setIsMobile(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  // Run once on mount. The first render shows the refTab content (so its layout
+  // can be measured before paint); after measuring we switch to the first tab.
+  // We deliberately do NOT re-run on isMobile changes — measuring after a
+  // viewport transition would capture the *current* tab's height, not the
+  // canonical refTab's, locking the modal to a wrong size. Use the live
+  // matchMedia value here so a desktop mount measures, a mobile mount doesn't.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
-    if (lockedHeight === null && tabContentRef.current) {
+    if (!tabContentRef.current) return;
+    const isMobileAtMount = window.matchMedia('(max-width: 768px)').matches;
+    if (!isMobileAtMount) {
       setLockedHeight(tabContentRef.current.offsetHeight);
-      if (refTab !== tabs[0].id) {
-        setActiveTab(tabs[0].id);
-      }
+    }
+    if (refTab !== tabs[0].id) {
+      setActiveTab(tabs[0].id);
     }
   }, []);
 
@@ -1561,7 +1587,7 @@ function ContestModal({
         className="contest__tab-content"
         key={activeTab}
         ref={tabContentRef}
-        style={lockedHeight !== null ? { height: lockedHeight, flex: 'none' } : undefined}
+        style={lockedHeight !== null && !isMobile ? { height: lockedHeight, flex: 'none' } : undefined}
       >
         {activeTab === 'submit' && (
           <TabSubmit

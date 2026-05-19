@@ -547,38 +547,72 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Anchor lightbox arrows to the bottom corners of the image area on mobile.
-     The image is constrained to 50vh with object-fit: contain, so center-of-parent
-     anchoring drifts away from the painted image for non-square aspect ratios.
-     Bottom-corner placement also matches iOS Photos / Google Photos convention
-     and is easier to reach with a thumb. */
-  .gallery__lightbox-arrow {
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
-    top: auto;
-    bottom: 8px;
-    transform: none;
-    background: rgba(0, 0, 0, 0.6);
-  }
-
-  .gallery__lightbox-arrow--prev {
-    left: 8px;
-  }
-
-  .gallery__lightbox-arrow--next {
-    right: 8px;
-  }
-
+  /* Mobile lightbox: a flex-budget column with a fixed 95vh height so every
+     element (header, image, exif, comments toggle) is always inside the viewport
+     regardless of image aspect ratio. The media area (flex: 1) takes whatever
+     space remains after the panel; the image body (also flex: 1) inside it gets
+     whatever remains after the header + exif, so the image auto-scales to fit.
+     No piecewise vh caps, no :has() expansion needed. */
   .gallery__lightbox {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
     max-width: 100vw;
+    width: 100vw;
+    height: 95vh;
   }
 
   .gallery__lightbox-media {
     width: 100%;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* On mobile the close + counter follow the lightbox (absolute-to-media) so the
+     in-flow header text below can clear them with padding. On desktop they
+     remain position:fixed to the viewport (see the comment above the desktop
+     rules) — that's intentional because the desktop side-by-side layout already
+     keeps the header's top edge away from the corners. */
+  .gallery__lightbox-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .gallery__lightbox-counter {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .gallery__lightbox-header {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    padding-top: 3.25rem;          /* clear the absolute close + counter row */
+  }
+
+  .gallery__lightbox-body {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .gallery__lightbox-img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .gallery__lightbox-exif {
+    flex: 0 0 auto;
+  }
+
+  /* Nav arrows: inherit desktop's vertical centering (top: 50%; translateY).
+     Only size + background change on mobile, for legibility on bright images. */
+  .gallery__lightbox-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    background: rgba(0, 0, 0, 0.6);
   }
 
   .gallery__lightbox-panel {
@@ -586,19 +620,12 @@
     width: 100%;
     max-height: 50vh;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
-    flex-direction: column;       /* stack toggle handle above comments body */
+    flex-direction: column;
   }
 
-  /* Lightbox stacks vertically here, so the image no longer competes with the
-     panel horizontally — go back to a viewport-relative cap, but tightened so
-     the image + panel fit within the lightbox's 95vh max-height. */
-  .gallery__lightbox-img {
-    max-width: 100vw;
-    max-height: 50vh;
-  }
-
-  /* Collapsible comments panel: thin handle by default, expands to 50vh on tap.
-     The toggle button is rendered only on mobile (via Gallery.tsx state). */
+  /* Collapsible comments panel: thin tappable handle by default, expands to
+     50vh on tap. The image auto-grows because the media area's flex share
+     grows when the panel shrinks — no JS or :has() rule needed. */
   .gallery__lightbox-panel--collapsed {
     max-height: 44px;
     transition: max-height 0.25s ease;
@@ -615,9 +642,8 @@
 
   .gallery__lightbox-panel-toggle {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: center;
     width: 100%;
     padding: 0.5rem 1rem;
     background: var(--color-dark-900);
@@ -627,25 +653,6 @@
     font-size: 0.85rem;
     font-weight: 500;
     min-height: 44px;
-  }
-
-  .gallery__lightbox-panel-handle {
-    display: block;
-    width: 40px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.4);
-  }
-
-  /* When the panel is collapsed, give the image area the freed vertical space.
-     Uses :has() (supported ~94% of browsers); older browsers fall back to the
-     50vh cap above — image stays at today's size, panel still collapses. */
-  .gallery__lightbox:has(.gallery__lightbox-panel--collapsed) .gallery__lightbox-img {
-    max-height: calc(85vh - 44px);
-  }
-
-  .gallery__lightbox-header {
-    flex-wrap: wrap;
   }
 }
 

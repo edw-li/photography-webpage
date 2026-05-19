@@ -381,7 +381,6 @@ function GalleryLightbox({
               aria-expanded={commentsExpanded}
               aria-controls="gallery-lightbox-comments"
             >
-              <span className="gallery__lightbox-panel-handle" aria-hidden="true" />
               <span className="gallery__lightbox-panel-toggle-label">
                 Comments{photo.commentCount ? ` (${photo.commentCount})` : ''}
               </span>
