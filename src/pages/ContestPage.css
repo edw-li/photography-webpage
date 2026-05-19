@@ -343,7 +343,16 @@
    ============================================= */
 
 .contest__tab-bar {
-  position: relative;
+  /* Sticky to the top of the tab-content scroll container so the tab labels
+     stay anchored at the top of the visible area as the user scrolls within
+     a tab. Combined with the solid background and z-index, this also ensures
+     the tab strip is rendered ABOVE any in-tab content and isn't clipped or
+     squeezed by flex pressure (which previously made the tab text appear
+     half-cut on completed-contest mobile views). */
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  z-index: 2;
   display: flex;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 1.5rem;
@@ -410,6 +419,13 @@
   flex: 1;
   overflow-y: auto;
   min-height: 400px;
+}
+
+/* Per-tab fade-in animation lives on the inner panel wrapper (which is the
+   element with key={activeTab} that re-mounts on tab change). The outer
+   tab-content does NOT re-mount, so the sticky tab-bar's scroll position is
+   preserved across tab switches. */
+.contest__tab-panel {
   animation: contestTabEnter 0.2s ease;
 }
 
@@ -2023,7 +2039,16 @@
   }
 
   /* Tab bar responsive — prevent flex from squeezing tabs below content size,
-     since the modal has overflow:hidden and squeezed tabs would clip text. */
+     since the modal has overflow:hidden and squeezed tabs would clip text.
+     ALSO apply flex-shrink: 0 to the tab-bar container itself: in a tight
+     modal flex column it would otherwise shrink vertically below its tab
+     content's intrinsic height, and because the bar has `overflow-x: auto`
+     (which the CSS spec promotes overflow-y to `auto` alongside), the tabs
+     would scroll vertically — showing only the top of the tab text. */
+  .contest__tab-bar {
+    flex-shrink: 0;
+  }
+
   .contest__tab {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
@@ -2171,8 +2196,34 @@
     max-width: 100%;
   }
 
+  /* Honorable mentions — horizontal card layout on mobile, matching the
+     podium-place winners (image left, text right). Smaller image (80×80) than
+     the winners' 120×120 so mentions stay visually de-emphasized below the
+     winning podium section. */
   .contest__podium-mentions-grid {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .contest__podium-mention-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem;
+  }
+
+  .contest__podium-mention-card img {
+    flex: 0 0 80px;
+    width: 80px;
+    height: 80px;
+    aspect-ratio: 1 / 1;     /* override desktop 4/3 for square crop */
+  }
+
+  .contest__podium-mention-info {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;              /* card owns the padding now; remove default 0.4rem 0.6rem */
   }
 
   /* Carousel category-switch arrows (Issue 9): anchor to the top of the

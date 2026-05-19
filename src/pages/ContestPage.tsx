@@ -1581,43 +1581,46 @@ function ContestModal({
         {modalTitle}
       </h2>
 
-      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} isAuthenticated={isAuthenticated} />
-
       <div
         className="contest__tab-content"
-        key={activeTab}
         ref={tabContentRef}
         style={lockedHeight !== null && !isMobile ? { height: lockedHeight, flex: 'none' } : undefined}
       >
-        {activeTab === 'submit' && (
-          <TabSubmit
-            contest={contest}
-            onClose={onClose}
-            file={file}
-            setFile={setFile}
-            title={title}
-            setTitle={setTitle}
-            camera={camera}
-            focalLength={focalLength}
-            aperture={aperture}
-            shutterSpeed={shutterSpeed}
-            iso={iso}
-            submitted={submitted}
-            setSubmitted={setSubmitted}
-            onContestRefresh={onContestRefresh}
-          />
-        )}
-        {activeTab === 'vote' && (
-          <TabVote
-            contest={contest}
-            onClose={onClose}
-            onContestRefresh={onContestRefresh}
-          />
-        )}
-        {activeTab === 'rules' && <TabRules contest={contest} />}
-        {activeTab === 'gallery' && <TabGallery contest={contest} />}
-        {activeTab === 'podium' && <TabPodium contest={contest} />}
-        {activeTab === 'full-results' && <TabFullResults contest={contest} />}
+        {/* TabBar lives inside tab-content (the scroll container) so it can be
+            position: sticky; top: 0 — keeps the tab labels glued to the top of
+            the visible content area regardless of modal height pressure. */}
+        <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} isAuthenticated={isAuthenticated} />
+        <div key={activeTab} className="contest__tab-panel">
+          {activeTab === 'submit' && (
+            <TabSubmit
+              contest={contest}
+              onClose={onClose}
+              file={file}
+              setFile={setFile}
+              title={title}
+              setTitle={setTitle}
+              camera={camera}
+              focalLength={focalLength}
+              aperture={aperture}
+              shutterSpeed={shutterSpeed}
+              iso={iso}
+              submitted={submitted}
+              setSubmitted={setSubmitted}
+              onContestRefresh={onContestRefresh}
+            />
+          )}
+          {activeTab === 'vote' && (
+            <TabVote
+              contest={contest}
+              onClose={onClose}
+              onContestRefresh={onContestRefresh}
+            />
+          )}
+          {activeTab === 'rules' && <TabRules contest={contest} />}
+          {activeTab === 'gallery' && <TabGallery contest={contest} />}
+          {activeTab === 'podium' && <TabPodium contest={contest} />}
+          {activeTab === 'full-results' && <TabFullResults contest={contest} />}
+        </div>
       </div>
     </ModalShell>
   );
