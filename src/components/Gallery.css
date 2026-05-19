@@ -272,6 +272,16 @@
   max-height: 95vh;
 }
 
+/* Body wrapper around CommentsPanel — added so the panel can be collapsed on
+   mobile without unmounting the comments component. Acts as a flex pass-through
+   so CommentsPanel still inherits the panel's dimensions on desktop. */
+.gallery__lightbox-panel-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* Close + counter sit at the viewport corners (matches MyResultsPage's lightbox
    pattern). They were temporarily moved into .gallery__lightbox-media when the
    comments panel landed, but that caused them to overlap the lightbox header's
@@ -537,10 +547,27 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  /* Anchor lightbox arrows to the bottom corners of the image area on mobile.
+     The image is constrained to 50vh with object-fit: contain, so center-of-parent
+     anchoring drifts away from the painted image for non-square aspect ratios.
+     Bottom-corner placement also matches iOS Photos / Google Photos convention
+     and is easier to reach with a thumb. */
   .gallery__lightbox-arrow {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     font-size: 1.5rem;
+    top: auto;
+    bottom: 8px;
+    transform: none;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .gallery__lightbox-arrow--prev {
+    left: 8px;
+  }
+
+  .gallery__lightbox-arrow--next {
+    right: 8px;
   }
 
   .gallery__lightbox {
@@ -559,6 +586,7 @@
     width: 100%;
     max-height: 50vh;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
+    flex-direction: column;       /* stack toggle handle above comments body */
   }
 
   /* Lightbox stacks vertically here, so the image no longer competes with the
@@ -569,13 +597,130 @@
     max-height: 50vh;
   }
 
+  /* Collapsible comments panel: thin handle by default, expands to 50vh on tap.
+     The toggle button is rendered only on mobile (via Gallery.tsx state). */
+  .gallery__lightbox-panel--collapsed {
+    max-height: 44px;
+    transition: max-height 0.25s ease;
+  }
+
+  .gallery__lightbox-panel--expanded {
+    max-height: 50vh;
+    transition: max-height 0.25s ease;
+  }
+
+  .gallery__lightbox-panel--collapsed .gallery__lightbox-panel-body {
+    display: none;
+  }
+
+  .gallery__lightbox-panel-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: var(--color-dark-900);
+    color: var(--color-light-100);
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-height: 44px;
+  }
+
+  .gallery__lightbox-panel-handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  /* When the panel is collapsed, give the image area the freed vertical space.
+     Uses :has() (supported ~94% of browsers); older browsers fall back to the
+     50vh cap above — image stays at today's size, panel still collapses. */
+  .gallery__lightbox:has(.gallery__lightbox-panel--collapsed) .gallery__lightbox-img {
+    max-height: calc(85vh - 44px);
+  }
+
   .gallery__lightbox-header {
     flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__lightbox-panel--collapsed,
+  .gallery__lightbox-panel--expanded {
+    transition: none;
   }
 }
 
 @media (max-width: 480px) {
   .gallery__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Touch devices can't trigger :hover, so reveal the thumbnail overlay always
+   and skip the hover-scale image zoom. Targets actual touch hardware via the
+   interaction media query, not viewport size — keeps hover working on
+   small-window desktops. */
+@media (hover: none) {
+  .gallery__overlay {
+    opacity: 1;
+  }
+
+  .gallery__item:hover img {
+    transform: none;
+  }
+
+  /* Carousel nav arrows: add a clear circular pill behind the chevron so touch
+     users see an obvious tappable button. The existing gradient remains as a
+     visual edge cue. Pseudo-element z-index -1 paints between the gradient
+     background and the icon (since the parent has position: absolute + z-index
+     creating a stacking context). */
+  .gallery__nav::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: rgba(42, 61, 34, 0.7);
+    transform: translate(-50%, -50%);
+    z-index: -1;
+  }
+
+  .gallery__nav {
+    color: var(--color-light-100);
+  }
+}
+
+/* Pagination indicator slots — render two copies, one above and one below the
+   grid, and toggle visibility based on viewport. On desktop the bottom slot
+   shows (today's behavior). On mobile the top slot shows so users see the
+   page count before scrolling. */
+.gallery__page-indicator-slot--top {
+  display: none;
+}
+
+.gallery__page-indicator-slot--bottom {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .gallery__page-indicator-slot--top {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .gallery__page-indicator-slot--top .gallery__page-indicator {
+    margin-top: 0;
+  }
+
+  .gallery__page-indicator-slot--bottom {
+    display: none;
   }
 }

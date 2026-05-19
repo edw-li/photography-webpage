@@ -88,4 +88,19 @@
   .footer__brand p {
     max-width: none;
   }
+
+  /* Bump link tap targets to a comfortable 44×44px on mobile. The links stay
+     centered via the parent's text-align: center; inline-flex preserves the
+     inline layout while letting align-items center the text vertically.
+     min-width guarantees short labels (e.g. "Home") meet the 44px width
+     guideline regardless of text length. */
+  .footer__links a,
+  .footer__social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 0.75rem;
+  }
 }

@@ -1846,8 +1846,13 @@
 @media (max-width: 600px) {
   .contest__lightbox-backdrop { padding: 0.75rem; }
   .contest__lightbox-panel { padding: 0.75rem 0.75rem 1rem; }
-  .contest__lightbox-image { max-height: calc(90vh - 240px); }
-  .contest__lightbox-actions { flex-direction: column; align-items: stretch; }
+  /* Image max-height and actions stacking moved into the 768px block below so
+     they apply across the full mobile range. Actions only flex-column on very
+     narrow phones (≤400px) to keep the sticky bar compact at 401–768px. */
+}
+
+@media (max-width: 400px) {
+  .contest__lightbox-actions { flex-direction: column; align-items: stretch; gap: 0.5rem; }
   .contest__lightbox-select { align-items: stretch; }
 }
 
@@ -1918,6 +1923,72 @@
 
   .contest__vote-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Sticky category header — keeps title and "X / 3 selected" chip visible
+     while user scrolls through thumbnails inside the contest modal sheet. */
+  .contest__vote-header {
+    position: sticky;
+    top: 0;
+    background: var(--color-surface);
+    padding: 0.75rem 0 0.5rem;
+    margin: 0;
+    z-index: 2;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* VoteLightbox mobile layout: bigger image + sticky action bar so the
+     Select button is always reachable without scrolling. The panel becomes
+     a scroll container so sticky has a context to anchor against. */
+  .contest__lightbox-panel {
+    overflow-y: auto;
+  }
+
+  .contest__lightbox-image {
+    max-height: calc(85vh - 88px);
+  }
+
+  .contest__lightbox-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface);
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
+    margin: 0 -0.75rem -0.25rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    z-index: 1;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 44×44 touch targets on VoteLightbox close + nav buttons. */
+  .contest__lightbox-close {
+    width: 44px;
+    height: 44px;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .contest__lightbox-nav-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Bump the expand button to a real touch target on mobile and reveal it
+     unconditionally (no hover to depend on). CSS width/height on the SVG
+     override the lucide icon's inline width="14" height="14" attributes. */
+  .contest__vote-thumb-expand {
+    width: 40px;
+    height: 40px;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    opacity: 1;
+  }
+
+  .contest__vote-thumb-expand svg {
+    width: 18px;
+    height: 18px;
   }
 
   .contest__exif-grid {

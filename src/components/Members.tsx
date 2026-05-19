@@ -12,9 +12,24 @@ const USER_PLACEHOLDER_ICON = (
   </svg>
 );
 
-const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 3 } as const;
+const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 6 } as const;
 const BREAKPOINTS = { tablet: 1024, mobile: 480 } as const;
 const VISIBLE_FILTER_COUNT = 5;
+
+// Mobile (≤480px) renders all filter pills in a horizontal scroll row instead
+// of the +N more / Show less expansion UI used at larger viewports.
+function useIsMobileViewport(): boolean {
+  const compute = () =>
+    typeof window !== 'undefined' && window.innerWidth <= BREAKPOINTS.mobile;
+  const [isMobile, setIsMobile] = useState(compute);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`);
+    const onChange = () => setIsMobile(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
 
 function usePageSize(): number {
   const getSize = () => {
@@ -81,6 +96,7 @@ export default function Members() {
   const [currentPage, setCurrentPage] = useState(0);
   const [slideDir, setSlideDir] = useState<'exit-up' | 'exit-down' | 'up' | 'down' | null>(null);
   const pageSize = usePageSize();
+  const isMobile = useIsMobileViewport();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -120,7 +136,9 @@ export default function Members() {
   );
 
   const { visibleSpecialties, hiddenCount } = useMemo(() => {
-    if (filtersExpanded) {
+    // On mobile, render all pills in a horizontal scroll row. The +N more /
+    // Show less toggle buttons are hidden by the gate in the JSX below.
+    if (isMobile || filtersExpanded) {
       return { visibleSpecialties: specialties, hiddenCount: 0 };
     }
     const initial = specialties.slice(0, VISIBLE_FILTER_COUNT);
@@ -134,7 +152,7 @@ export default function Members() {
     }
 
     return { visibleSpecialties: initial, hiddenCount: rest.length };
-  }, [specialties, filtersExpanded, activeFilter]);
+  }, [specialties, filtersExpanded, activeFilter, isMobile]);
 
   const filteredMembers = useMemo(() => {
     let result = members;
@@ -373,7 +391,7 @@ export default function Members() {
                       {shortenSpecialty(s)}
                     </button>
                   ))}
-                  {hiddenCount > 0 && (
+                  {!isMobile && hiddenCount > 0 && (
                     <button
                       className="members__filter-pill members__filter-pill--toggle"
                       onClick={() => {
@@ -383,8 +401,8 @@ export default function Members() {
                           setFiltersExpanded(true);
                           return;
                         }
-                        const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
-                        if (isMobile) { setFiltersExpanded(true); return; }
+                        const isMobileNow = window.innerWidth <= BREAKPOINTS.mobile;
+                        if (isMobileNow) { setFiltersExpanded(true); return; }
                         prevSearchWidthRef.current = searchRef.current?.getBoundingClientRect().width ?? null;
                         const controlsEl = controlsRef.current;
                         if (controlsEl) prevHeightRef.current = controlsEl.getBoundingClientRect().height;
@@ -397,7 +415,7 @@ export default function Members() {
                       +{hiddenCount} more
                     </button>
                   )}
-                  {filtersExpanded && specialties.length > VISIBLE_FILTER_COUNT && (
+                  {!isMobile && filtersExpanded && specialties.length > VISIBLE_FILTER_COUNT && (
                     <button
                       className="members__filter-pill members__filter-pill--toggle"
                       onClick={() => {
@@ -407,8 +425,8 @@ export default function Members() {
                           setFiltersExpanded(false);
                           return;
                         }
-                        const isMobile = window.innerWidth <= BREAKPOINTS.mobile;
-                        if (isMobile) { setFiltersExpanded(false); return; }
+                        const isMobileNow = window.innerWidth <= BREAKPOINTS.mobile;
+                        if (isMobileNow) { setFiltersExpanded(false); return; }
                         const controlsEl = controlsRef.current;
                         if (controlsEl) prevHeightRef.current = controlsEl.getBoundingClientRect().height;
                         setFiltersExpanded(false);

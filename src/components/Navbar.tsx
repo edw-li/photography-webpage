@@ -68,6 +68,15 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Auto-close mobile drawer when viewport grows past tablet breakpoint.
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) setMenuOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   // Close user menu on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -136,6 +145,15 @@ export default function Navbar() {
           <span />
           <span />
         </button>
+
+        {menuOpen && (
+          <button
+            type="button"
+            className="navbar__drawer-backdrop"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
 
         <ul className={`navbar__links${menuOpen ? ' navbar__links--open' : ''}`}>
           {sectionLinks.map(({ label, id }) => (

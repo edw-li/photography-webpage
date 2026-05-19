@@ -41,6 +41,7 @@
   height: 3px;
   background: var(--color-accent-dark, #CD9239);
   border-radius: 2px;
+  z-index: 2;
   transition: left 0.3s ease, width 0.3s ease;
 }
 
@@ -300,10 +301,27 @@
     width: auto;
     margin-left: 0;
     margin-right: 0;
+    position: relative;
   }
 
   .about__tabs::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Fade-edge hint: gradient overlay on the right side of the scrollable tab
+     container that fades to the page background, hinting at scrollable content
+     beyond. Pseudo-element on an absolute child of the scroll container stays
+     anchored to the visible right edge as content scrolls. */
+  .about__tabs::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--color-bg));
+    pointer-events: none;
+    z-index: 1;
   }
 
   .about__tab {

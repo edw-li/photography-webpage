@@ -621,10 +621,45 @@
 }
 
 @media (max-width: 480px) {
+  /* Let the grid fill the available container width; the 300px cap looked
+     cramped on 360px+ phones (S4-05). */
   .members__grid {
     grid-template-columns: 1fr;
-    max-width: 300px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Filter pills go horizontal-scroll on mobile (S4-03). The +N more / Show
+     less toggles are hidden in JSX; all pills render inline and the user
+     swipes to see overflow. Fade-edge hint matches the About tabs pattern
+     from S3-05. */
+  .members__filters {
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    width: 100%;
+    position: relative;
+  }
+
+  .members__filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .members__filters::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--color-bg-alt));
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .members__filter-pill {
+    flex-shrink: 0;
   }
 
   .members__modal {

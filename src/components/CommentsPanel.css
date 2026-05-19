@@ -178,6 +178,19 @@
   color: #ef4444;
 }
 
+/* Touch devices can't reveal the hover-contrast state, so promote the desktop
+   hover color to the base state and pad the buttons into a tappable target.
+   44px matches the touch-target convention used elsewhere in the codebase
+   (hamburger, lightbox arrows, footer links, contest buttons). */
+@media (hover: none) {
+  .comment-item__action {
+    color: rgba(255, 255, 255, 0.78);
+    padding: 0.4rem 0.5rem;
+    min-height: 44px;
+    font-size: 0.78rem;
+  }
+}
+
 .comment-item__edit {
   margin-top: 0.3rem;
 }
