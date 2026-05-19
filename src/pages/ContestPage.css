@@ -1925,9 +1925,12 @@
   /* Bottom-sheet pattern (user preference): pin to bottom, raise max-height
      from 80vh to 92vh so the modal dominates the viewport instead of feeling
      buried at the bottom. Flat bottom corners keep it visually flush with
-     the screen edge. Inner padding tightens slightly to recover usable space. */
+     the screen edge. Inner padding tightens slightly to recover usable space.
+     dvh override: respects iOS Safari's visible viewport when the address
+     bar is showing, so the title + tab bar at the modal top stay reachable. */
   .contest__modal {
     max-height: 92vh;
+    max-height: 92dvh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     padding: 1.25rem;
@@ -2019,10 +2022,12 @@
     grid-template-columns: 1fr;
   }
 
-  /* Tab bar responsive */
+  /* Tab bar responsive — prevent flex from squeezing tabs below content size,
+     since the modal has overflow:hidden and squeezed tabs would clip text. */
   .contest__tab {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
+    flex-shrink: 0;
   }
 
   /* Gallery responsive */
@@ -2204,5 +2209,14 @@
   .contest__results-stat-label {
     font-size: 0.65rem;
     letter-spacing: 0.2px;
+  }
+
+  /* Compact tabs at ≤480px so all three (Podium / Full Results / Gallery)
+     fit on narrow phones without horizontal overflow that would push the
+     Gallery tab off-screen. flex-shrink: 0 from the 768px rule still
+     prevents below-content squeeze. */
+  .contest__tab {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
   }
 }

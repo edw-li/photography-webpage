@@ -322,7 +322,12 @@
 }
 
 .gallery__lightbox-body {
-  position: relative;
+  /* No `position` on desktop so the in-body arrow buttons (position: absolute)
+     traverse up to `.gallery__lightbox-media` (position: relative) — exactly
+     the anchor they had before being moved inside the body. Mobile overrides
+     this to position: relative so on phones the arrows anchor to the body
+     itself (which is sized to the image area), tracking the image's vertical
+     center as the panel expands/collapses. */
   display: grid;
   place-items: center;
 }
@@ -559,7 +564,11 @@
     gap: 0.5rem;
     max-width: 100vw;
     width: 100vw;
+    /* vh fallback for older browsers; dvh respects iOS Safari's address bar
+       so the lightbox always fits within the *visible* viewport, not the
+       larger layout viewport that vh measures. */
     height: 95vh;
+    height: 95dvh;
   }
 
   .gallery__lightbox-media {
@@ -589,12 +598,26 @@
     flex: 0 0 auto;
     flex-wrap: wrap;
     padding-top: 3.25rem;          /* clear the absolute close + counter row */
+    padding-left: 1rem;            /* breathing room for title + LikeButton */
+    padding-right: 1rem;
   }
 
+  /* Explicit grid tracks force the body's grid to fill the body's
+     flex-allocated box (instead of auto-sizing to the image's intrinsic
+     size, which lets the image overflow its parent and overlap the
+     exif/comments below when the panel expands). minmax(0, 1fr) lets the
+     track shrink to 0 when needed and grow to fill otherwise.
+
+     position: relative makes the body the anchor for the in-body arrow
+     buttons on mobile, so the arrows track the image's vertical center as
+     the panel expands/collapses. */
   .gallery__lightbox-body {
+    position: relative;
     flex: 1 1 0;
     min-height: 0;
     width: 100%;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .gallery__lightbox-img {
@@ -604,6 +627,8 @@
 
   .gallery__lightbox-exif {
     flex: 0 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   /* Nav arrows: inherit desktop's vertical centering (top: 50%; translateY).
@@ -618,14 +643,20 @@
   .gallery__lightbox-panel {
     flex: 0 0 auto;
     width: 100%;
+    /* vh fallback + dvh override so the panel respects the visible
+       viewport when iOS Safari's address bar is showing. */
     max-height: 50vh;
+    max-height: 50dvh;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     flex-direction: column;
   }
 
   /* Collapsible comments panel: thin tappable handle by default, expands to
-     50vh on tap. The image auto-grows because the media area's flex share
-     grows when the panel shrinks — no JS or :has() rule needed. */
+     ~50vh on tap. The image auto-grows because the media area's flex share
+     grows when the panel shrinks — no JS or :has() rule needed. Body is left
+     rendered (no display:none) so both expand and collapse animate smoothly;
+     the panel's own overflow:hidden (desktop base) clips the body when
+     collapsed. */
   .gallery__lightbox-panel--collapsed {
     max-height: 44px;
     transition: max-height 0.25s ease;
@@ -633,11 +664,8 @@
 
   .gallery__lightbox-panel--expanded {
     max-height: 50vh;
+    max-height: 50dvh;
     transition: max-height 0.25s ease;
-  }
-
-  .gallery__lightbox-panel--collapsed .gallery__lightbox-panel-body {
-    display: none;
   }
 
   .gallery__lightbox-panel-toggle {

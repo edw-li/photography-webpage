@@ -323,7 +323,7 @@ function GalleryLightbox({
           )}
 
           {errored && !prevPhoto ? (
-            <div className="img-error-fallback gallery__lightbox-img gallery__lightbox-img--loaded" style={{ minHeight: 200, minWidth: 300 }}>
+            <div className="img-error-fallback gallery__lightbox-img gallery__lightbox-img--loaded" style={{ minHeight: 'min(200px, 100%)', minWidth: 'min(300px, 100%)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 48, height: 48 }}>
                 <line x1="2" y1="2" x2="22" y2="22" />
                 <path d="M10.41 10.41a2 2 0 1 1-2.83-2.83" />
@@ -342,26 +342,32 @@ function GalleryLightbox({
               onError={handleLightboxError}
             />
           )}
+
+          {/* Arrow buttons live inside the body so they anchor (via their
+              existing position: absolute) to the image's container \u2014 vertical
+              center of the body = vertical center of the painted image,
+              regardless of header/exif heights or panel state. */}
+          <button
+            type="button"
+            className="gallery__lightbox-arrow gallery__lightbox-arrow--prev"
+            onClick={onPrev}
+            aria-label="Previous image"
+          >
+            &#8249;
+          </button>
+          <button
+            type="button"
+            className="gallery__lightbox-arrow gallery__lightbox-arrow--next"
+            onClick={onNext}
+            aria-label="Next image"
+          >
+            &#8250;
+          </button>
         </div>
 
         <span className={`gallery__lightbox-exif${fadeIn ? ' gallery__lightbox-exif--loaded' : ''}${exifText ? '' : ' gallery__lightbox-exif--empty'}`}>
           {exifText || '\u00a0'}
         </span>
-
-        <button
-          className="gallery__lightbox-arrow gallery__lightbox-arrow--prev"
-          onClick={onPrev}
-          aria-label="Previous image"
-        >
-          &#8249;
-        </button>
-        <button
-          className="gallery__lightbox-arrow gallery__lightbox-arrow--next"
-          onClick={onNext}
-          aria-label="Next image"
-        >
-          &#8250;
-        </button>
         </div>
 
         <div
