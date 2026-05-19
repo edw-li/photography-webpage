@@ -141,3 +141,21 @@
     padding-top: 2rem;
   }
 }
+
+/* Tighten spacing on small phones — inputs stay at 16px font-size so iOS
+   doesn't auto-zoom on focus, but padding shrinks to fit the narrow viewport. */
+@media (max-width: 480px) {
+  .contact__form {
+    gap: 1rem;
+  }
+
+  .contact__field input,
+  .contact__field textarea {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .contact__info {
+    padding-top: 1.5rem;
+    gap: 1.5rem;
+  }
+}

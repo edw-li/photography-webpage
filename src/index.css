@@ -43,6 +43,18 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.15);
 
+  /* Z-index scale — one source of truth. Component CSS may reference these. */
+  --z-fab: 900;            /* Floating action buttons (theme toggle, back-to-top) */
+  --z-nav: 1000;           /* Sticky navbar */
+  --z-nav-toggle: 1001;    /* Hamburger button (above navbar) */
+  --z-overlay: 1001;       /* Modal/lightbox backdrops */
+  --z-dropdown: 1002;      /* User menu dropdown */
+  --z-overlay-close: 1003; /* Close affordances inside overlays */
+  --z-banner: 1100;        /* Announcement banner (above navbar) */
+  --z-dialog: 9000;        /* Confirmation/alert dialogs (above standard overlays) */
+  --z-popover: 9500;       /* Tooltips and session-warning popups */
+  --z-toast: 9999;         /* Top-of-stack notifications */
+
   /* Semantic colors — light mode defaults */
   --color-bg: #f9fbf7;
   --color-bg-alt: #f0f5ec;
@@ -91,6 +103,20 @@
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 
+/* Responsive layout variable overrides — scale spacing on smaller viewports. */
+@media (max-width: 768px) {
+  :root {
+    --section-padding: 3rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --section-padding: 2.25rem 0;
+    --container-padding: 0 1rem;
+  }
+}
+
 /* Reset */
 *,
 *::before,
@@ -104,6 +130,7 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 70px;
   scrollbar-gutter: stable;
+  overflow-x: clip;
 }
 
 section[id] {

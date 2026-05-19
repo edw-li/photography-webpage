@@ -508,9 +508,35 @@
     transform: translateY(4px);
   }
 
+  /* Tap-to-flip on mobile — JSX sets the modifier class via state. The compound
+     `.events__card.events__card--flipped` selector matches the hover reverter's
+     specificity (0,3,0); source order then breaks the tie in favor of this
+     modifier. Without the compound selector, iOS Safari's sticky-hover state
+     after a tap would keep the front face visible and the flip would never
+     show. */
+  .events__card.events__card--flipped .events__card-front {
+    opacity: 0;
+  }
+
+  .events__card.events__card--flipped .events__card-back {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .events__day-cell {
     min-height: 50px;
     padding: 0.25rem;
+  }
+
+  /* Bump event indicator dots so they're visible in the compressed cells
+     where the text label is hidden. */
+  .events__day-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .events__day-dots {
+    gap: 4px;
   }
 
   .events__day-event-label {

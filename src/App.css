@@ -80,3 +80,29 @@
     bottom: calc(2rem + 44px + 0.75rem);
   }
 }
+
+/* Hide floating action buttons while any known overlay backdrop is mounted, so
+   the theme toggle and back-to-top don't sit under modals or compete with toasts
+   for the same corner. `visibility` keeps the layout slot reserved.
+
+   ⚠️ CONTRACT: if you add a new modal / dialog / lightbox component, its
+   backdrop class MUST be appended to the :has() chain below. Otherwise the
+   FABs (theme-toggle, back-to-top) will float on top of your overlay. Grep
+   for ".navbar__drawer-backdrop" usages as a starting reference. */
+body:has(.gallery__lightbox-backdrop),
+body:has(.contest__modal-backdrop),
+body:has(.contest__lightbox-backdrop),
+body:has(.events__modal-backdrop),
+body:has(.members__modal-backdrop),
+body:has(.newsletter__modal-backdrop),
+body:has(.my-results__lightbox-backdrop),
+body:has(.confirm-overlay),
+body:has(.session-warning-overlay) {
+  --fab-visibility: hidden;
+}
+
+.theme-toggle,
+.back-to-top {
+  visibility: var(--fab-visibility, visible);
+  z-index: var(--z-fab, 900);
+}

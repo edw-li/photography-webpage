@@ -12,7 +12,35 @@ import LikeButton from './LikeButton';
 import CommentsPanel from './CommentsPanel';
 import './Gallery.css';
 
-const PAGE_SIZE = 12;
+// PAGE_SIZE aligns with the grid tier so each page renders ~2–4 balanced rows:
+//   - mobile (≤480px, 1-col):     4 items (4 rows)
+//   - tablet (481–1024, 2–3 col): 6 items (cleanly fills both 2-col and 3-col)
+//   - desktop (>1024, 4-col):     12 items (3 rows)
+// Breakpoints intentionally match Members.tsx so both sections reflow together.
+const PAGE_SIZES = { desktop: 12, tablet: 6, mobile: 4 } as const;
+const BREAKPOINTS = { tablet: 1024, mobile: 480 } as const;
+
+function useResponsivePageSize(): number {
+  const getSize = () => {
+    if (typeof window === 'undefined') return PAGE_SIZES.desktop;
+    if (window.innerWidth <= BREAKPOINTS.mobile) return PAGE_SIZES.mobile;
+    if (window.innerWidth <= BREAKPOINTS.tablet) return PAGE_SIZES.tablet;
+    return PAGE_SIZES.desktop;
+  };
+  const [size, setSize] = useState(getSize);
+  useEffect(() => {
+    const mobileQuery = window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`);
+    const tabletQuery = window.matchMedia(`(max-width: ${BREAKPOINTS.tablet}px)`);
+    const update = () => setSize(getSize());
+    mobileQuery.addEventListener('change', update);
+    tabletQuery.addEventListener('change', update);
+    return () => {
+      mobileQuery.removeEventListener('change', update);
+      tabletQuery.removeEventListener('change', update);
+    };
+  }, []);
+  return size;
+}
 
 function formatExif(photo: GalleryPhoto): string | null {
   if (!photo.exif) return null;
@@ -117,6 +145,17 @@ function GalleryLightbox({
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isClosing, setIsClosing] = useState(false);
+
+  // Mobile-only: comments panel collapses to a thin handle by default so the
+  // image gets the freed vertical space. Toggle expands it to ~50vh.
+  const isMobileViewport = () => typeof window !== 'undefined' && window.innerWidth <= 768;
+  const [showCommentsToggle, setShowCommentsToggle] = useState(isMobileViewport);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
+  useEffect(() => {
+    const onResize = () => setShowCommentsToggle(isMobileViewport());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const startClose = () => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -325,12 +364,36 @@ function GalleryLightbox({
         </button>
         </div>
 
-        <div className="gallery__lightbox-panel">
-          <CommentsPanel
-            photoId={photo.id}
-            initialCount={photo.commentCount ?? 0}
-            onCountChange={(count) => onCommentCountChange(photo.id, count)}
-          />
+        <div
+          className={`gallery__lightbox-panel${
+            showCommentsToggle
+              ? commentsExpanded
+                ? ' gallery__lightbox-panel--expanded'
+                : ' gallery__lightbox-panel--collapsed'
+              : ''
+          }`}
+        >
+          {showCommentsToggle && (
+            <button
+              type="button"
+              className="gallery__lightbox-panel-toggle"
+              onClick={() => setCommentsExpanded((v) => !v)}
+              aria-expanded={commentsExpanded}
+              aria-controls="gallery-lightbox-comments"
+            >
+              <span className="gallery__lightbox-panel-handle" aria-hidden="true" />
+              <span className="gallery__lightbox-panel-toggle-label">
+                Comments{photo.commentCount ? ` (${photo.commentCount})` : ''}
+              </span>
+            </button>
+          )}
+          <div id="gallery-lightbox-comments" className="gallery__lightbox-panel-body">
+            <CommentsPanel
+              photoId={photo.id}
+              initialCount={photo.commentCount ?? 0}
+              onCountChange={(count) => onCommentCountChange(photo.id, count)}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -354,6 +417,7 @@ export default function Gallery() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
 
+  const PAGE_SIZE = useResponsivePageSize();
   const photos = viewMode === 'winners' ? winnersPhotos : allPhotos;
 
   // Patch a photo in both winners and all arrays so likes/comments stay in sync across view modes
@@ -448,7 +512,16 @@ export default function Gallery() {
     }
   }, [viewMode, switching]);
 
-  const totalPages = Math.ceil(photos.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(photos.length / PAGE_SIZE));
+
+  // Clamp currentPage when PAGE_SIZE changes (e.g. resize across the 768px
+  // breakpoint shrinks total page count below the current index).
+  useEffect(() => {
+    if (currentPage > totalPages - 1) {
+      setCurrentPage(totalPages - 1);
+    }
+  }, [totalPages, currentPage]);
+
   const hasPrev = currentPage > 0;
   const hasNext = currentPage < totalPages - 1;
   const displayedPhotos = photos.slice(
@@ -499,7 +572,7 @@ export default function Gallery() {
       }
       return null;
     });
-  }, []);
+  }, [PAGE_SIZE]);
 
   const handleItemClick = (localIndex: number) => {
     setSelectedIndex(currentPage * PAGE_SIZE + localIndex);
@@ -589,6 +662,14 @@ export default function Gallery() {
               </button>
             )}
 
+            {totalPages > 1 && (
+              <div className="gallery__page-indicator-slot gallery__page-indicator-slot--top">
+                <p className="gallery__page-indicator">
+                  Page {currentPage + 1} of {totalPages}
+                </p>
+              </div>
+            )}
+
             <div
               className={gridClassName}
               key={currentPage}
@@ -628,9 +709,11 @@ export default function Gallery() {
             )}
 
             {totalPages > 1 && (
-              <p className="gallery__page-indicator">
-                Page {currentPage + 1} of {totalPages}
-              </p>
+              <div className="gallery__page-indicator-slot gallery__page-indicator-slot--bottom">
+                <p className="gallery__page-indicator">
+                  Page {currentPage + 1} of {totalPages}
+                </p>
+              </div>
             )}
           </div>
           </div>

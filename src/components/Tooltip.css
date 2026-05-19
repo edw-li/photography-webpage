@@ -5,7 +5,7 @@
 
 .tooltip {
   position: absolute;
-  z-index: 9500;
+  z-index: var(--z-popover, 9500);
   left: 50%;
   transform: translateX(-50%);
   min-width: 180px;
@@ -59,5 +59,15 @@
 @media (prefers-reduced-motion: reduce) {
   .tooltip {
     animation: none;
+  }
+}
+
+/* On narrow viewports the centered tooltip (left: 50%; translateX(-50%))
+   can overflow the screen edge when its trigger sits near the left or right
+   boundary. Cap the width to the viewport so the bubble stays on-screen;
+   it may shift slightly off-center against its trigger near the edges. */
+@media (max-width: 480px) {
+  .tooltip {
+    max-width: calc(100vw - 1rem);
   }
 }

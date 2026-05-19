@@ -50,6 +50,23 @@ export default function Events() {
   const [calAnimPhase, setCalAnimPhase] = useState<'exit' | 'enter' | null>(null);
   const pendingNavRef = useRef<{ month: number; year: number } | null>(null);
 
+  // Mobile-only: which card is currently flipped to show its description.
+  // null = no card flipped. Tapping a flipped card opens the modal; tapping a
+  // different card replaces the flipped one.
+  const [flippedCardKey, setFlippedCardKey] = useState<string | null>(null);
+
+  const isTouchDevice = () =>
+    typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
+  const handleCardClick = (resolved: ResolvedEvent) => {
+    const key = `${resolved.eventId}-${resolved.date}`;
+    if (isTouchDevice() && flippedCardKey !== key) {
+      setFlippedCardKey(key);
+    } else {
+      setSelectedEvent(resolved);
+    }
+  };
+
   const loadData = useCallback(() => {
     setLoading(true);
     setError(false);
@@ -149,6 +166,7 @@ export default function Events() {
 
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
+    setFlippedCardKey(null);
   }, []);
 
   return (
@@ -180,14 +198,16 @@ export default function Events() {
               <aside className="events__sidebar">
                 <div className="events__grid">
                   {upcomingEvents.map((resolved) => {
+                    const key = `${resolved.eventId}-${resolved.date}`;
+                    const isFlipped = flippedCardKey === key;
                     const d = parseDate(resolved.date);
                     const monthStr = MONTH_ABBR[d.getMonth()];
                     const dayStr = String(d.getDate());
                     return (
                       <div
-                        className="events__card events__card--clickable"
-                        key={`${resolved.eventId}-${resolved.date}`}
-                        onClick={() => setSelectedEvent(resolved)}
+                        className={`events__card events__card--clickable${isFlipped ? ' events__card--flipped' : ''}`}
+                        key={key}
+                        onClick={() => handleCardClick(resolved)}
                       >
                         <div className="events__date">
                           <span className="events__month">{monthStr}</span>

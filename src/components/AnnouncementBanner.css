@@ -42,6 +42,7 @@
  */
 body.has-announcement-banner {
   padding-top: 48px;
+  --banner-offset: 48px;
 }
 
 body.has-announcement-banner .navbar {
@@ -55,12 +56,13 @@ html:has(body.has-announcement-banner) {
 @media (max-width: 600px) {
   body.has-announcement-banner {
     padding-top: 64px;
+    --banner-offset: 64px;
   }
   body.has-announcement-banner .navbar {
     top: 64px;
   }
   html:has(body.has-announcement-banner) {
-    scroll-padding-top: 134px;
+    scroll-padding-top: 108px;
   }
 }
 
