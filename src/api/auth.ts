@@ -109,6 +109,13 @@ export async function updateSubscription(subscribed: boolean): Promise<{ subscri
   });
 }
 
+export async function updateMemberVisibility(isPublic: boolean): Promise<{ isPublic: boolean }> {
+  return apiFetch<{ isPublic: boolean }>('/auth/member-visibility', {
+    method: 'PUT',
+    body: JSON.stringify({ isPublic }),
+  });
+}
+
 export async function apiLogout(): Promise<void> {
   const storedRefresh = localStorage.getItem('refresh_token');
   if (storedRefresh) {

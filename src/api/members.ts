@@ -9,6 +9,11 @@ interface PaginatedResponse<T> {
   pages: number;
 }
 
+export interface PublicMembersResponse<T> extends PaginatedResponse<T> {
+  hiddenCount: number;
+  totalMemberCount: number;
+}
+
 export interface MembersQuery {
   page?: number;
   pageSize?: number;
@@ -16,14 +21,14 @@ export interface MembersQuery {
   specialty?: string;
 }
 
-export async function getMembers(query: MembersQuery = {}): Promise<PaginatedResponse<Member>> {
+export async function getMembers(query: MembersQuery = {}): Promise<PublicMembersResponse<Member>> {
   const params = new URLSearchParams();
   if (query.page) params.set('page', String(query.page));
   if (query.pageSize) params.set('page_size', String(query.pageSize));
   if (query.search) params.set('search', query.search);
   if (query.specialty) params.set('specialty', query.specialty);
   const qs = params.toString();
-  return apiFetch<PaginatedResponse<Member>>(`/members${qs ? `?${qs}` : ''}`);
+  return apiFetch<PublicMembersResponse<Member>>(`/members${qs ? `?${qs}` : ''}`);
 }
 
 export async function getMember(id: number): Promise<Member> {
