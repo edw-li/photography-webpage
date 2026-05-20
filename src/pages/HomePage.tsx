@@ -12,6 +12,18 @@ import Footer from '../components/Footer';
 import { scrollToSection } from '../utils/scrollToSection';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
+const HOMEPAGE_SECTION_ANCHORS = new Set([
+  'hero',
+  'about',
+  'contest',
+  'gallery',
+  'events',
+  'newsletter',
+  'subscribe',
+  'members',
+  'contact',
+]);
+
 export default function HomePage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
@@ -28,6 +40,17 @@ export default function HomePage() {
       window.history.replaceState({}, '');
     }
   }, [location.state]);
+
+  // Direct URL hash anchors (e.g. landing on /#newsletter from an external
+  // link). BrowserRouter delivers the visitor to `/` and ignores the hash;
+  // this effect honors whitelisted section hashes by scrolling once the DOM
+  // has settled. Unknown hashes fall through silently.
+  useEffect(() => {
+    const id = location.hash.replace(/^#/, '');
+    if (!id || !HOMEPAGE_SECTION_ANCHORS.has(id)) return;
+    const timer = setTimeout(() => scrollToSection(id), 100);
+    return () => clearTimeout(timer);
+  }, [location.hash]);
 
   useScrollReveal();
 
