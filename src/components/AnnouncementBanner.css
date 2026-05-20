@@ -41,12 +41,12 @@
  * Uses :has() so scroll-padding-top can be adjusted on the scrolling root (html).
  */
 body.has-announcement-banner {
-  padding-top: 48px;
   --banner-offset: 48px;
+  padding-top: var(--banner-offset, 48px);
 }
 
 body.has-announcement-banner .navbar {
-  top: 48px;
+  top: var(--banner-offset, 48px);
 }
 
 html:has(body.has-announcement-banner) {
@@ -54,13 +54,6 @@ html:has(body.has-announcement-banner) {
 }
 
 @media (max-width: 600px) {
-  body.has-announcement-banner {
-    padding-top: 64px;
-    --banner-offset: 64px;
-  }
-  body.has-announcement-banner .navbar {
-    top: 64px;
-  }
   html:has(body.has-announcement-banner) {
     scroll-padding-top: 108px;
   }
