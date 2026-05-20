@@ -69,6 +69,7 @@ def _member_to_response(member: Member) -> MemberResponse:
         social_links=social_links_dict,
         bio=member.bio,
         sample_photos=sample_photos_list,
+        is_public=member.is_public,
     )
 
 
