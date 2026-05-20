@@ -396,12 +396,22 @@ def _voting_deadline_date(month_str: str) -> str:
     return f"{next_year:04d}-{next_month:02d}-14"
 
 
+def _contest_begins_date(month_str: str) -> str:
+    """Return YYYY-MM-DD for the 1st of the contest month."""
+    year, month = _parse_contest_month(month_str)
+    return f"{year:04d}-{month:02d}-01"
+
+
 def _submission_event_id(contest_id: int) -> str:
     return f"contest-{contest_id}-submission-deadline"
 
 
 def _voting_event_id(contest_id: int) -> str:
     return f"contest-{contest_id}-voting-deadline"
+
+
+def _contest_begins_event_id(contest_id: int) -> str:
+    return f"contest-{contest_id}-begins"
 
 
 def _build_submission_event_fields(contest: Contest) -> dict:
@@ -436,6 +446,23 @@ def _build_voting_event_fields(contest: Contest) -> dict:
     }
 
 
+def _build_contest_begins_event_fields(contest: Contest) -> dict:
+    year, month = _parse_contest_month(contest.month)
+    month_name = date(year, month, 1).strftime("%B")
+    return {
+        "title": f"{month_name} Photo Contest Begins",
+        "description": (
+            f"Join us for the {month_name} Monthly Photo Contest! "
+            'Visit the "Contest" Page for more details.'
+        ),
+        "location": CONTEST_EVENT_LOCATION,
+        "date": _contest_begins_date(contest.month),
+        "time": "00:00",
+        "end_time": None,
+        "recurrence": None,
+    }
+
+
 async def _create_contest_events(contest: Contest, db: AsyncSession) -> None:
     """Insert deadline events for a newly created contest.
 
@@ -448,12 +475,15 @@ async def _create_contest_events(contest: Contest, db: AsyncSession) -> None:
 
     sub_id = _submission_event_id(contest.id)
     vote_id = _voting_event_id(contest.id)
+    begins_id = _contest_begins_event_id(contest.id)
 
     existing = await db.execute(
-        select(Event.id).where(Event.id.in_([sub_id, vote_id]))
+        select(Event.id).where(Event.id.in_([sub_id, vote_id, begins_id]))
     )
     existing_ids = {row[0] for row in existing}
 
+    if begins_id not in existing_ids:
+        db.add(Event(id=begins_id, **_build_contest_begins_event_fields(contest)))
     if sub_id not in existing_ids:
         db.add(Event(id=sub_id, **_build_submission_event_fields(contest)))
     if vote_id not in existing_ids:
@@ -474,11 +504,22 @@ async def _update_contest_events(contest: Contest, db: AsyncSession) -> None:
 
     sub_id = _submission_event_id(contest.id)
     vote_id = _voting_event_id(contest.id)
+    begins_id = _contest_begins_event_id(contest.id)
 
     result = await db.execute(
-        select(Event).where(Event.id.in_([sub_id, vote_id]))
+        select(Event).where(Event.id.in_([sub_id, vote_id, begins_id]))
     )
     by_id = {ev.id: ev for ev in result.scalars().all()}
+
+    if begins_id in by_id:
+        fields = _build_contest_begins_event_fields(contest)
+        ev = by_id[begins_id]
+        ev.title = fields["title"]
+        ev.description = fields["description"]
+        ev.location = fields["location"]
+        ev.date = fields["date"]
+        ev.time = fields["time"]
+        ev.end_time = fields["end_time"]
 
     if sub_id in by_id:
         fields = _build_submission_event_fields(contest)
@@ -505,8 +546,9 @@ async def _delete_contest_events(contest_id: int, db: AsyncSession) -> None:
     """Remove auto-events linked to a contest. Idempotent."""
     sub_id = _submission_event_id(contest_id)
     vote_id = _voting_event_id(contest_id)
+    begins_id = _contest_begins_event_id(contest_id)
     result = await db.execute(
-        select(Event).where(Event.id.in_([sub_id, vote_id]))
+        select(Event).where(Event.id.in_([sub_id, vote_id, begins_id]))
     )
     for ev in result.scalars().all():
         await db.delete(ev)
