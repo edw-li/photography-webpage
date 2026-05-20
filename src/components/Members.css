@@ -307,7 +307,7 @@
   border: none;
   cursor: pointer;
   font-size: 1.4rem;
-  color: var(--color-dark-100);
+  color: var(--color-dark-800);
   z-index: 5;
   transition: opacity var(--transition-base);
 }
@@ -327,6 +327,10 @@
 .members__page-nav--hidden {
   visibility: hidden;
   pointer-events: none;
+}
+
+[data-theme="dark"] .members__page-nav {
+  color: var(--color-dark-100);
 }
 
 .members__page-indicator {
@@ -680,11 +684,6 @@
   .members__page-nav {
     height: 36px;
     font-size: 1.1rem;
-    color: var(--color-dark-800);
-  }
-
-  [data-theme="dark"] .members__page-nav {
-    color: var(--color-dark-100);
   }
 
   .members__controls {
