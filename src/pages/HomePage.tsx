@@ -9,7 +9,7 @@ import Newsletter from '../components/Newsletter';
 import Members from '../components/Members';
 import Contact from '../components/Contact';
 import Footer from '../components/Footer';
-import { scrollToSection } from '../utils/scrollToSection';
+import { scrollToSectionWhenSettled } from '../utils/scrollToSection';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
 const HOMEPAGE_SECTION_ANCHORS = new Set([
@@ -28,28 +28,27 @@ export default function HomePage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
 
-  // Handle cross-page scroll-to-section navigation
+  // Handle cross-page scroll-to-section navigation. Uses the settling helper
+  // so the smooth-scroll re-targets as async sections (Gallery/Events/etc.)
+  // grow after their data fetches resolve.
   useEffect(() => {
     const state = location.state as { scrollTo?: string } | null;
-    if (state?.scrollTo) {
-      // Small delay to ensure DOM is ready after navigation
-      setTimeout(() => {
-        scrollToSection(state.scrollTo!);
-      }, 100);
-      // Clear the state so it doesn't re-scroll on re-render
-      window.history.replaceState({}, '');
-    }
+    if (!state?.scrollTo) return;
+    const cleanup = scrollToSectionWhenSettled(state.scrollTo);
+    // Clear the state so it doesn't re-scroll on re-render or refresh.
+    window.history.replaceState({}, '');
+    return cleanup;
   }, [location.state]);
 
   // Direct URL hash anchors (e.g. landing on /#newsletter from an external
   // link). BrowserRouter delivers the visitor to `/` and ignores the hash;
   // this effect honors whitelisted section hashes by scrolling once the DOM
-  // has settled. Unknown hashes fall through silently.
+  // has settled. Unknown hashes fall through silently. The settling helper
+  // re-scrolls as async sections grow so we don't undershoot on a cold load.
   useEffect(() => {
     const id = location.hash.replace(/^#/, '');
     if (!id || !HOMEPAGE_SECTION_ANCHORS.has(id)) return;
-    const timer = setTimeout(() => scrollToSection(id), 100);
-    return () => clearTimeout(timer);
+    return scrollToSectionWhenSettled(id);
   }, [location.hash]);
 
   useScrollReveal();
