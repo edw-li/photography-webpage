@@ -12,7 +12,7 @@ const USER_PLACEHOLDER_ICON = (
   </svg>
 );
 
-const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 6 } as const;
+const PAGE_SIZES = { desktop: 8, tablet: 4, mobile: 4 } as const;
 const BREAKPOINTS = { tablet: 1024, mobile: 480 } as const;
 const VISIBLE_FILTER_COUNT = 5;
 

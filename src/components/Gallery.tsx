@@ -663,7 +663,8 @@ export default function Gallery() {
                 onClick={goToPrevPage}
                 aria-label="Previous page"
               >
-                &#8249;
+                <span className="gallery__nav-icon gallery__nav-icon--horizontal" aria-hidden="true">&#8249;</span>
+                <span className="gallery__nav-icon gallery__nav-icon--vertical" aria-hidden="true">&#x25B2;</span>
               </button>
             )}
 
@@ -709,7 +710,8 @@ export default function Gallery() {
                 onClick={goToNextPage}
                 aria-label="Next page"
               >
-                &#8250;
+                <span className="gallery__nav-icon gallery__nav-icon--horizontal" aria-hidden="true">&#8250;</span>
+                <span className="gallery__nav-icon gallery__nav-icon--vertical" aria-hidden="true">&#x25BC;</span>
               </button>
             )}
 
