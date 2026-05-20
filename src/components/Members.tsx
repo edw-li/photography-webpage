@@ -90,6 +90,8 @@ function MemberCard({ member, onClick }: { member: Member; onClick: () => void }
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [hiddenMemberCount, setHiddenMemberCount] = useState(0);
+  const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -118,6 +120,8 @@ export default function Members() {
     getMembers({ pageSize: 100 })
       .then((res) => {
         setMembers(res.items);
+        setHiddenMemberCount(res.hiddenCount ?? 0);
+        setTotalMemberCount(res.totalMemberCount ?? 0);
         setLoading(false);
       })
       .catch(() => {
@@ -318,7 +322,17 @@ export default function Members() {
     <section id="members" className="members section">
       <div className="container">
         <div className="section-title fade-in-up">
-          <h2>Our Members</h2>
+          <div className="members__title-row">
+            <h2>Our Members</h2>
+            {totalMemberCount > 0 && (
+              <span
+                className="members__count-pill"
+                aria-label={`${totalMemberCount} total members`}
+              >
+                {totalMemberCount} members
+              </span>
+            )}
+          </div>
           <p>Meet some of the talented photographers in our community</p>
         </div>
 
@@ -494,14 +508,43 @@ export default function Members() {
                     onClick={() => setSelectedMember(member)}
                   />
                 ))}
-                {displayedMembers.length > 0 && displayedMembers.length < pageSize &&
-                  Array.from({ length: pageSize - displayedMembers.length }, (_, i) => (
-                    <div key={`placeholder-${i}`} className="members__card members__card--placeholder" aria-hidden="true">
-                      <div className="members__avatar" />
-                      <h3>&nbsp;</h3>
-                      <p>&nbsp;</p>
-                    </div>
-                  ))}
+                {(() => {
+                  // Hidden-members affordance: a non-interactive "+ N More"
+                  // tile rendered only on the LAST page of the (search/filter-
+                  // applied) visible results. Suppressed when the visible list
+                  // is empty so the "no matches" empty-state remains clean.
+                  const isLastPage = currentPage === totalPages - 1;
+                  const showHiddenTile =
+                    isLastPage && hiddenMemberCount > 0 && displayedMembers.length > 0;
+                  const trailingSlots = displayedMembers.length + (showHiddenTile ? 1 : 0);
+                  const placeholderCount =
+                    displayedMembers.length > 0 && trailingSlots < pageSize
+                      ? pageSize - trailingSlots
+                      : 0;
+                  return (
+                    <>
+                      {showHiddenTile && (
+                        <div
+                          className="members__hidden-card"
+                          role="note"
+                          aria-label={`${hiddenMemberCount} additional member${hiddenMemberCount === 1 ? ' is' : 's are'} hidden from the public list`}
+                        >
+                          <div className="members__hidden-card__plus">+{hiddenMemberCount}</div>
+                          <div className="members__hidden-card__label">
+                            More member{hiddenMemberCount === 1 ? '' : 's'}
+                          </div>
+                        </div>
+                      )}
+                      {Array.from({ length: placeholderCount }, (_, i) => (
+                        <div key={`placeholder-${i}`} className="members__card members__card--placeholder" aria-hidden="true">
+                          <div className="members__avatar" />
+                          <h3>&nbsp;</h3>
+                          <p>&nbsp;</p>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
 
               {filteredMembers.length === 0 && (

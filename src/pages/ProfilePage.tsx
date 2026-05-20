@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updateSamplePhotoCaptions, getSubscriptionStatus, updateSubscription } from '../api/auth';
+import { getMyProfile, updateMyProfile, addSamplePhoto, deleteSamplePhoto, updateSamplePhotoCaptions, getSubscriptionStatus, updateSubscription, updateMemberVisibility } from '../api/auth';
 import type { SocialLinks } from '../types/members';
 import ImageUploadField from '../components/ImageUploadField';
 import MultiImageUploadField, { type ImageWithCaption } from '../components/MultiImageUploadField';
@@ -48,6 +48,11 @@ export default function ProfilePage() {
   const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [togglingSubscription, setTogglingSubscription] = useState(false);
+
+  // Members-page visibility state — seeded from /auth/me's member.isPublic.
+  // Defaults to true (visible) for any user without an explicit value.
+  const [visibleOnMembersPage, setVisibleOnMembersPage] = useState(true);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   // Per-section saving state
   const [savingPersonal, setSavingPersonal] = useState(false);
@@ -110,6 +115,7 @@ export default function ProfilePage() {
               setPhotoItems(items);
               setOriginalCaptions(buildCaptionMap(items));
             }
+            setVisibleOnMembersPage(m.isPublic ?? true);
           }
 
           setSpecialty(sp);
@@ -304,6 +310,26 @@ export default function ProfilePage() {
       addToast('error', 'Failed to update subscription');
     } finally {
       setTogglingSubscription(false);
+    }
+  };
+
+  // Members-page visibility toggle — mirrors the newsletter pattern. Server
+  // updates the linked Member row's is_public; we trust the returned value.
+  const toggleVisibility = async () => {
+    setTogglingVisibility(true);
+    try {
+      const result = await updateMemberVisibility(!visibleOnMembersPage);
+      setVisibleOnMembersPage(result.isPublic);
+      addToast(
+        'success',
+        result.isPublic
+          ? 'You will appear on the public Members page.'
+          : 'You are hidden from the public Members page.',
+      );
+    } catch {
+      addToast('error', 'Failed to update visibility');
+    } finally {
+      setTogglingVisibility(false);
     }
   };
 
@@ -517,6 +543,28 @@ export default function ProfilePage() {
           </div>
           <p className="profile-section__hint">
             {subscribed ? 'You are subscribed to the newsletter.' : 'You are not subscribed to the newsletter.'}
+          </p>
+        </div>
+
+        {/* Members Page Visibility */}
+        <div className="profile-section fade-in-up">
+          <h2>Members Page Visibility</h2>
+          <div className="profile-subscription-row">
+            <span>Show me on the public Members page</span>
+            <button
+              type="button"
+              className={`profile-toggle${visibleOnMembersPage ? ' profile-toggle--active' : ''}`}
+              onClick={toggleVisibility}
+              disabled={togglingVisibility}
+              aria-label={visibleOnMembersPage ? 'Hide me from the Members page' : 'Show me on the Members page'}
+            >
+              <span className="profile-toggle__thumb" />
+            </button>
+          </div>
+          <p className="profile-section__hint">
+            {visibleOnMembersPage
+              ? 'Your profile is shown on the homepage Members section.'
+              : 'You are hidden from the Members section. A "+ N More" tile still tells visitors that hidden members exist.'}
           </p>
         </div>
 

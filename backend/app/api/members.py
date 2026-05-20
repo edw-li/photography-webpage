@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.member import Member, SamplePhoto, SocialLink
 from ..models.subscriber import NewsletterSubscriber
 from ..models.user import User
-from ..schemas.common import PaginatedResponse
+from ..schemas.common import CamelModel, PaginatedResponse
 from ..schemas.member import (
     MemberAdminResponse,
     MemberCreate,
@@ -41,6 +41,7 @@ def _member_to_response(member: Member) -> MemberResponse:
         social_links=social_links_dict,
         bio=member.bio,
         sample_photos=sample_photos_list,
+        is_public=member.is_public,
     )
 
 
@@ -61,6 +62,7 @@ def _member_to_admin_response(member: Member, user: User | None) -> MemberAdminR
         social_links=social_links_dict,
         bio=member.bio,
         sample_photos=sample_photos_list,
+        is_public=member.is_public,
         user_id=str(user.id) if user else None,
         email=user.email if user else None,
         user_role=user.role if user else None,
@@ -122,7 +124,21 @@ async def get_leaders(db: AsyncSession = Depends(get_db)):
     return [_member_to_response(m) for m in members]
 
 
-@router.get("", response_model=PaginatedResponse[MemberResponse])
+class PublicMembersListResponse(CamelModel):
+    """Public members list — paginated, filtered to is_public=true rows, with
+    aggregate counts (hidden_count, total_member_count) for the homepage UI
+    affordances (stat pill + '+ X More' tile)."""
+
+    items: list[MemberResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+    hidden_count: int
+    total_member_count: int
+
+
+@router.get("", response_model=PublicMembersListResponse)
 async def list_members(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -130,8 +146,12 @@ async def list_members(
     specialty: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Member)
-    count_query = select(func.count()).select_from(Member)
+    query = select(Member).where(Member.is_public.is_(True))
+    count_query = (
+        select(func.count())
+        .select_from(Member)
+        .where(Member.is_public.is_(True))
+    )
 
     if specialty:
         query = query.where(Member.specialty == specialty)
@@ -148,16 +168,27 @@ async def list_members(
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
 
+    # Aggregate counts unaffected by search/specialty filters — these describe
+    # club state for the section pill and the "+ X More" hidden-members tile.
+    hidden_count = await db.scalar(
+        select(func.count()).select_from(Member).where(Member.is_public.is_(False))
+    ) or 0
+    total_member_count = await db.scalar(
+        select(func.count()).select_from(Member)
+    ) or 0
+
     query = query.order_by(Member.id).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     members = result.scalars().all()
 
-    return PaginatedResponse(
+    return PublicMembersListResponse(
         items=[_member_to_response(m) for m in members],
         total=total,
         page=page,
         page_size=page_size,
         pages=math.ceil(total / page_size) if total > 0 else 0,
+        hidden_count=hidden_count,
+        total_member_count=total_member_count,
     )
 
 

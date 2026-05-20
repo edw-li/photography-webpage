@@ -523,6 +523,31 @@ async def update_subscription(
     return {"subscribed": body.subscribed}
 
 
+class MemberVisibilityUpdate(CamelModel):
+    is_public: bool
+
+
+class MemberVisibilityResponse(CamelModel):
+    is_public: bool
+
+
+@router.put("/member-visibility", response_model=MemberVisibilityResponse)
+async def update_member_visibility(
+    body: MemberVisibilityUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Toggle whether the current user appears on the public Members section."""
+    member = await db.scalar(select(Member).where(Member.user_id == user.id))
+    if member is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member profile not found"
+        )
+    member.is_public = body.is_public
+    await db.commit()
+    return MemberVisibilityResponse(is_public=member.is_public)
+
+
 @router.get("/users", response_model=PaginatedResponse[UserResponse])
 async def list_users(
     page: int = Query(1, ge=1),

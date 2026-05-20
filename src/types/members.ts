@@ -25,6 +25,7 @@ export interface Member {
   socialLinks?: SocialLinks;
   bio?: string;
   samplePhotos?: SamplePhoto[];
+  isPublic?: boolean;
 }
 
 export interface MemberAdmin extends Member {

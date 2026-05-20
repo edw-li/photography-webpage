@@ -31,6 +31,7 @@ class MemberResponse(CamelModel):
     social_links: dict[str, str] | None = None
     bio: str | None = None
     sample_photos: list[SamplePhotoSchema] | None = None
+    is_public: bool = True
 
 
 class MemberAdminResponse(MemberResponse):
