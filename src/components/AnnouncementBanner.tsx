@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Info, AlertTriangle, AlertOctagon, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +33,7 @@ export default function AnnouncementBanner() {
   const { isAuthenticated, user } = useAuth();
   const [announcement, setAnnouncement] = useState<ActiveAnnouncement | null>(null);
   const [dismissing, setDismissing] = useState(false);
+  const bannerRef = useRef<HTMLDivElement | null>(null);
 
   const fetchActive = useCallback(async () => {
     try {
@@ -92,6 +93,29 @@ export default function AnnouncementBanner() {
     };
   }, [announcement]);
 
+  // Keep --banner-offset in sync with the banner's actual rendered height so
+  // body padding-top and the navbar's top offset (both var(--banner-offset))
+  // always match. Hardcoded 48/64px reservations overflowed when title+body
+  // wrapped on narrow viewports, hiding the navbar logo behind the banner.
+  useLayoutEffect(() => {
+    if (!announcement) return;
+    const el = bannerRef.current;
+    if (!el) return;
+
+    const sync = () => {
+      document.body.style.setProperty('--banner-offset', `${el.offsetHeight}px`);
+    };
+
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+
+    return () => {
+      ro.disconnect();
+      document.body.style.removeProperty('--banner-offset');
+    };
+  }, [announcement]);
+
   if (!announcement) return null;
 
   const handleDismiss = async () => {
@@ -124,6 +148,7 @@ export default function AnnouncementBanner() {
 
   return (
     <div
+      ref={bannerRef}
       className={`announcement-banner announcement-banner--${announcement.severity}`}
       role={announcement.severity === 'critical' ? 'alert' : 'status'}
       aria-live={announcement.severity === 'critical' ? 'assertive' : 'polite'}
