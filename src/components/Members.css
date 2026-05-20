@@ -706,15 +706,26 @@
 
 /* ── Section title row: heading + total-count pill ── */
 
+/* 3-column grid (1fr auto 1fr): the heading sits in the auto-width center
+   column so it's truly visually centered on the section, and the pill is
+   right-aligned in the trailing 1fr column. Works at every viewport — the
+   side cols flex to absorb whatever space remains. */
 .members__title-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 0 1rem;
+  width: 100%;
+}
+
+.members__title-row h2 {
+  grid-column: 2;
+  margin: 0;
 }
 
 .members__count-pill {
+  grid-column: 3;
+  justify-self: end;
   background: var(--color-dark-800);
   color: var(--color-light-100);
   font-size: 0.85rem;
