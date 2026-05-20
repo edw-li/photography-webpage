@@ -574,7 +574,15 @@ async def list_all_contests(
         (Contest.status == "completed", 3),
         else_=4,
     )
-    result = await db.execute(select(Contest).order_by(status_order, Contest.deadline.asc()).limit(limit))
+    result = await db.execute(
+        select(Contest)
+        .order_by(
+            status_order,
+            case((Contest.status == "completed", Contest.deadline), else_=None).desc(),
+            Contest.deadline.asc(),
+        )
+        .limit(limit)
+    )
     contests = result.scalars().unique().all()
     return [await _contest_to_response(c, db, user) for c in contests]
 
@@ -597,7 +605,14 @@ async def list_contests(
         else_=4,
     )
     result = await db.execute(
-        select(Contest).order_by(status_order, Contest.deadline.asc()).offset((page - 1) * page_size).limit(page_size)
+        select(Contest)
+        .order_by(
+            status_order,
+            case((Contest.status == "completed", Contest.deadline), else_=None).desc(),
+            Contest.deadline.asc(),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
     contests = result.scalars().unique().all()
 

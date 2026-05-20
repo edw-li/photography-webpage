@@ -172,6 +172,10 @@
   opacity: 0.8;
 }
 
+.gallery__nav-icon--vertical {
+  display: none;
+}
+
 /* =============================================
    Slide animations
    ============================================= */
@@ -757,5 +761,39 @@
 
   .gallery__page-indicator-slot--bottom {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery__nav {
+    position: static;
+    width: 100%;
+    height: 36px;
+    font-size: 1.4rem;
+    color: var(--color-dark-800);
+  }
+
+  .gallery__nav--prev {
+    background: linear-gradient(to bottom, var(--color-bg) 30%, transparent);
+  }
+
+  .gallery__nav--next {
+    background: linear-gradient(to top, var(--color-bg) 30%, transparent);
+  }
+
+  .gallery__nav::before {
+    display: none;
+  }
+
+  .gallery__nav-icon--horizontal {
+    display: none;
+  }
+
+  .gallery__nav-icon--vertical {
+    display: inline-block;
+  }
+
+  [data-theme="dark"] .gallery__nav {
+    color: var(--color-dark-100);
   }
 }
