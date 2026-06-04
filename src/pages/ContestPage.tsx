@@ -27,6 +27,8 @@ function formatDeadline(dateStr: string): string {
 function getVotingDeadline(submissionDeadline: string): string {
   const d = new Date(submissionDeadline + 'T00:00:00');
   // Voting deadline is the 14th of the month after the submission deadline
+  // Set day of month to 1 first to avoid rollover/overflow issues with differing month lengths
+  d.setDate(1);
   d.setMonth(d.getMonth() + 1);
   d.setDate(14);
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -1674,7 +1676,11 @@ function ContestCard({
         </div>
         <div className="contest__stat">
           <span className="contest__stat-date">
-            {contest.status === 'completed' ? 'Completed' : `Deadline: ${formatDeadline(contest.deadline)}`}
+            {contest.status === 'completed'
+              ? 'Completed'
+              : contest.status === 'voting'
+                ? `Voting Deadline: ${getVotingDeadline(contest.deadline)}`
+                : `Deadline: ${formatDeadline(contest.deadline)}`}
           </span>
         </div>
       </div>
