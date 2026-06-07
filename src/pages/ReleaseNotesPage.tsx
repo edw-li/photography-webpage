@@ -49,14 +49,12 @@ export default function ReleaseNotesPage() {
 
   return (
     <div className="release-notes-page">
-      <header className="release-notes-page__header">
-        <div className="container">
-          <h1 className="release-notes-page__title">Release Notes</h1>
-          <p className="release-notes-page__subtitle">
-            What's new on the site — newest releases first.
-          </p>
+      <div className="release-notes-page__hero">
+        <div className="release-notes-page__hero-content">
+          <h1>Release Notes</h1>
+          <p>What's new on the site — newest releases first.</p>
         </div>
-      </header>
+      </div>
 
       <div className="container release-notes-page__content">
         {loading && (

@@ -2,35 +2,48 @@
   background: var(--color-bg);
 }
 
-/* ─── Header ─── */
-.release-notes-page__header {
-  background: var(--color-bg-alt);
-  border-bottom: 1px solid var(--color-border);
-  padding: 3.5rem 0 2.5rem;
-  text-align: center;
+/* ─── Hero (matches My Results / Notifications / Profile so the fixed,
+   transparent-at-top navbar is cleared and stays legible over a dark backdrop) ─── */
+.release-notes-page__hero {
+  position: relative;
+  min-height: 280px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-dark-900) 0%, #2f4a26 50%, var(--color-dark-800) 100%);
 }
 
-.release-notes-page__title {
-  font-family: var(--font-heading);
-  font-size: clamp(2rem, 5vw, 2.75rem);
-  color: var(--color-text);
-  margin: 0 0 0.5rem;
-}
-
-.release-notes-page__title::after {
+.release-notes-page__hero::after {
   content: '';
-  display: block;
-  width: 60px;
-  height: 3px;
-  background: var(--color-accent);
-  border-radius: 2px;
-  margin: 0.75rem auto 0;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.35) 100%);
 }
 
-.release-notes-page__subtitle {
-  color: var(--color-text-muted);
+.release-notes-page__hero-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 80px 1.5rem 2.5rem;
+}
+
+.release-notes-page__hero-content h1 {
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0 0 0.25rem;
+}
+
+.release-notes-page__hero-content p {
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1.05rem;
   margin: 0;
+}
+
+@media (max-width: 768px) {
+  .release-notes-page__hero { min-height: 200px; }
 }
 
 /* ─── Content ─── */
