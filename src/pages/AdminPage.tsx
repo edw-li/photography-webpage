@@ -12,9 +12,10 @@ import ContestsSection from './admin/ContestsSection';
 import SubscribersSection from './admin/SubscribersSection';
 import ContactsSection from './admin/ContactsSection';
 import AnnouncementsSection from './admin/AnnouncementsSection';
+import ReleaseNotesSection from './admin/ReleaseNotesSection';
 
 type Tab = 'dashboard' | 'events' | 'newsletters' | 'gallery' | 'members'
-  | 'contests' | 'subscribers' | 'contacts' | 'announcements';
+  | 'contests' | 'subscribers' | 'contacts' | 'announcements' | 'releaseNotes';
 
 interface TabGroup {
   header: string | null;
@@ -32,6 +33,7 @@ const TAB_GROUPS: TabGroup[] = [
       { key: 'events', label: 'Events' },
       { key: 'newsletters', label: 'Newsletters' },
       { key: 'announcements', label: 'Announcements' },
+      { key: 'releaseNotes', label: 'Release Notes' },
       { key: 'gallery', label: 'Gallery' },
     ],
   },
@@ -86,6 +88,7 @@ export default function AdminPage() {
       case 'subscribers': return <SubscribersSection />;
       case 'contacts': return <ContactsSection />;
       case 'announcements': return <AnnouncementsSection />;
+      case 'releaseNotes': return <ReleaseNotesSection />;
     }
   };
 

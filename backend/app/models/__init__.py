@@ -12,6 +12,7 @@ from .activity import ActivityLog
 from .notification import Notification
 from .revoked_token import RevokedToken
 from .announcement import Announcement, AnnouncementDismissal
+from .release_note import ReleaseNote
 
 __all__ = [
     "User", "Member", "SocialLink", "SamplePhoto", "GalleryPhoto",
@@ -22,4 +23,5 @@ __all__ = [
     "ActivityLog", "Notification",
     "RevokedToken",
     "Announcement", "AnnouncementDismissal",
+    "ReleaseNote",
 ]
