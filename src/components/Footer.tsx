@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { scrollToSection } from '../utils/scrollToSection';
 import footerIcon from '../assets/selah-icon.png';
 import './Footer.css';
@@ -39,6 +39,7 @@ export default function Footer() {
               <li><a href="#events" onClick={(e) => handleLinkClick(e, 'events')}>Events</a></li>
               <li><a href="#members" onClick={(e) => handleLinkClick(e, 'members')}>Members</a></li>
               <li><a href="#contact" onClick={(e) => handleLinkClick(e, 'contact')}>Contact</a></li>
+              <li><Link to="/release-notes">Release Notes</Link></li>
             </ul>
           </div>
           <div className="footer__social">

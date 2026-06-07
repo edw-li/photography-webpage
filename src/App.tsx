@@ -21,6 +21,7 @@ import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import MyResultsPage from './pages/MyResultsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ReleaseNotesPage from './pages/ReleaseNotesPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function AppRoutes() {
@@ -39,6 +40,7 @@ function AppRoutes() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/my-results" element={<MyResultsPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
+      <Route path="/release-notes" element={<ReleaseNotesPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
