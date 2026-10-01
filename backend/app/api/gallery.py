@@ -36,7 +36,8 @@ from ..schemas.gallery_comment import (
     GalleryCommentResponse,
     GalleryCommentUpdate,
 )
-from ..services.storage import delete_uploaded_image, save_gallery_image, make_user_slug
+from ..services.storage import save_gallery_image, make_user_slug
+from ..services.submission_storage import protect_image_reference, queue_cleanup
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
 
@@ -393,6 +394,7 @@ async def create_gallery_photo(
 ):
     if not body.url or not body.title or not body.photographer:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="url, title, and photographer are required")
+    await protect_image_reference(db, body.url)
     photo = GalleryPhoto(
         url=body.url,
         title=body.title,
@@ -427,7 +429,8 @@ async def update_gallery_photo(
     if photo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
     if body.url is not None and body.url != photo.url:
-        delete_uploaded_image(photo.url)
+        await protect_image_reference(db, body.url)
+        await queue_cleanup(db, photo.url)
         photo.url = body.url
     if body.title is not None:
         photo.title = body.title
@@ -476,7 +479,7 @@ async def delete_gallery_photo(
     photo = result.scalar_one_or_none()
     if photo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
-    delete_uploaded_image(photo.url)
+    await queue_cleanup(db, photo.url)
     await log_activity(db, admin, "delete", "gallery", str(photo_id), f"Deleted gallery photo: {photo.title}")
     await _delete_notifications_for_photo(photo_id, db)
     await db.delete(photo)

@@ -1,4 +1,4 @@
-import type { Contest, MyResultsResponse } from '../types/contest';
+import type { Contest, ContestSubmission, MyResultsResponse } from '../types/contest';
 import { apiFetch } from './client';
 
 export async function getContests(): Promise<Contest[]> {
@@ -149,4 +149,68 @@ export async function assignSubmission(
 
 export async function getMyResults(): Promise<MyResultsResponse> {
   return apiFetch<MyResultsResponse>('/contests/my-results');
+}
+
+export interface MySubmissions {
+  submissions: ContestSubmission[];
+  userSubmissionCount: number;
+  canManageSubmissions: boolean;
+  submissionLockReason: string | null;
+}
+
+export interface PreparedSubmission {
+  uploadId: string;
+  previewUrl: string;
+  expiresAt: string;
+}
+
+export interface SubmissionChange {
+  operationId: string;
+  expectedRevision?: number;
+  uploadId?: string;
+  title?: string;
+}
+
+export interface SubmissionChangeResult {
+  operationId: string;
+  submission: ContestSubmission | null;
+  removedSubmissionId: number | null;
+  userSubmissionCount: number;
+}
+
+async function withSubmissionTimeout<T>(request: (signal: AbortSignal) => Promise<T>, milliseconds = 15000): Promise<T> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), milliseconds);
+  try { return await request(controller.signal); }
+  finally { window.clearTimeout(timer); }
+}
+
+export function getMySubmissions(contestId: number): Promise<MySubmissions> {
+  return withSubmissionTimeout(signal => apiFetch(`/contests/${contestId}/my-submissions`, { cache: 'no-store', signal }));
+}
+
+export function prepareSubmission(contestId: number, file: File, targetId?: number): Promise<PreparedSubmission> {
+  const body = new FormData();
+  body.append('file', file);
+  if (targetId !== undefined) body.append('target_submission_id', String(targetId));
+  return apiFetch(`/contests/${contestId}/submission-uploads`, { method: 'POST', body });
+}
+
+export function discardPreparedSubmission(contestId: number, uploadId: string): Promise<void> {
+  return apiFetch(`/contests/${contestId}/submission-uploads/${uploadId}`, { method: 'DELETE' });
+}
+
+export function changeSubmission(
+  contestId: number, action: 'add' | 'replace' | 'title' | 'remove',
+  body: SubmissionChange, submissionId?: number,
+): Promise<SubmissionChangeResult> {
+  const path = `/contests/${contestId}/submissions${submissionId === undefined ? '' : `/${submissionId}`}`;
+  const methods = { add: 'POST', replace: 'PUT', title: 'PATCH', remove: 'DELETE' };
+  return withSubmissionTimeout(signal => apiFetch(path, { method: methods[action], body: JSON.stringify(body), signal }), 30000);
+}
+
+export function getSubmissionOperation(contestId: number, operationId: string): Promise<{
+  state: 'unknown' | 'saved'; result?: SubmissionChangeResult;
+}> {
+  return withSubmissionTimeout(signal => apiFetch(`/contests/${contestId}/submission-operations/${operationId}`, { cache: 'no-store', signal }));
 }

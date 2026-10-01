@@ -1,4 +1,6 @@
 import logging
+import asyncio
+from contextlib import suppress
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -17,7 +19,8 @@ from slowapi.errors import RateLimitExceeded
 
 from .config import settings
 from .rate_limit import limiter
-from .api import auth, members, gallery, events, newsletters, contests, contact, activity, notifications, uploads, announcements, release_notes
+from .api import auth, members, gallery, events, newsletters, contests, contact, activity, notifications, uploads, announcements, release_notes, submission_management
+from .services.submission_storage import cleanup_loop
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +33,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             "Cloudflare Turnstile CAPTCHA is DISABLED. "
             "Set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to enable."
         )
-    yield
+    cleanup_task = asyncio.create_task(cleanup_loop()) if settings.submission_cleanup_enabled else None
+    try:
+        yield
+    finally:
+        if cleanup_task:
+            cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup_task
 
 
 app = FastAPI(title="Photography Club API", version="1.0.0", lifespan=lifespan)
@@ -83,6 +93,7 @@ app.include_router(members.router, prefix="/api/v1/members", tags=["members"])
 app.include_router(gallery.router, prefix="/api/v1/gallery", tags=["gallery"])
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["newsletters"])
+app.include_router(submission_management.router, prefix="/api/v1/contests", tags=["contests"])
 app.include_router(contests.router, prefix="/api/v1/contests", tags=["contests"])
 app.include_router(contact.router, prefix="/api/v1/contact", tags=["contact"])
 app.include_router(activity.router, prefix="/api/v1/activity", tags=["activity"])

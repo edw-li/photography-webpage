@@ -34,9 +34,11 @@ class Contest(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+    submissions_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     submissions: Mapped[list["ContestSubmission"]] = relationship(
-        back_populates="contest", cascade="all, delete-orphan", lazy="selectin"
+        back_populates="contest", cascade="all, delete-orphan", lazy="selectin",
+        order_by="ContestSubmission.id",
     )
 
 
@@ -61,6 +63,13 @@ class ContestSubmission(Base):
     exif_iso: Mapped[int | None] = mapped_column(Integer, nullable=True)
     category_vote_tallies: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    image_submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
 

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     admin_password: str = "changeme123"
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 10
+    submission_cleanup_enabled: bool = True
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

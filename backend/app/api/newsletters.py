@@ -4,6 +4,7 @@ import math
 import random
 import re
 from datetime import datetime, timezone
+from ..services.submission_storage import protect_content_references
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
@@ -339,6 +340,7 @@ async def create_newsletter(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    await protect_content_references(db, body.body_md or "")
     nl = Newsletter(
         id=body.id,
         title=body.title,
@@ -510,6 +512,7 @@ async def update_newsletter(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    await protect_content_references(db, body.body_md or "")
     result = await db.execute(select(Newsletter).where(Newsletter.id == newsletter_id))
     nl = result.scalar_one_or_none()
     if nl is None:

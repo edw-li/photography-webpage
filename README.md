@@ -262,3 +262,46 @@ Alternatively, cover all Docker bridge subnets at once:
 ```
 host    photography    photography    172.16.0.0/12    scram-sha-256
 ```
+
+## Managing contest submissions
+
+Members manage up to three photos in the contest modal's **My submissions** tab.
+They can add photos, replace them, edit titles, and withdraw entries while the
+contest is Active. The published deadline is advisory: the first admin transition
+to Voting (or Completed) permanently locks member changes. Reverting the status
+does not clear that lock.
+
+Migration `023` adds revision tracking, prepared-image records, mutation receipts,
+and a storage cleanup outbox. Existing submission/gallery URLs are registered once
+without moving files or changing ownership. Deploy the backend migration before
+the new frontend; the original multipart submission form remains supported.
+
+Replacement images are prepared before the live entry changes. Every save checks
+ownership, revision, and contest state under the contest lock. Successful request
+IDs are retained so a disconnected client can safely retry or recover the outcome.
+Image EXIF is extracted from the new source; served images are normalized and have
+embedded metadata removed. Animated image inputs use their first frame.
+
+The backend lifespan runs a cleanup sweep every minute. Abandoned preparations
+expire after 24 hours; replaced/withdrawn files also have a 24-hour grace period.
+Cleanup checks submission, gallery, member, sample-photo, and newsletter references
+and removes the original plus thumbnails only when no managed content uses them.
+Failures stay in `storage_cleanup_jobs` with `attempts`, `last_error`, and
+`not_before`; backend logs report failed attempts. Unknown/external storage URLs
+are never automatically deleted. Set `SUBMISSION_CLEANUP_ENABLED=false` to pause
+cleanup while investigating storage issues; submission changes continue to work.
+
+## Backend tests
+
+Install `backend/requirements-dev.txt`. To include the database concurrency and
+failure-recovery tests, provision a disposable **local** PostgreSQL database whose
+name ends in `_test` and set `TEST_DATABASE_URL`, for example:
+
+```bash
+export TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/photography_test
+python -m pytest backend/tests -q
+```
+
+Each integration test uses its own temporary schema. Without `TEST_DATABASE_URL`,
+those tests are skipped. CI provisions PostgreSQL, checks all migrations, and runs
+the full suite. Never point these tests at production.

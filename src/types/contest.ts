@@ -20,6 +20,9 @@ export interface ContestSubmission {
   categoryVotes?: CategoryVotes;
   /** ISO submission time — orders tied placements. Absent during anonymous voting. */
   createdAt?: string | null;
+  revision: number;
+  updatedAt?: string | null;
+  imageSubmittedAt?: string | null;
 }
 
 export type ContestStatus = 'upcoming' | 'active' | 'voting' | 'completed';
@@ -47,6 +50,8 @@ export interface Contest {
   winners?: ContestWinner[];
   userSubmissionCount?: number | null;
   userHasVoted?: boolean | null;
+  canManageSubmissions?: boolean;
+  submissionLockReason?: string | null;
 }
 
 export function getCategoryLabel(cat: VoteCategory, wildcardLabel?: string | null): string {

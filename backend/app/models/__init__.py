@@ -13,6 +13,7 @@ from .notification import Notification
 from .revoked_token import RevokedToken
 from .announcement import Announcement, AnnouncementDismissal
 from .release_note import ReleaseNote
+from .submission_asset import SubmissionAsset, SubmissionOperation, StorageCleanupJob
 
 __all__ = [
     "User", "Member", "SocialLink", "SamplePhoto", "GalleryPhoto",
@@ -24,4 +25,5 @@ __all__ = [
     "RevokedToken",
     "Announcement", "AnnouncementDismissal",
     "ReleaseNote",
+    "SubmissionAsset", "SubmissionOperation", "StorageCleanupJob",
 ]

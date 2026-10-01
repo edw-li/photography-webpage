@@ -413,7 +413,7 @@ export default function ContestsSection() {
             statusTarget.newStatus === 'completed'
               ? `Move "${statusTarget.contest.theme}" to completed? Winners will be auto-calculated from votes.`
               : statusTarget.newStatus === 'active' && statusTarget.contest.status === 'voting'
-                ? `Move "${statusTarget.contest.theme}" back to active (submissions)?`
+                ? `Move "${statusTarget.contest.theme}" back to active? Member submissions will stay locked because voting has already begun.`
                 : statusTarget.newStatus === 'voting' && statusTarget.contest.status === 'completed'
                   ? `Move "${statusTarget.contest.theme}" back to voting? Existing winners will be cleared.`
                   : `Move "${statusTarget.contest.theme}" to ${statusTarget.newStatus}?`

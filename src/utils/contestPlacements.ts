@@ -15,8 +15,8 @@ export function getCategoryVotes(sub: ContestSubmission, category: VoteCategory)
 }
 
 function submissionTime(sub: ContestSubmission): number {
-  if (sub.createdAt) {
-    const t = Date.parse(sub.createdAt);
+  if (sub.imageSubmittedAt || sub.createdAt) {
+    const t = Date.parse(sub.imageSubmittedAt || sub.createdAt!);
     if (!Number.isNaN(t)) return t;
   }
   // Unknown time sorts after known times; the id tiebreak below still keeps
