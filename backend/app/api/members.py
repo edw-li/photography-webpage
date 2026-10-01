@@ -17,7 +17,7 @@ from ..schemas.member import (
     SamplePhotoCreate,
     SamplePhotoResponse,
 )
-from ..services.storage import delete_uploaded_image
+from ..services.submission_storage import protect_content_references, protect_image_reference, queue_cleanup
 from .activity import log_activity
 from .deps import get_current_user, get_db, require_admin
 
@@ -207,6 +207,7 @@ async def create_member(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    await protect_content_references(db, body.model_dump_json())
     member = Member(
         name=body.name,
         specialty=body.specialty,
@@ -238,6 +239,7 @@ async def update_member(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await protect_content_references(db, body.model_dump_json())
     result = await db.execute(select(Member).where(Member.id == member_id))
     member = result.scalar_one_or_none()
     if member is None:
@@ -254,7 +256,7 @@ async def update_member(
     if body.avatar is not None:
         if (member.avatar_url and member.avatar_url != "DEFAULT"
                 and member.avatar_url != body.avatar):
-            delete_uploaded_image(member.avatar_url, thumbnails=False)
+            await queue_cleanup(db, member.avatar_url)
         member.avatar_url = body.avatar
     if body.photography_type is not None:
         member.photography_type = body.photography_type or None
@@ -275,7 +277,7 @@ async def update_member(
         new_urls = {photo.src for photo in body.sample_photos}
         for old_photo in member.sample_photos:
             if old_photo.src_url not in new_urls:
-                delete_uploaded_image(old_photo.src_url)
+                await queue_cleanup(db, old_photo.src_url)
         member.sample_photos.clear()
         for i, photo in enumerate(body.sample_photos):
             member.sample_photos.append(
@@ -318,9 +320,9 @@ async def delete_member(
             await db.delete(linked_user)
 
     if member.avatar_url and member.avatar_url != "DEFAULT":
-        delete_uploaded_image(member.avatar_url, thumbnails=False)
+        await queue_cleanup(db, member.avatar_url)
     for photo in member.sample_photos:
-        delete_uploaded_image(photo.src_url)
+        await queue_cleanup(db, photo.src_url)
 
     await log_activity(db, admin, "delete", "member", str(member_id), f"Deleted member: {member.name}")
     await db.delete(member)
@@ -346,6 +348,7 @@ async def add_member_sample_photo(
         )
 
     max_order = max((sp.sort_order for sp in member.sample_photos), default=-1)
+    await protect_image_reference(db, body.src)
     photo = SamplePhoto(
         member_id=member.id,
         src_url=body.src,
@@ -374,7 +377,7 @@ async def delete_member_sample_photo(
     if photo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
 
-    delete_uploaded_image(photo.src_url)
+    await queue_cleanup(db, photo.src_url)
     await db.delete(photo)
     await db.commit()
 

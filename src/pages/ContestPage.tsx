@@ -10,16 +10,13 @@ import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { useImageLoaded } from '../hooks/useImageLoaded';
 import { useAuth } from '../contexts/AuthContext';
-import { getContests, submitPhoto, castVote } from '../api/contests';
+import { getContests, getContest, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
-import { compressImage, isImageFile, IMAGE_ACCEPT } from '../utils/compressImage';
-import { extractExif } from '../utils/extractExif';
+import ContestSubmissions from '../components/ContestSubmissions';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const FULL_RESULTS_CAP = 10;
 
 function formatDeadline(dateStr: string): string {
@@ -277,16 +274,18 @@ const TABS_BY_STATUS: Record<Contest['status'], TabDef[]> = {
   upcoming: [],
   active: [
     { id: 'rules', label: 'Rules' },
-    { id: 'submit', label: 'Submit' },
+    { id: 'submit', label: 'My submissions' },
   ],
   voting: [
     { id: 'rules', label: 'Rules' },
     { id: 'vote', label: 'Vote' },
+    { id: 'submit', label: 'My submissions' },
   ],
   completed: [
     { id: 'winners', label: 'Winners' },
     { id: 'full-results', label: 'Full Results' },
     { id: 'gallery', label: 'Gallery' },
+    { id: 'submit', label: 'My submissions' },
   ],
 };
 
@@ -304,26 +303,34 @@ function ModalShell({
   onClose,
   ariaLabel,
   children,
+  closeDisabled = false,
+  confirmClose,
 }: {
   open: boolean;
   onClose: () => void;
   ariaLabel: string;
   children: React.ReactNode;
+  closeDisabled?: boolean;
+  confirmClose?: () => boolean;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isClosing, setIsClosing] = useState(false);
 
   const startClose = useCallback(() => {
+    if (closeDisabled || (confirmClose && !confirmClose())) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       onClose();
     } else {
       setIsClosing(true);
     }
-  }, [onClose]);
+  }, [onClose, closeDisabled, confirmClose]);
 
   useEffect(() => {
-    if (open) closeRef.current?.focus();
+    if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    return () => { previousFocus?.focus(); };
   }, [open]);
 
   useEffect(() => {
@@ -348,7 +355,7 @@ function ModalShell({
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
       const focusable = el.querySelectorAll<HTMLElement>(
-        'button, [tabindex]:not([tabindex="-1"]), a[href], input, textarea, select'
+        'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled])'
       );
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -381,6 +388,7 @@ function ModalShell({
         <button
           className="contest__modal-close"
           onClick={startClose}
+          disabled={closeDisabled}
           aria-label="Close"
           ref={closeRef}
         >
@@ -473,202 +481,6 @@ function TabBar({
         );
       })}
       <div className="contest__tab-indicator" ref={indicatorRef} />
-    </div>
-  );
-}
-
-/* --- Tab: Submit --- */
-
-function TabSubmit({
-  contest,
-  onClose,
-  file,
-  setFile,
-  title,
-  setTitle,
-  camera,
-  focalLength,
-  aperture,
-  shutterSpeed,
-  iso,
-  submitted,
-  setSubmitted,
-  onContestRefresh,
-}: {
-  contest: Contest;
-  onClose: () => void;
-  file: File | null;
-  setFile: (f: File | null) => void;
-  title: string;
-  setTitle: (v: string) => void;
-  camera: string;
-  focalLength: string;
-  aperture: string;
-  shutterSpeed: string;
-  iso: string;
-  submitted: boolean;
-  setSubmitted: (v: boolean) => void;
-  onContestRefresh: () => void;
-}) {
-  const { isAuthenticated, user } = useAuth();
-  const [preview, setPreview] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [compressing, setCompressing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const userSubCount = contest.userSubmissionCount ?? 0;
-  const remaining = Math.max(0, 3 - userSubCount);
-  const atLimit = userSubCount >= 3;
-
-  useEffect(() => {
-    if (!file) { setPreview(null); return; }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  const canSubmit = file !== null && title.trim() !== '' && !atLimit;
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (atLimit) return;
-    const f = e.dataTransfer.files[0];
-    if (f && isImageFile(f)) {
-      if (f.size > MAX_FILE_SIZE_BYTES) {
-        setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
-        return;
-      }
-      setError(null);
-      setFile(f);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      if (f.size > MAX_FILE_SIZE_BYTES) {
-        setError(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
-        e.target.value = '';
-        return;
-      }
-      setError(null);
-      setFile(f);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit || !file) return;
-    setCompressing(true);
-    setError(null);
-    try {
-      const { file: compressed } = await compressImage(file, { maxSizeMB: MAX_FILE_SIZE_MB });
-      setCompressing(false);
-      setSubmitting(true);
-      try {
-        const formData = new FormData();
-        formData.append('file', compressed);
-        formData.append('title', title.trim());
-        formData.append('photographer', `${user!.firstName} ${user!.lastName}`);
-        if (camera.trim()) formData.append('exif_camera', camera.trim());
-        if (focalLength.trim()) formData.append('exif_focal_length', focalLength.trim());
-        if (aperture.trim()) formData.append('exif_aperture', aperture.trim());
-        if (shutterSpeed.trim()) formData.append('exif_shutter_speed', shutterSpeed.trim());
-        if (iso.trim()) formData.append('exif_iso', iso.trim());
-        await submitPhoto(contest.id, formData);
-        setSubmitted(true);
-        onContestRefresh();
-      } finally {
-        setSubmitting(false);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to submit photo';
-      setError(msg);
-    } finally {
-      setCompressing(false);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div role="tabpanel" aria-label="Submit">
-        <div className="contest__submit-success">
-          <Camera size={48} />
-          <p>Log in to submit your photos</p>
-          <Link to="/login" className="contest__modal-btn" onClick={onClose}>
-            Log In
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div role="tabpanel" aria-label="Submit">
-      {submitted ? (
-        <div className="contest__submit-success">
-          <Check size={48} />
-          <p>Your submission has been received!</p>
-          <button className="contest__modal-btn" onClick={onClose}>Close</button>
-        </div>
-      ) : (
-        <form className="contest__submit-form" onSubmit={handleSubmit}>
-          <div className="contest__submit-limit">
-            <span>{remaining} of 3 submissions remaining</span>
-          </div>
-          {error && <p className="contest__submit-error">{error}</p>}
-
-          <div
-            className={`contest__dropzone${dragging ? ' contest__dropzone--active' : ''}${preview ? ' contest__dropzone--has-preview' : ''}${atLimit ? ' contest__dropzone--disabled' : ''}`}
-            onClick={() => !atLimit && fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); if (!atLimit) setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-          >
-            {preview ? (
-              <img src={preview} alt="Preview" className="contest__dropzone-preview" />
-            ) : (
-              <div className="contest__dropzone-placeholder">
-                <Camera size={32} />
-                <p>{atLimit ? 'Submission limit reached' : 'Drag & drop your photo here, or click to browse'}</p>
-                {!atLimit && <p className="contest__dropzone-hint">Max {MAX_FILE_SIZE_MB}MB</p>}
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={IMAGE_ACCEPT}
-              onChange={handleFileChange}
-              className="contest__file-input"
-              disabled={atLimit}
-            />
-          </div>
-
-          <label className="contest__form-label">
-            <span>Title <span className="contest__required">*</span></span>
-            <input
-              type="text"
-              className="contest__form-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Give your photo a title"
-              disabled={atLimit}
-            />
-          </label>
-
-          <button
-            type="submit"
-            className="contest__modal-btn contest__modal-btn--submit"
-            disabled={!canSubmit || compressing || submitting}
-          >
-            {compressing ? 'Compressing...' : submitting ? 'Submitting...' : atLimit ? 'Submission Limit Reached' : 'Submit Photo'}
-          </button>
-          <p className="contest__submit-disclaimer">Submissions cannot be changed once submitted.</p>
-        </form>
-      )}
     </div>
   );
 }
@@ -1093,8 +905,8 @@ function TabRules({ contest }: { contest: Contest }) {
             <summary className="contest__rules-details-summary">View Original Submission Guidelines</summary>
             <ul className="contest__rules-list">
               <li>Maximum 3 submissions per person</li>
-              <li>Submissions cannot be changed once submitted</li>
-              <li>Submission deadline: {formatDeadline(contest.deadline)}</li>
+              <li>You can add, replace, or remove photos while submissions are open. Entries lock when voting begins.</li>
+              <li>Please submit by: {formatDeadline(contest.deadline)}</li>
               {contest.guidelines.map((g, i) => (
                 <li key={i}>{g}</li>
               ))}
@@ -1111,8 +923,8 @@ function TabRules({ contest }: { contest: Contest }) {
           <h3>Submission Info</h3>
           <ul className="contest__rules-list">
             <li>Maximum 3 submissions per person</li>
-            <li>Submissions cannot be changed once submitted</li>
-            <li>Submission deadline: {formatDeadline(contest.deadline)}</li>
+            <li>You can add, replace, or remove photos while submissions are open. Entries lock when voting begins.</li>
+            <li>Please submit by: {formatDeadline(contest.deadline)}</li>
             {contest.guidelines.map((g, i) => (
               <li key={i}>{g}</li>
             ))}
@@ -1496,35 +1308,19 @@ function ContestModal({
   onClose: () => void;
   onContestRefresh: () => void;
 }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const tabs = TABS_BY_STATUS[contest.status];
   const refTab = HEIGHT_REF_TAB[contest.status];
   const [activeTab, setActiveTab] = useState<TabId>(refTab);
 
-  // Lifted submission form state
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState('');
-  const [camera, setCamera] = useState('');
-  const [focalLength, setFocalLength] = useState('');
-  const [aperture, setAperture] = useState('');
-  const [shutterSpeed, setShutterSpeed] = useState('');
-  const [iso, setIso] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  // Auto-extract EXIF from original file before compression
-  useEffect(() => {
-    if (!file) return;
-    let cancelled = false;
-    extractExif(file).then((exif) => {
-      if (cancelled) return;
-      if (exif.camera) setCamera((v) => v || exif.camera);
-      if (exif.focalLength) setFocalLength((v) => v || exif.focalLength);
-      if (exif.aperture) setAperture((v) => v || exif.aperture);
-      if (exif.shutterSpeed) setShutterSpeed((v) => v || exif.shutterSpeed);
-      if (exif.iso) setIso((v) => v || exif.iso);
-    });
-    return () => { cancelled = true; };
-  }, [file]);
+  const [submissionGuard, setSubmissionGuard] = useState({ dirty: false, busy: false });
+  const onGuardChange = useCallback((dirty: boolean, busy: boolean) => setSubmissionGuard({ dirty, busy }), []);
+  const mayLeave = () => !submissionGuard.busy && (!submissionGuard.dirty || window.confirm('Leave this editor? Unsaved changes will be discarded. If a save is awaiting confirmation, check My submissions when you return.'));
+  const changeTab = (tab: TabId) => {
+    if (tab === activeTab || !mayLeave()) return;
+    setSubmissionGuard({ dirty: false, busy: false });
+    setActiveTab(tab);
+  };
 
   const tabContentRef = useRef<HTMLDivElement>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
@@ -1558,14 +1354,14 @@ function ContestModal({
     if (!isMobileAtMount) {
       setLockedHeight(tabContentRef.current.offsetHeight);
     }
-    if (refTab !== tabs[0].id) {
+    if (contest.status !== 'active' && refTab !== tabs[0].id) {
       setActiveTab(tabs[0].id);
     }
   }, []);
 
   const modalTitle =
     contest.status === 'active'
-      ? `Submit to "${contest.theme}"`
+      ? `Your photos — "${contest.theme}"`
       : contest.status === 'voting'
         ? `Vote — "${contest.theme}"`
         : contest.status === 'upcoming'
@@ -1573,7 +1369,7 @@ function ContestModal({
           : `Results — "${contest.theme}"`;
 
   return (
-    <ModalShell open ariaLabel={modalTitle} onClose={onClose}>
+    <ModalShell open ariaLabel={modalTitle} onClose={onClose} closeDisabled={submissionGuard.busy} confirmClose={mayLeave}>
       <h2 className="contest__modal-title">
         {contest.status === 'completed' && <Trophy size={22} />}
         {modalTitle}
@@ -1582,30 +1378,15 @@ function ContestModal({
       <div
         className="contest__tab-content"
         ref={tabContentRef}
-        style={lockedHeight !== null && !isMobile ? { height: lockedHeight, flex: 'none' } : undefined}
+        style={activeTab !== 'submit' && lockedHeight !== null && !isMobile ? { height: lockedHeight, flex: 'none' } : undefined}
       >
         {/* TabBar lives inside tab-content (the scroll container) so it can be
             position: sticky; top: 0 — keeps the tab labels glued to the top of
             the visible content area regardless of modal height pressure. */}
-        <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} isAuthenticated={isAuthenticated} />
+        <TabBar tabs={tabs} activeTab={activeTab} onTabChange={changeTab} isAuthenticated={isAuthenticated} />
         <div key={activeTab} className="contest__tab-panel">
           {activeTab === 'submit' && (
-            <TabSubmit
-              contest={contest}
-              onClose={onClose}
-              file={file}
-              setFile={setFile}
-              title={title}
-              setTitle={setTitle}
-              camera={camera}
-              focalLength={focalLength}
-              aperture={aperture}
-              shutterSpeed={shutterSpeed}
-              iso={iso}
-              submitted={submitted}
-              setSubmitted={setSubmitted}
-              onContestRefresh={onContestRefresh}
-            />
+            <ContestSubmissions key={`${contest.id}:${user?.id ?? 'guest'}`} contest={contest} onRefresh={onContestRefresh} onGuardChange={onGuardChange} />
           )}
           {activeTab === 'vote' && (
             <TabVote
@@ -1636,7 +1417,7 @@ function ContestCard({
   const isUpcoming = contest.status === 'upcoming';
   const statusLabel =
     contest.status === 'active'
-      ? 'Open for Submissions'
+      ? (contest.submissionLockReason ? 'Submissions Locked' : 'Open for Submissions')
       : contest.status === 'voting'
         ? 'Voting in Progress'
         : contest.status === 'upcoming'
@@ -1659,6 +1440,9 @@ function ContestCard({
         <h2>{contest.theme}</h2>
         <p className="contest__card-month">{contest.month}</p>
         <p className="contest__card-desc">{contest.description}</p>
+        {contest.status === 'active' && <p className="contest__card-manage">
+          {(contest.userSubmissionCount ?? 0) > 0 ? `Manage submissions · ${contest.userSubmissionCount} of 3 photos` : 'Submit your photos'}
+        </p>}
       </div>
 
       <div className="contest__card-stats">
@@ -1676,7 +1460,7 @@ function ContestCard({
               ? 'Completed'
               : contest.status === 'voting'
                 ? `Voting Deadline: ${getVotingDeadline(contest.deadline)}`
-                : `Deadline: ${formatDeadline(contest.deadline)}`}
+                : `Please submit by: ${formatDeadline(contest.deadline)}`}
           </span>
         </div>
       </div>
@@ -1693,6 +1477,7 @@ export default function ContestPage() {
   const [openModal, setOpenModal] = useState<{ contestId: number } | null>(null);
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const contestRefreshGeneration = useRef(0);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -1711,6 +1496,16 @@ export default function ContestPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const refreshOpenContest = useCallback(() => {
+    if (!openModal) return;
+    const ticket = ++contestRefreshGeneration.current;
+    getContest(openModal.contestId).then(updated => {
+      if (ticket === contestRefreshGeneration.current) {
+        setContests(current => current.map(c => c.id === updated.id ? updated : c));
+      }
+    }).catch(() => {});
+  }, [openModal]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -1813,7 +1608,7 @@ export default function ContestPage() {
         <ContestModal
           contest={modalContest}
           onClose={() => setOpenModal(null)}
-          onContestRefresh={loadData}
+          onContestRefresh={refreshOpenContest}
         />
       )}
     </div>

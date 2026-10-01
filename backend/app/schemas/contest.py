@@ -1,4 +1,6 @@
 from datetime import datetime
+from uuid import UUID
+from pydantic import Field, field_validator
 
 from .common import CamelModel
 
@@ -30,6 +32,9 @@ class ContestSubmissionResponse(CamelModel):
     # Submission time — used to order tied placements (earlier first).
     # Withheld (None) during anonymous voting.
     created_at: datetime | None = None
+    revision: int = 1
+    updated_at: datetime | None = None
+    image_submitted_at: datetime | None = None
 
 
 class ContestWinnerSchema(CamelModel):
@@ -54,6 +59,8 @@ class ContestResponse(CamelModel):
     winners: list[ContestWinnerSchema] | None = None
     user_submission_count: int | None = None
     user_has_voted: bool | None = None
+    can_manage_submissions: bool = False
+    submission_lock_reason: str | None = None
 
 
 class ContestCreate(CamelModel):
@@ -74,6 +81,22 @@ class ContestUpdate(CamelModel):
     deadline: str | None = None
     guidelines: list[str] | None = None
     wildcard_category: str | None = None
+
+
+class SubmissionMutation(CamelModel):
+    operation_id: UUID
+    expected_revision: int | None = Field(default=None, ge=1)
+    upload_id: UUID | None = None
+    title: str | None = Field(default=None, max_length=300)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value):
+        if value is not None:
+            value = value.strip()
+            if not value:
+                raise ValueError("Give your photo a title")
+        return value
 
 
 class CategoryVoteRequest(CamelModel):

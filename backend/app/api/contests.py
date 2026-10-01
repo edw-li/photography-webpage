@@ -4,7 +4,7 @@ import math
 import mimetypes
 import uuid
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response, UploadFile, status
@@ -12,7 +12,7 @@ from sqlalchemy import case, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .gallery import auto_like_photo_owner, validate_image_upload
+from .gallery import auto_like_photo_owner, validate_image_upload, _delete_notifications_for_photo
 from ..models.contest import (
     Contest,
     ContestSubmission,
@@ -46,13 +46,15 @@ from ..schemas.contest import (
     SubmissionAssignRequest,
     SubmissionExifSchema,
     SubmissionResultSchema,
+    SubmissionMutation,
 )
 from ..models.gallery import GalleryPhoto
 from ..models.member import Member
-from ..rate_limit import limiter, AUTH_ATTEMPT
-from ..services.storage import delete_uploaded_image, extract_exif_from_bytes, make_photographer_slug, read_image_bytes, save_submission_image, make_user_slug
+from ..services.storage import extract_exif_from_bytes, make_photographer_slug, read_image_bytes, save_submission_image
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
+from ..services.submission_management import lock_contest, lock_reason, mutate_submission
+from ..services.submission_storage import queue_cleanup
 
 router = APIRouter()
 
@@ -76,7 +78,7 @@ def _submission_to_response(
         # Route the image through the API proxy so the storage path (which
         # contains the photographer's name slug) never reaches the client.
         # Submission time is withheld too — it could hint at who submitted.
-        url = f"/api/v1/contests/{sub.contest_id}/submissions/{sub.id}/image"
+        url = f"/api/v1/contests/{sub.contest_id}/submissions/{sub.id}/image?v={sub.revision}"
         photographer = ""
         created_at = None
     else:
@@ -95,6 +97,9 @@ def _submission_to_response(
         exif=exif,
         category_votes=category_votes,
         created_at=created_at,
+        revision=sub.revision,
+        updated_at=None if anonymize else sub.updated_at,
+        image_submitted_at=None if anonymize else sub.image_submitted_at,
     )
 
 
@@ -187,6 +192,8 @@ async def _contest_to_response(
         winners=winners,
         user_submission_count=user_submission_count,
         user_has_voted=user_has_voted,
+        can_manage_submissions=user is not None and lock_reason(contest) is None,
+        submission_lock_reason=lock_reason(contest),
     )
 
 
@@ -240,7 +247,7 @@ async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
         by_category[row.category].append((row.submission_id, row.cnt))
 
     # Build created_at lookup for tie ordering
-    sub_created = {sub.id: sub.created_at for sub in contest.submissions}
+    sub_created = {sub.id: getattr(sub, "image_submitted_at", sub.created_at) for sub in contest.submissions}
 
     winners = []
     for category, ranked in by_category.items():
@@ -277,7 +284,7 @@ def _winners_from_tallies(contest: Contest) -> list[dict]:
             if count > 0:
                 by_category[category].append((sub.id, count))
 
-    sub_created = {sub.id: sub.created_at for sub in contest.submissions}
+    sub_created = {sub.id: getattr(sub, "image_submitted_at", sub.created_at) for sub in contest.submissions}
     winners: list[dict] = []
     for category, ranked in by_category.items():
         entries = [(sub_id, cnt, sub_created[sub_id]) for sub_id, cnt in ranked]
@@ -871,6 +878,7 @@ async def get_anonymous_submission_image(
     contest_id: int,
     submission_id: int,
     size: str = Query("original"),
+    v: int | None = Query(None, ge=1),
     db: AsyncSession = Depends(get_db),
 ):
     # Streams submission image bytes through the API so the underlying storage
@@ -889,6 +897,9 @@ async def get_anonymous_submission_image(
     sub = result.scalar_one_or_none()
     if sub is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    if v is not None and v != sub.revision:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image version no longer available")
 
     actual_url = sub.url
     if size != "original" and "." in actual_url:
@@ -919,6 +930,7 @@ async def create_contest(
         description=body.description,
         status=body.status,
         deadline=body.deadline,
+        submissions_locked_at=datetime.now(timezone.utc) if body.status in ("voting", "completed") else None,
         guidelines=body.guidelines,
         wildcard_category=body.wildcard_category,
         is_imported=body.status == "completed",
@@ -939,10 +951,7 @@ async def update_contest(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    contest = await lock_contest(db, contest_id)
 
     old_status = contest.status
 
@@ -960,6 +969,9 @@ async def update_contest(
         contest.guidelines = body.guidelines
     if "wildcard_category" in body.model_fields_set:
         contest.wildcard_category = body.wildcard_category
+
+    if contest.status in ("voting", "completed") and contest.submissions_locked_at is None:
+        contest.submissions_locked_at = datetime.now(timezone.utc)
 
     # Auto-calculate winners when advancing from voting to completed
     if old_status == "voting" and contest.status == "completed":
@@ -990,6 +1002,8 @@ async def update_contest(
             select(GalleryPhoto).where(GalleryPhoto.contest_id == contest.id)
         )
         for gp in gallery_result.scalars().all():
+            await queue_cleanup(db, gp.url)
+            await _delete_notifications_for_photo(gp.id, db)
             await db.delete(gp)
 
     await _update_contest_events(contest, db)
@@ -1005,12 +1019,13 @@ async def delete_contest(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    contest = await lock_contest(db, contest_id)
     for sub in contest.submissions:
-        delete_uploaded_image(sub.url)
+        await queue_cleanup(db, sub.url)
+    gallery_photos = (await db.execute(select(GalleryPhoto).where(GalleryPhoto.contest_id == contest_id))).scalars().all()
+    for photo in gallery_photos:
+        await queue_cleanup(db, photo.url)
+        await _delete_notifications_for_photo(photo.id, db)
     await _delete_contest_events(contest_id, db)
     await log_activity(db, admin, "delete", "contest", str(contest_id), f"Deleted contest: {contest.theme}")
     await db.delete(contest)
@@ -1020,84 +1035,36 @@ async def delete_contest(
 # --- Submissions ---
 
 
-@router.post("/{contest_id}/submissions", response_model=ContestSubmissionResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit(AUTH_ATTEMPT)
-async def create_submission(
-    request: Request,
-    contest_id: int,
-    file: UploadFile,
-    title: str = Form(...),
-    photographer: str = Form(...),
-    exif_camera: str | None = Form(None),
-    exif_focal_length: str | None = Form(None),
-    exif_aperture: str | None = Form(None),
-    exif_shutter_speed: str | None = Form(None),
-    exif_iso: int | None = Form(None),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    # Verify contest exists and is active
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
-    if contest.status != "active":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest is not accepting submissions")
-
-    # Enforce submission limit
-    count_result = await db.execute(
-        select(func.count()).select_from(ContestSubmission).where(
-            ContestSubmission.contest_id == contest_id,
-            ContestSubmission.user_id == user.id,
-        )
-    )
-    if count_result.scalar_one() >= MAX_SUBMISSIONS_PER_USER:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maximum {MAX_SUBMISSIONS_PER_USER} submissions per person",
-        )
-
-    await validate_image_upload(file)
-    slug = make_user_slug(user.id, user.first_name, user.last_name)
-    url = await save_submission_image(contest.month, file, user_slug=slug)
-
-    submission = ContestSubmission(
-        contest_id=contest_id,
-        url=url,
-        title=title,
-        photographer=photographer,
-        user_id=user.id,
-        exif_camera=exif_camera,
-        exif_focal_length=exif_focal_length,
-        exif_aperture=exif_aperture,
-        exif_shutter_speed=exif_shutter_speed,
-        exif_iso=exif_iso,
-    )
-    db.add(submission)
-    await db.commit()
-    await db.refresh(submission)
-    return _submission_to_response(submission)
-
-
-@router.delete("/{contest_id}/submissions/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{contest_id}/submissions/{submission_id}")
 async def delete_submission(
     contest_id: int,
     submission_id: int,
-    admin: User = Depends(require_admin),
+    body: SubmissionMutation | None = None,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(ContestSubmission).where(
-            ContestSubmission.id == submission_id,
-            ContestSubmission.contest_id == contest_id,
-        )
-    )
-    submission = result.scalar_one_or_none()
+    if body is not None:
+        return await mutate_submission(db, user, contest_id, "remove", body, submission_id)
+    if user.role != "admin":
+        raise HTTPException(422, "A request ID and submission revision are required.")
+    contest = await lock_contest(db, contest_id)
+    submission = next((s for s in contest.submissions if s.id == submission_id), None)
     if submission is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
-    delete_uploaded_image(submission.url)
+        raise HTTPException(404, "Submission not found")
+    await queue_cleanup(db, submission.url)
+    gallery_photos = (await db.execute(select(GalleryPhoto).where(
+        GalleryPhoto.contest_submission_id == submission_id
+    ))).scalars().all()
+    for photo in gallery_photos:
+        await queue_cleanup(db, photo.url)
+        await _delete_notifications_for_photo(photo.id, db)
+    if contest.winners:
+        contest.winners = [w for w in contest.winners if w.get("submissionId") != submission_id] or None
+    await log_activity(db, user, "delete", "submission", str(submission_id),
+                       f"Removed contest submission: {submission.title}")
     await db.delete(submission)
     await db.commit()
+    return Response(status_code=204)
 
 
 # --- Voting ---
@@ -1111,10 +1078,7 @@ async def cast_vote(
     db: AsyncSession = Depends(get_db),
 ):
     # Verify contest exists and is in voting status
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    contest = await lock_contest(db, contest_id)
     if contest.status != "voting":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest is not in voting phase")
 
@@ -1222,10 +1186,7 @@ async def create_admin_submission(
     db: AsyncSession = Depends(get_db),
 ):
     """Admin-only: upload a submission for an imported contest. No status or limit checks."""
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    contest = await lock_contest(db, contest_id)
     if not contest.is_imported:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Admin submissions are only allowed for imported contests")
 
@@ -1269,10 +1230,7 @@ async def finalize_contest(
     db: AsyncSession = Depends(get_db),
 ):
     """Admin-only: set vote tallies and calculate winners for an imported contest."""
-    result = await db.execute(select(Contest).where(Contest.id == contest_id))
-    contest = result.scalar_one_or_none()
-    if contest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+    contest = await lock_contest(db, contest_id)
     if not contest.is_imported:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only imported contests can be finalized this way")
     if not contest.submissions:
@@ -1315,6 +1273,7 @@ async def assign_submission(
     db: AsyncSession = Depends(get_db),
 ):
     """Admin-only: reassign a submission to a member (or clear the assignment)."""
+    contest = await lock_contest(db, contest_id)
     result = await db.execute(
         select(ContestSubmission).where(
             ContestSubmission.id == submission_id,
@@ -1331,11 +1290,21 @@ async def assign_submission(
         member = member_result.scalar_one_or_none()
         if member is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        if member.user_id and lock_reason(contest) is None:
+            assigned_count = await db.scalar(select(func.count()).select_from(ContestSubmission).where(
+                ContestSubmission.contest_id == contest_id,
+                ContestSubmission.user_id == member.user_id,
+                ContestSubmission.id != submission_id,
+            ))
+            if assigned_count >= MAX_SUBMISSIONS_PER_USER:
+                raise HTTPException(409, "This member already has three entries in this contest.")
         submission.user_id = member.user_id
         member_id_for_gallery = member.id
     else:
         submission.user_id = None
 
+    submission.revision += 1
+    submission.updated_at = datetime.now(timezone.utc)
     submission.photographer = body.photographer
 
     # Update the corresponding gallery entry if it exists
