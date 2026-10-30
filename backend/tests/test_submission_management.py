@@ -64,10 +64,21 @@ def jpeg_bytes():
     return output.getvalue()
 
 
-async def prepare(sessions, ids, target=None, owner=None):
+def mpo_bytes():
+    # iPhone JPEGs carry their HDR gain map (and many cameras a preview) as extra MPF images.
+    exif = Image.Exif()
+    exif[0x0110] = "iPhone 15 Pro"
+    output = io.BytesIO()
+    Image.new("RGB", (30, 20), "red").save(output, "MPO", save_all=True, exif=exif,
+                                            append_images=[Image.new("RGB", (15, 10))])
+    return output.getvalue()
+
+
+async def prepare(sessions, ids, target=None, owner=None, content=None):
     async with sessions() as db:
         user = await db.get(User, owner or ids[0])
-        return await service.prepare_upload(db, user, ids[2], UploadFile(file=io.BytesIO(jpeg_bytes()), filename="test.jpg"), target)
+        file = UploadFile(file=io.BytesIO(content or jpeg_bytes()), filename="test.jpg")
+        return await service.prepare_upload(db, user, ids[2], file, target)
 
 
 async def change(sessions, ids, action, *, target=None, revision=None, upload=None, title="New photo", op=None, owner=None):
@@ -170,6 +181,15 @@ async def test_ownership_and_preparation_scope(db_env):
         await change(sessions, ids, "add", upload=prepared["uploadId"])
     with pytest.raises(HTTPException):
         await change(sessions, ids, "add", upload=prepared["uploadId"], owner=ids[1])
+
+
+@pytest.mark.asyncio
+async def test_iphone_photo_with_hdr_gain_map_can_be_submitted(db_env):
+    sessions, ids = db_env
+    prepared = await prepare(sessions, ids, content=mpo_bytes())
+    result = await change(sessions, ids, "add", upload=prepared["uploadId"])
+    assert result["userSubmissionCount"] == 1
+    assert result["submission"]["exif"]["camera"] == "iPhone 15 Pro"
 
 
 @pytest.mark.asyncio
@@ -313,6 +333,15 @@ def test_image_validation_and_orientation_metadata():
     ext, exif, variants = media.prepare_images(jpeg_bytes())
     assert ext == ".jpg" and exif == {}
     assert set(variants) == {"original", "thumb", "medium", "full"}
+
+
+def test_multi_picture_jpegs_from_phones_and_cameras_are_accepted():
+    assert Image.open(io.BytesIO(mpo_bytes())).format == "MPO"
+    ext, exif, variants = media.prepare_images(mpo_bytes())
+    assert ext == ".jpg" and exif == {"camera": "iPhone 15 Pro"}
+    with Image.open(io.BytesIO(variants["original"])) as stored:
+        # Only the primary picture is served; gain maps and previews are dropped.
+        assert stored.format == "JPEG" and stored.size == (30, 20)
 
 
 def test_untrusted_exif_cannot_overflow_submission_columns(monkeypatch):

@@ -60,7 +60,9 @@ def prepare_images(content: bytes) -> tuple[str, dict, dict[str, bytes]]:
         with Image.open(io.BytesIO(content)) as source:
             if source.width * source.height > 60_000_000:
                 raise ValueError("Image dimensions are too large (maximum 60 megapixels).")
-            if source.format not in {"JPEG", "PNG", "WEBP", "GIF", "HEIF", "HEIC"}:
+            # Pillow labels JPEGs carrying extra MPF images (iPhone HDR gain maps, camera previews)
+            # "MPO"; only the primary image is decoded and re-encoded below.
+            if source.format not in {"JPEG", "MPO", "PNG", "WEBP", "GIF", "HEIF", "HEIC"}:
                 raise ValueError("Choose a JPEG, PNG, WebP, GIF, or HEIC image.")
             source.verify()
         raw_exif = storage.extract_exif_from_bytes(content)
