@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import PurePosixPath
 
 from fastapi import HTTPException
-from PIL import Image, ImageOps
+from PIL import Image, ImageCms, ImageOps
 from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 
@@ -54,13 +54,32 @@ def key_url(key: str) -> str:
     return f"{settings.oci_public_base_url}/{key}" if settings.oci_configured else f"/{key}"
 
 
+def to_srgb(img: Image.Image) -> Image.Image:
+    """Bake an embedded color profile (e.g. iPhone Display P3) into sRGB pixels.
+
+    Served files carry no profile and browsers show untagged images as sRGB, so
+    unconverted wide-gamut photos look washed out. A profile that cannot be applied
+    keeps the original pixels rather than rejecting the photo.
+    """
+    icc = img.info.get("icc_profile")
+    if not icc:
+        return img
+    try:
+        return ImageCms.profileToProfile(img, io.BytesIO(icc), ImageCms.createProfile("sRGB"))
+    except ImageCms.PyCMSError as exc:
+        logger.warning("Kept original colors; embedded color profile could not be applied: %s", exc)
+        return img
+
+
 def prepare_images(content: bytes) -> tuple[str, dict, dict[str, bytes]]:
     """Decode before accepting. Extract metadata before conversion; normalize orientation."""
     try:
         with Image.open(io.BytesIO(content)) as source:
             if source.width * source.height > 60_000_000:
                 raise ValueError("Image dimensions are too large (maximum 60 megapixels).")
-            if source.format not in {"JPEG", "PNG", "WEBP", "GIF", "HEIF", "HEIC"}:
+            # Pillow labels JPEGs carrying extra MPF images (iPhone HDR gain maps, camera previews)
+            # "MPO"; only the primary image is decoded and re-encoded below.
+            if source.format not in {"JPEG", "MPO", "PNG", "WEBP", "GIF", "HEIF", "HEIC"}:
                 raise ValueError("Choose a JPEG, PNG, WebP, GIF, or HEIC image.")
             source.verify()
         raw_exif = storage.extract_exif_from_bytes(content)
@@ -71,7 +90,7 @@ def prepare_images(content: bytes) -> tuple[str, dict, dict[str, bytes]]:
         if isinstance(iso, int) and 0 <= iso <= 2_147_483_647:
             exif["iso"] = iso
         with Image.open(io.BytesIO(content)) as source:
-            img = ImageOps.exif_transpose(source)
+            img = to_srgb(ImageOps.exif_transpose(source))
             # Static photographs are normalized without camera/GPS metadata in the bytes.
             # Camera fields used by the site are stored separately in the registry.
             ext = ".png" if "A" in img.getbands() else ".jpg"
