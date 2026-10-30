@@ -74,6 +74,10 @@ def mpo_bytes():
     return output.getvalue()
 
 
+# iPhones tag photos as Display P3 (CC0 profile from github.com/saucecontrol/Compact-ICC-Profiles).
+DISPLAY_P3 = (Path(__file__).parent / "fixtures" / "DisplayP3-v2-micro.icc").read_bytes()
+
+
 async def prepare(sessions, ids, target=None, owner=None, content=None):
     async with sessions() as db:
         user = await db.get(User, owner or ids[0])
@@ -342,6 +346,30 @@ def test_multi_picture_jpegs_from_phones_and_cameras_are_accepted():
     with Image.open(io.BytesIO(variants["original"])) as stored:
         # Only the primary picture is served; gain maps and previews are dropped.
         assert stored.format == "JPEG" and stored.size == (30, 20)
+
+
+@pytest.mark.parametrize("mode, fmt, fill", [("RGB", "JPEG", (200, 100, 50)), ("RGBA", "PNG", (200, 100, 50, 128))])
+def test_wide_gamut_colors_are_converted_to_srgb(mode, fmt, fill):
+    # Served files carry no color profile, and browsers show untagged images as sRGB.
+    output = io.BytesIO()
+    Image.new(mode, (30, 20), fill).save(output, fmt, icc_profile=DISPLAY_P3)
+    _, _, variants = media.prepare_images(output.getvalue())
+    for served in variants.values():
+        with Image.open(io.BytesIO(served)) as image:
+            pixel = image.getpixel((5, 5))
+            assert image.mode == mode and "icc_profile" not in image.info
+            # Display P3 (200, 100, 50) is sRGB (215, 93, 31).
+            assert max(abs(a - b) for a, b in zip(pixel, (215, 93, 31))) <= 3, pixel
+            assert pixel[3:] == fill[3:]
+
+
+def test_unusable_color_profile_does_not_block_upload():
+    output = io.BytesIO()
+    Image.new("RGB", (30, 20), (200, 100, 50)).save(output, "JPEG", icc_profile=b"not an ICC profile")
+    _, _, variants = media.prepare_images(output.getvalue())
+    with Image.open(io.BytesIO(variants["original"])) as stored:
+        pixel = stored.getpixel((5, 5))
+        assert max(abs(a - b) for a, b in zip(pixel, (200, 100, 50))) <= 3, pixel
 
 
 def test_untrusted_exif_cannot_overflow_submission_columns(monkeypatch):

@@ -279,9 +279,10 @@ the new frontend; the original multipart submission form remains supported.
 Replacement images are prepared before the live entry changes. Every save checks
 ownership, revision, and contest state under the contest lock. Successful request
 IDs are retained so a disconnected client can safely retry or recover the outcome.
-Image EXIF is extracted from the new source; served images are normalized and have
-embedded metadata removed. Animated image inputs use their first frame, and
-multi-picture JPEGs (iPhone HDR gain maps, camera previews) use their primary image.
+Image EXIF is extracted from the new source; served images are normalized to sRGB
+color and have embedded metadata removed. Animated image inputs use their first
+frame, and multi-picture JPEGs (iPhone HDR gain maps, camera previews) use their
+primary image.
 
 The backend lifespan runs a cleanup sweep every minute. Abandoned preparations
 expire after 24 hours; replaced/withdrawn files also have a 24-hour grace period.
