@@ -293,6 +293,46 @@ Failures stay in `storage_cleanup_jobs` with `attempts`, `last_error`, and
 are never automatically deleted. Set `SUBMISSION_CLEANUP_ENABLED=false` to pause
 cleanup while investigating storage issues; submission changes continue to work.
 
+## Contest voting formats
+
+Each contest records how it is voted on and scored (`contests.voting_format`):
+
+- **classic** — every contest completed before November 2026: members approve up
+  to three photos in each of Theme, Personal Favorite, and Bonus Challenge, and
+  each category has its own podium. These contests keep their original rules and
+  results, including through **Recalculate Winners**.
+- **points** — every new contest: members rank their top three photos for the
+  theme (3 / 2 / 1 points) and may add one Personal Favorite and one Bonus
+  Challenge pick (+1 point each). All points feed one leaderboard. Ties are broken
+  by theme points, then #1 theme votes, then #2 theme votes; photos still tied
+  share the place (1, 1, 3).
+
+Migration `024` marks completed contests, the contest currently in voting, and any
+contest that already has ballots as classic. Switching a mid-vote contest is a
+deliberate step after deploying, because its classic ballots cannot be converted
+and members must vote again:
+
+```bash
+./backend/scripts/backup_db.sh
+docker compose -f docker-compose.prod.yml exec backend python -m scripts.switch_contest_to_points                       # list contests in voting
+docker compose -f docker-compose.prod.yml exec backend python -m scripts.switch_contest_to_points --contest-id ID         # preview
+docker compose -f docker-compose.prod.yml exec backend python -m scripts.switch_contest_to_points --contest-id ID --apply
+```
+
+Applying archives the contest's ballots in `contest_vote_archive`, clears them, and
+sends everyone who had voted an in-app "Please vote again" notification. The home
+page vote button reappears for them automatically. Consider also posting a site
+announcement. Completed contests are never switched. Run the switch soon after
+deploying: any classic ballot cast in between is archived too, and that member
+has to vote again.
+
+A points contest's results are frozen per photo when it completes
+(`contest_submissions.points_score`), so deleting a member or a photo later doesn't
+reshuffle a finished leaderboard; **Recalculate Winners** re-ranks those frozen
+results rather than re-reading ballots. To roll back after any points contest has
+ballots, restore the backup instead of running `alembic downgrade`, which would
+leave ranked ballots and overall winners for the classic code to misread.
+
 ## Backend tests
 
 Install `backend/requirements-dev.txt`. To include the database concurrency and

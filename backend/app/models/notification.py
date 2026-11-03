@@ -15,6 +15,8 @@ NOTIFICATION_TYPE_GALLERY_REPLY = "gallery_reply"
 NOTIFICATION_TYPE_GALLERY_MENTION = "gallery_mention"
 NOTIFICATION_TYPE_CONTEST_VOTING_OPEN = "contest_voting_open"
 NOTIFICATION_TYPE_CONTEST_COMPLETED = "contest_completed"
+# Sent when a contest switched voting format mid-vote and the member's ballot was reset.
+NOTIFICATION_TYPE_CONTEST_REVOTE = "contest_revote"
 
 
 class Notification(Base):
