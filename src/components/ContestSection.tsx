@@ -241,7 +241,7 @@ export default function ContestSection() {
           <div className="contest-section__text">
             <h3>What is the monthly contest?</h3>
             <p>
-              Every month, we select a photography "theme" and a “bonus challenge.” Everyone is invited to take photos throughout the month that fit the theme and/or bonus challenge. You’ll be able to submit up to 3 photos per contest. At the start of the next month, all members have the opportunity to vote for 1) Your favorite photo, 2) The photo that best fits the monthly theme, and 3) The photo that stepped up to the bonus challenge! The winners with the most votes in each category will be recognized on our website!
+              Every month, we pick a photography theme and a bonus challenge. Take photos throughout the month that fit the theme — and try the bonus challenge for extra credit. You can submit up to 3 photos per contest. At the start of the next month, members vote: rank your top 3 photos for the theme (3, 2, and 1 points), and you can also give +1 point to your personal favorite and +1 to the photo that best meets the bonus challenge. Points add up to one leaderboard, and the top photos are recognized on our website!
             </p>
 
             <h3>How can you join the contest?</h3>

@@ -105,6 +105,16 @@ export default function NotificationItem({ notification, onMarkRead }: Notificat
           target: '/contest',
         };
       }
+      case 'contest_revote': {
+        const p = notification.payload as ContestNotificationPayload;
+        return {
+          icon: <Calendar size={18} className="notif__type-icon notif__type-icon--contest" />,
+          title: <>Please vote again: <strong>{p.contestTheme}</strong></>,
+          subtitle: 'Voting moved to the new points ballot, so earlier ballots were reset.',
+          thumb: null,
+          target: '/contest',
+        };
+      }
       case 'contest_completed': {
         const p = notification.payload as ContestNotificationPayload;
         return {

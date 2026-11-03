@@ -1,4 +1,4 @@
-import type { Contest, ContestSubmission, MyResultsResponse } from '../types/contest';
+import type { Contest, ContestSubmission, LiveTallies, MyResultsResponse } from '../types/contest';
 import { apiFetch } from './client';
 
 export async function getContests(): Promise<Contest[]> {
@@ -78,6 +78,7 @@ export async function deleteSubmission(contestId: number, submissionId: number):
   await apiFetch(`/contests/${contestId}/submissions/${submissionId}`, { method: 'DELETE' });
 }
 
+/** Classic (three-category) ballot. */
 export async function castVote(
   contestId: number,
   votes: { category: string; submissionIds: number[] }[],
@@ -85,6 +86,21 @@ export async function castVote(
   await apiFetch(`/contests/${contestId}/vote`, {
     method: 'POST',
     body: JSON.stringify({ votes }),
+  });
+}
+
+/** Points ballot: theme picks in rank order (1st choice first), plus optional
+    single Personal Favorite and Bonus Challenge picks. */
+export interface PointsBallotPayload {
+  theme: number[];
+  favorite: number | null;
+  bonus: number | null;
+}
+
+export async function castBallot(contestId: number, ballot: PointsBallotPayload): Promise<void> {
+  await apiFetch(`/contests/${contestId}/vote`, {
+    method: 'POST',
+    body: JSON.stringify({ ballot }),
   });
 }
 
@@ -122,6 +138,11 @@ export async function refreshGallery(contestId: number): Promise<{ detail: strin
   return apiFetch<{ detail: string }>(`/contests/${contestId}/refresh-gallery`, {
     method: 'POST',
   });
+}
+
+/** Admin only, for debugging: tallies from the ballots cast so far. */
+export async function getLiveTallies(contestId: number): Promise<LiveTallies> {
+  return apiFetch<LiveTallies>(`/contests/${contestId}/live-tallies`);
 }
 
 export async function recalculateWinners(): Promise<{ detail: string }> {

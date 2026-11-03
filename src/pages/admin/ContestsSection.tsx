@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import {
   getContests,
@@ -7,9 +7,11 @@ import {
   updateContest,
   deleteContest,
   deleteSubmission,
+  getLiveTallies,
   recalculateWinners,
 } from '../../api/contests';
-import type { Contest, ContestSubmission } from '../../types/contest';
+import type { Contest, ContestSubmission, LiveTallies, LiveTally } from '../../types/contest';
+import { formatPoints, isPointsContest } from '../../types/contest';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminFormModal from '../../components/AdminFormModal';
@@ -36,6 +38,23 @@ const emptyForm = {
   wildcardCategory: '',
 };
 
+/** Debug lines for one submission's live tally in the submissions dialog. */
+function tallyLines(tally: LiveTally, hasBonus: boolean): string[] {
+  if (tally.score) {
+    const s = tally.score;
+    return [
+      `#${s.rank} · ${formatPoints(s.total)}`,
+      `Theme ${s.themePoints} (${s.themeFirst}/${s.themeSecond}/${s.themeThird}) · Fav ${s.favorite}` +
+        (hasBonus ? ` · Bonus ${s.bonus}` : ''),
+    ];
+  }
+  if (tally.categoryVotes) {
+    const v = tally.categoryVotes;
+    return [`Theme ${v.theme} · Fav ${v.favorite}${hasBonus ? ` · Bonus ${v.wildcard}` : ''} votes`];
+  }
+  return [];
+}
+
 export default function ContestsSection() {
   const { addToast } = useToast();
   const [items, setItems] = useState<Contest[]>([]);
@@ -56,6 +75,30 @@ export default function ContestsSection() {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [liveTallies, setLiveTallies] = useState<LiveTallies | null>(null);
+  const [talliesState, setTalliesState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const talliesTicket = useRef(0);
+
+  // Admin-only debugging aid: tallies from the ballots cast so far, for a
+  // contest that is being voted on (members never see results before voting
+  // closes). Called from event handlers; stale responses are ignored.
+  const loadLiveTallies = useCallback(async (contest: Contest) => {
+    const ticket = ++talliesTicket.current;
+    setLiveTallies((prev) => (prev?.contestId === contest.id ? prev : null));
+    if (contest.status !== 'voting') {
+      setTalliesState('idle');
+      return;
+    }
+    setTalliesState('loading');
+    try {
+      const data = await getLiveTallies(contest.id);
+      if (ticket !== talliesTicket.current) return;
+      setLiveTallies(data);
+      setTalliesState('idle');
+    } catch {
+      if (ticket === talliesTicket.current) setTalliesState('error');
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -197,6 +240,7 @@ export default function ContestsSection() {
       if (viewSubmissions) {
         const updated = await getContest(viewSubmissions.id);
         setViewSubmissions(updated);
+        void loadLiveTallies(updated);
       }
       load();
     } catch {
@@ -213,6 +257,17 @@ export default function ContestsSection() {
     : items;
 
   if (loading) return <p className="admin__loading">Loading contests...</p>;
+
+  // Live tallies for the open submissions dialog (voting only), best first.
+  const tallies = viewSubmissions && liveTallies?.contestId === viewSubmissions.id ? liveTallies : null;
+  const tallyOrder = new Map(tallies?.submissions.map((t, i) => [t.submissionId, { tally: t, order: i }]) ?? []);
+  const dialogSubmissions = viewSubmissions
+    ? tallies
+      ? [...viewSubmissions.submissions].sort(
+          (a, b) => (tallyOrder.get(a.id)?.order ?? Infinity) - (tallyOrder.get(b.id)?.order ?? Infinity),
+        )
+      : viewSubmissions.submissions
+    : [];
 
   return (
     <>
@@ -235,6 +290,23 @@ export default function ContestsSection() {
                   <span className={`admin__badge admin__badge--${c.status === 'active' ? 'active' : c.status === 'completed' ? 'inactive' : 'member'}`}>
                     {c.status}
                   </span>
+                  {isPointsContest(c) ? (
+                    <span
+                      className="admin__badge admin__badge--admin"
+                      style={{ marginLeft: '0.35rem' }}
+                      title="Voting format: points leaderboard"
+                    >
+                      Points
+                    </span>
+                  ) : (
+                    <span
+                      className="admin__badge admin__badge--member"
+                      style={{ marginLeft: '0.35rem' }}
+                      title="Voting format: classic (three category podiums)"
+                    >
+                      Classic
+                    </span>
+                  )}
                 </td>
                 <td>
                   <button
@@ -243,6 +315,7 @@ export default function ContestsSection() {
                       try {
                         const full = await getContest(c.id);
                         setViewSubmissions(full);
+                        void loadLiveTallies(full);
                       } catch {
                         addToast('error', 'Failed to load submissions');
                       }
@@ -394,7 +467,7 @@ export default function ContestsSection() {
       {showRecalcConfirm && (
         <ConfirmDialog
           title="Recalculate Winners"
-          message="Recompute winners for every completed contest under the current placement rules (ties share a place) and refresh gallery winner badges? Placements, member stats, and badges may change."
+          message="Recompute winners for every completed contest using the rules it ran under — classic contests keep their three category podiums; points contests use the points leaderboard — and refresh gallery winner badges? Placements, member stats, and badges may change."
           confirmLabel="Recalculate"
           loading={recalculating}
           onConfirm={handleRecalculateWinners}
@@ -431,17 +504,65 @@ export default function ContestsSection() {
             <h3 className="confirm-dialog__title">
               Submissions — {viewSubmissions.theme} ({viewSubmissions.submissions.length})
             </h3>
+            {viewSubmissions.status === 'voting' && (
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                  flexWrap: 'wrap', padding: '0.5rem 0.75rem', marginBottom: '0.75rem', borderRadius: 6,
+                  background: 'var(--color-surface-alt)', border: '1px dashed var(--color-border)', fontSize: '0.8rem',
+                }}
+              >
+                <span>
+                  <strong>Live tallies</strong> (admin only, for debugging)
+                  {' · '}
+                  <span aria-live="polite">
+                    {tallies
+                      ? `${tallies.ballots} ${tallies.ballots === 1 ? 'ballot' : 'ballots'} so far`
+                      : talliesState === 'error'
+                        ? "Couldn't load tallies"
+                        : 'Loading…'}
+                  </span>
+                  <br />
+                  <span style={{ color: 'var(--color-text-muted)' }}>
+                    {isPointsContest(viewSubmissions)
+                      ? 'Rank · points; theme points (1st/2nd/3rd votes) · favorite · bonus.'
+                      : 'Category votes so far.'}{' '}
+                    Members only see results after voting closes.
+                  </span>
+                </span>
+                <button
+                  className="admin__action-btn"
+                  onClick={() => void loadLiveTallies(viewSubmissions)}
+                  disabled={talliesState === 'loading'}
+                >
+                  Refresh
+                </button>
+              </div>
+            )}
             {viewSubmissions.submissions.length === 0 ? (
               <p className="confirm-dialog__message">No submissions yet.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-                {viewSubmissions.submissions.map((s) => (
+                {dialogSubmissions.map((s) => {
+                  const live = tallyOrder.get(s.id)?.tally;
+                  return (
                   <div key={s.id} style={{ position: 'relative' }}>
                     <img src={s.url} alt={s.title} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
                     <div style={{ fontSize: '0.75rem', marginTop: 4 }}>
                       <strong>{s.title}</strong><br />
                       {s.photographer}
-                      {s.votes != null && <span style={{ color: 'var(--color-text-muted)' }}> · {s.votes} votes</span>}
+                      {s.votes != null && (
+                        <span style={{ color: 'var(--color-text-muted)' }}>
+                          {' '}· {s.votes} {isPointsContest(viewSubmissions) ? 'pts' : 'votes'}
+                        </span>
+                      )}
+                      {live && (
+                        <div style={{ marginTop: 2, color: 'var(--color-text-secondary)', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                          {tallyLines(live, !!viewSubmissions.wildcardCategory).map((line) => (
+                            <div key={line}>{line}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button
                       className="admin__action-btn admin__action-btn--danger"
@@ -451,7 +572,8 @@ export default function ContestsSection() {
                       <X size={14} />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="confirm-dialog__actions">

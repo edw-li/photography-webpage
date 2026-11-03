@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { GalleryPhoto } from '../types/gallery';
-import type { VoteCategory } from '../types/contest';
+import type { PlacementCategory } from '../types/contest';
 import { getCategoryLabel } from '../types/contest';
 import { X } from 'lucide-react';
 import { useImageLoaded } from '../hooks/useImageLoaded';
@@ -191,7 +191,7 @@ export default function GalleryLightbox({
                   .map((p, i) => (
                     <span key={i} className="gallery__lightbox-placement">
                       {p.month && <span className="gallery__lightbox-placement-month">{formatContestMonth(p.month)} · </span>}
-                      {winnerLabel(p.place)} — {getCategoryLabel(p.category as VoteCategory)}
+                      {winnerLabel(p.place)} — {getCategoryLabel(p.category as PlacementCategory)}
                     </span>
                   ))}
               </div>

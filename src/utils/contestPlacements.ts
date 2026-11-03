@@ -1,17 +1,29 @@
-import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
+import type { Contest, ContestSubmission, PlacementCategory, VoteCategory } from '../types/contest';
 
 /**
  * Placement helpers for completed contests.
  *
- * Placement rules (dense ranking — mirrors _rank_for_category in
+ * Classic contests (dense ranking — mirrors _rank_for_category in
  * backend/app/api/contests.py): every submission whose tally is among the top
  * three distinct positive vote counts places; ties share the place, so a
  * category may have several firsts, seconds, or thirds. Within a place,
  * earlier submissions are shown first.
+ *
+ * Points contests: the backend ranks the single leaderboard (total points,
+ * then theme points, #1 votes, #2 votes; full ties share the place as 1, 1, 3)
+ * and sends each submission's `score`; placements use category 'overall'.
  */
+
+/** Full Results lists this many rows, but never cuts off a medalist. */
+export const FULL_RESULTS_CAP = 10;
 
 export function getCategoryVotes(sub: ContestSubmission, category: VoteCategory): number {
   return sub.categoryVotes ? sub.categoryVotes[category] : (sub.votes ?? 0);
+}
+
+/** The tally a placement is judged on: points for 'overall', else category votes. */
+export function placementScore(sub: ContestSubmission, category: PlacementCategory): number {
+  return category === 'overall' ? (sub.score?.total ?? 0) : getCategoryVotes(sub, category);
 }
 
 function submissionTime(sub: ContestSubmission): number {
@@ -31,9 +43,10 @@ export function compareBySubmissionTime(a: ContestSubmission, b: ContestSubmissi
 export interface RankedSubmission {
   sub: ContestSubmission;
   votes: number;
-  /** Dense rank: 1 = highest tally; ties share the rank. */
+  /** 1 = best; ties share the rank (classic: dense ranking; points: the
+      backend's competition ranking, numbered 1, 1, 3). */
   rank: number;
-  /** Gold/silver/bronze accent — top three distinct tallies, votes required. */
+  /** Gold/silver/bronze accent: a podium place with a positive tally. */
   isMedal: boolean;
 }
 
@@ -58,6 +71,21 @@ export function rankSubmissions(
   });
 }
 
+/** Rank a completed points contest's submissions as the backend scored them:
+    leaderboard rank, then earlier submission within a full tie. `votes` holds
+    total points. Photos without a score (never expected once completed) sort
+    last and never medal. */
+export function rankByPoints(submissions: ContestSubmission[]): RankedSubmission[] {
+  return submissions
+    .map((sub) => ({
+      sub,
+      votes: sub.score?.total ?? 0,
+      rank: sub.score?.rank ?? Number.MAX_SAFE_INTEGER,
+    }))
+    .sort((a, b) => a.rank - b.rank || compareBySubmissionTime(a.sub, b.sub))
+    .map((row) => ({ ...row, isMedal: row.sub.score != null && row.rank <= 3 && row.votes > 0 }));
+}
+
 export interface PlacementGroups {
   first: RankedSubmission[];
   second: RankedSubmission[];
@@ -67,9 +95,10 @@ export interface PlacementGroups {
 /** Group a completed contest's winners for one category by place.
 
     Trusts the backend-assigned place (the source of truth for placements);
-    votes are attached for display only. Winners whose submission is missing
-    (deleted after completion) are dropped. */
-export function groupWinnersByPlace(contest: Contest, category: VoteCategory): PlacementGroups {
+    the tally (votes, or points for 'overall') is attached for display only.
+    Winners whose submission is missing (deleted after completion) are
+    dropped. */
+export function groupWinnersByPlace(contest: Contest, category: PlacementCategory): PlacementGroups {
   const subById = new Map(contest.submissions.map((s) => [s.id, s]));
   const groups: PlacementGroups = { first: [], second: [], third: [] };
   for (const w of contest.winners ?? []) {
@@ -78,7 +107,7 @@ export function groupWinnersByPlace(contest: Contest, category: VoteCategory): P
     if (!sub) continue;
     const row: RankedSubmission = {
       sub,
-      votes: getCategoryVotes(sub, category),
+      votes: placementScore(sub, category),
       rank: w.place,
       isMedal: true,
     };
