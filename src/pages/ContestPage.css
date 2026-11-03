@@ -878,6 +878,13 @@
   color: var(--color-text-secondary);
 }
 
+/* Points contests: how the bonus challenge scores, under its label. */
+.contest__rules-bonus .contest__rules-bonus-note {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 .contest__rules-details {
   margin-top: 1.25rem;
 }
@@ -1278,6 +1285,44 @@
 }
 
 /* =============================================
+   Points Results (Winners & Full Results)
+   ============================================= */
+
+/* Where the 1st-place points came from: "Theme 9 · Favorite 2 · Bonus 1". */
+.contest__winners-hero-breakdown {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Tied on points · ordered by theme points" — on podium photos whose place
+   against an equal total was settled by a tiebreaker. */
+.contest__points-tiebreak {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+/* "2 photos share 1st place, so there's no 2nd place." — explains a podium
+   place that a shared place left empty. */
+.contest__winners-skip-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Scoring + tiebreak rules, closing the Winners and Full Results tabs. */
+.contest__points-legend {
+  max-width: 62ch;
+  margin: 1.25rem auto 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* =============================================
    Submission Limit & Disclaimer
    ============================================= */
 
@@ -1553,6 +1598,328 @@
   bottom: 0;
   background: var(--color-surface);
   z-index: 1;
+}
+
+/* =============================================
+   Points Ballot (rank tray, rank badges, review)
+   ============================================= */
+
+/* Medal disc with a rank number (tray slots, review rows). The medal color is
+   set inline and is the same in both themes, so the digit stays dark. */
+.contest__rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  color: #1a1a1a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+/* Rank on a ranked theme thumbnail — takes the classic check's place, with
+   the same centering and pop. */
+.contest__vote-rank {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1a1a;
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), inset 0 0 0 3px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  animation: contestVoteCheckPop 0.18s ease-out;
+}
+
+/* Theme rank tray — one slot per required rank, side by side. Filled slots
+   take their medal color as the border (inline); empty ones stay dashed. */
+.contest__rank-tray {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--rank-slots, 3), minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+/* Focus lands on the tray when a pick is removed from it. */
+.contest__rank-tray:focus {
+  outline: none;
+}
+
+.contest__rank-tray:focus-visible {
+  outline: 2px solid var(--color-active);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.contest__rank-slot {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head head actions"
+    "thumb title title";
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.45rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.contest__rank-slot--empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.contest__rank-slot-head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  /* Matches the action buttons, so empty and filled slots line up. */
+  min-height: 26px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.contest__rank-slot-place {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.contest__rank-slot-pts {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.contest__rank-slot-thumb {
+  grid-area: thumb;
+  display: block;
+  width: 56px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.contest__rank-slot-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.contest__rank-slot-title {
+  grid-area: title;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.contest__rank-slot--empty .contest__rank-slot-title {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.contest__rank-slot-actions {
+  grid-area: actions;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.contest__rank-slot-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.contest__rank-slot-btn:hover:not(:disabled) {
+  border-color: var(--color-active);
+  color: var(--color-active);
+  background: var(--color-active-soft);
+}
+
+.contest__rank-slot-btn--remove:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.contest__rank-slot-btn:focus-visible {
+  outline: 2px solid var(--color-active);
+  outline-offset: 1px;
+}
+
+.contest__rank-slot-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Narrow modals: the slots stack as compact rows — thumb, title over the
+   rank line, then the actions — with larger touch targets. */
+@media (max-width: 720px) {
+  .contest__rank-tray {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .contest__rank-slot {
+    grid-template-areas:
+      "thumb title actions"
+      "thumb head actions";
+    row-gap: 0.1rem;
+    padding: 0.45rem 0.55rem;
+  }
+
+  .contest__rank-slot-head {
+    min-height: 0;
+  }
+
+  .contest__rank-slot-title {
+    -webkit-line-clamp: 1;
+  }
+
+  .contest__rank-slot-actions {
+    gap: 0.3rem;
+  }
+
+  .contest__rank-slot-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 400px) {
+  .contest__rank-slot {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    column-gap: 0.45rem;
+  }
+
+  .contest__rank-slot-thumb {
+    width: 44px;
+    height: 33px;
+  }
+
+  .contest__rank-slot-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Review: the theme ranking as a list, 1st choice first. */
+.contest__review-ranks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.contest__review-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.contest__review-rank-thumb {
+  display: block;
+  flex-shrink: 0;
+  width: 48px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.contest__review-rank--empty .contest__review-rank-thumb {
+  border: 1.5px dashed var(--color-border);
+}
+
+.contest__review-rank-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contest__review-rank--empty .contest__review-rank-title {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.contest__review-rank-pts {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "+1 pt" beside the Personal Favorite / Bonus headings on the review. */
+.contest__review-pick-pts {
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-active);
+}
+
+/* Visually hidden, still read by screen readers (ranking announcements). */
+.contest__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* =============================================
@@ -1855,6 +2222,7 @@
   .contest__vote-step--forward,
   .contest__vote-step--backward,
   .contest__vote-check,
+  .contest__vote-rank,
   .contest__lightbox-backdrop,
   .contest__lightbox-panel,
   .contest__lightbox-spinner {
@@ -1943,6 +2311,12 @@
     margin: 0;
     z-index: 2;
     border-bottom: 1px solid var(--color-border);
+  }
+
+  /* The sticky header above drops its bottom margin; keep the points rank
+     tray off its border. */
+  .contest__rank-tray {
+    margin-top: 0.75rem;
   }
 
   /* VoteLightbox mobile layout: bigger image + sticky action bar so the

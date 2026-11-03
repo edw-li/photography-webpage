@@ -2,22 +2,31 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } fr
 import { Camera, Users, Check, Trophy, Heart, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, Lock, Maximize2, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { Contest, ContestSubmission, VoteCategory } from '../types/contest';
-import { getCategoryLabel } from '../types/contest';
+import type { Contest, VoteCategory } from '../types/contest';
+import { getCategoryLabel, isPointsContest, POINTS_TIEBREAK_RULE } from '../types/contest';
 import type { RankedSubmission } from '../utils/contestPlacements';
-import { groupWinnersByPlace, medalColor, placeLabel, rankSubmissions } from '../utils/contestPlacements';
+import {
+  FULL_RESULTS_CAP,
+  groupWinnersByPlace,
+  medalColor,
+  placeLabel,
+  rankSubmissions,
+} from '../utils/contestPlacements';
 import type { PhotoExif } from '../types/gallery';
 import { useScrollReveal } from '../hooks/useScrollReveal';
-import { useImageLoaded } from '../hooks/useImageLoaded';
 import { useAuth } from '../contexts/AuthContext';
 import { getContests, getContest, castVote } from '../api/contests';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/imageUrl';
+import { shuffleArray } from '../utils/shuffle';
 import ContestSubmissions from '../components/ContestSubmissions';
+import VoteLightbox from './contest/VoteLightbox';
+import WizardProgressBar from './contest/WizardProgressBar';
+import PointsBallot from './contest/PointsBallot';
+import { PointsFullResults, PointsWinners } from './contest/PointsResults';
 import './ContestPage.css';
 
 const BATCH_SIZE = 5;
-const FULL_RESULTS_CAP = 10;
 
 function formatDeadline(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -50,216 +59,11 @@ function formatExif(exif?: PhotoExif): string {
   return parts.join(' · ');
 }
 
-function shuffleArray<T>(items: readonly T[]): T[] {
-  const a = items.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 const CATEGORY_ICON: Record<VoteCategory, LucideIcon> = {
   theme: Trophy,
   favorite: Heart,
   wildcard: Sparkles,
 };
-
-/* --- Vote Lightbox (overlays the voting modal during ballot review) --- */
-
-function VoteLightbox({
-  sub,
-  index,
-  total,
-  isSelected,
-  atSelectionCap,
-  isOwn,
-  onClose,
-  onPrev,
-  onNext,
-  onToggleSelect,
-}: {
-  sub: ContestSubmission;
-  index: number;
-  total: number;
-  isSelected: boolean;
-  atSelectionCap: boolean;
-  isOwn: boolean;
-  onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-  onToggleSelect: () => void;
-}) {
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const fullSrc = getImageUrl(sub.url, 'full');
-  const { loaded, errored, handleLoad, handleError, imgRef } = useImageLoaded(fullSrc);
-
-  // Own submissions are never selectable; otherwise users can deselect anytime
-  // and select only when below the cap.
-  const canSelect = !isOwn && (isSelected || !atSelectionCap);
-  const hasPrev = index > 0;
-  const hasNext = index >= 0 && index < total - 1;
-
-  // Auto-focus the close button on open so keyboard users can act immediately.
-  useEffect(() => {
-    closeBtnRef.current?.focus();
-  }, []);
-
-  // Keyboard handling — registered in capture phase so we can stopImmediatePropagation
-  // BEFORE the outer ModalShell's bubble-phase listener sees the event. Without this,
-  // pressing Escape would close both the lightbox and the underlying voting modal.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowLeft') {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        if (hasPrev) onPrev();
-      } else if (e.key === 'ArrowRight') {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        if (hasNext) onNext();
-      } else if (e.key === 'Tab') {
-        // Lightbox-local focus trap; intercept before the outer modal's trap fires.
-        const el = panelRef.current;
-        if (!el) return;
-        const focusable = el.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href]'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        const active = document.activeElement as HTMLElement | null;
-        if (e.shiftKey && active === first) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && active === last) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          first.focus();
-        } else if (active && !el.contains(active)) {
-          // Focus drifted outside (rare) — reel it back in.
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', handler, true);
-    return () => document.removeEventListener('keydown', handler, true);
-  }, [onClose, onPrev, onNext, hasPrev, hasNext]);
-
-  return (
-    <div
-      className="contest__lightbox-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="contest-lightbox-title"
-      onClick={onClose}
-    >
-      <div
-        className="contest__lightbox-panel"
-        ref={panelRef}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="contest__lightbox-close"
-          ref={closeBtnRef}
-          onClick={onClose}
-          aria-label="Close image preview"
-        >
-          <X size={20} />
-        </button>
-
-        <div className="contest__lightbox-image-wrap">
-          {!loaded && !errored && <div className="contest__lightbox-spinner" aria-hidden="true" />}
-          {errored ? (
-            <div className="contest__lightbox-error">
-              <p>Failed to load full image.</p>
-            </div>
-          ) : (
-            <img
-              ref={imgRef}
-              src={fullSrc}
-              alt={isOwn ? `${sub.title} (your submission)` : sub.title}
-              onLoad={handleLoad}
-              onError={handleError}
-              className={`contest__lightbox-image${loaded ? ' contest__lightbox-image--loaded' : ''}`}
-            />
-          )}
-        </div>
-
-        <div className="contest__lightbox-info">
-          <div className="contest__lightbox-meta">
-            <h3 id="contest-lightbox-title" className="contest__lightbox-title">{sub.title}</h3>
-          </div>
-
-          <div className="contest__lightbox-actions">
-            <div className="contest__lightbox-nav">
-              <button
-                type="button"
-                className="contest__lightbox-nav-btn"
-                onClick={onPrev}
-                disabled={!hasPrev}
-                aria-label="Previous image"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <span className="contest__lightbox-counter" aria-live="polite">
-                {index + 1} of {total}
-              </span>
-              <button
-                type="button"
-                className="contest__lightbox-nav-btn"
-                onClick={onNext}
-                disabled={!hasNext}
-                aria-label="Next image"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-
-            <div className="contest__lightbox-select">
-              {isOwn ? (
-                <div className="contest__lightbox-own-label" role="status">
-                  Your submission
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={`contest__modal-btn${isSelected ? ' contest__lightbox-select-btn--remove' : ''}`}
-                  onClick={onToggleSelect}
-                  disabled={!canSelect}
-                  style={{ marginTop: 0 }}
-                >
-                  {isSelected
-                    ? (<><Check size={16} aria-hidden="true" /> Selected — click to deselect</>)
-                    : 'Select'}
-                </button>
-              )}
-              <span className="contest__lightbox-cap-note" aria-live="polite">
-                {isOwn
-                  ? "You can't vote for your own submission."
-                  : !isSelected && atSelectionCap
-                    ? '3 of 3 already chosen — deselect one to swap.'
-                    : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* --- Tab config --- */
 
@@ -485,33 +289,24 @@ function TabBar({
   );
 }
 
-/* --- Tab: Vote (Wizard) --- */
+/* --- Tab: Vote --- */
 
-function WizardProgressBar({
-  steps,
-  currentStep,
-}: {
-  steps: string[];
-  currentStep: number;
+// The Vote / Winners / Full Results tabs dispatch on the contest's voting
+// format. They stay hook-free so they can branch before either view mounts;
+// a format change (refresh after the points cutover) swaps component types,
+// which resets the ballot state.
+
+function TabVote(props: {
+  contest: Contest;
+  onClose: () => void;
+  onContestRefresh: () => void;
 }) {
-  return (
-    <div className="contest__wizard-progress">
-      {steps.map((label, i) => (
-        <div
-          key={label}
-          className={`contest__wizard-step${i === currentStep ? ' contest__wizard-step--active' : ''}${i < currentStep ? ' contest__wizard-step--completed' : ''}`}
-        >
-          <div className="contest__wizard-step-dot">
-            {i < currentStep ? <Check size={12} /> : i + 1}
-          </div>
-          <span className="contest__wizard-step-label">{label}</span>
-        </div>
-      ))}
-    </div>
-  );
+  return isPointsContest(props.contest) ? <PointsBallot {...props} /> : <ClassicVoteWizard {...props} />;
 }
 
-function TabVote({
+/* --- Classic ballot (wizard): up to 3 photos in each category --- */
+
+function ClassicVoteWizard({
   contest,
   onClose,
   onContestRefresh,
@@ -886,21 +681,38 @@ function TabVote({
 function TabRules({ contest }: { contest: Contest }) {
   const isVoting = contest.status === 'voting';
   const isActive = contest.status === 'active';
+  const isPoints = isPointsContest(contest);
 
   return (
     <div role="tabpanel" aria-label="Rules">
       {isVoting && (
         <div className="contest__rules-voting-info">
           <h3>How Voting Works</h3>
-          <ul className="contest__rules-list">
-            <li>
-              Vote in {contest.wildcardCategory ? '3' : '2'} categories: Best Addresses the Theme, Personal Favorite{contest.wildcardCategory ? `, and ${contest.wildcardCategory}` : ''}
-            </li>
-            <li>Select up to 3 photos per category</li>
-            <li>Votes are final and cannot be changed</li>
-            <li>Voting deadline: {getVotingDeadline(contest.deadline)}</li>
-            <li>Results are revealed after the voting period ends</li>
-          </ul>
+          {isPoints ? (
+            <ul className="contest__rules-list">
+              <li>Rank your top 3 photos for the theme: 1st = 3 pts, 2nd = 2 pts, 3rd = 1 pt</li>
+              <li>
+                {`Optionally pick one Personal Favorite (+1 pt)${
+                  contest.wildcardCategory ? ` and one “${contest.wildcardCategory}” photo (+1 pt)` : ''
+                } — these can be photos you already ranked`}
+              </li>
+              <li>{`All points add up to one leaderboard. ${POINTS_TIEBREAK_RULE}`}</li>
+              <li>You can&apos;t vote for your own photos</li>
+              <li>Votes are final and cannot be changed</li>
+              <li>Voting deadline: {getVotingDeadline(contest.deadline)}</li>
+              <li>Results are revealed after the voting period ends</li>
+            </ul>
+          ) : (
+            <ul className="contest__rules-list">
+              <li>
+                Vote in {contest.wildcardCategory ? '3' : '2'} categories: Best Addresses the Theme, Personal Favorite{contest.wildcardCategory ? `, and ${contest.wildcardCategory}` : ''}
+              </li>
+              <li>Select up to 3 photos per category</li>
+              <li>Votes are final and cannot be changed</li>
+              <li>Voting deadline: {getVotingDeadline(contest.deadline)}</li>
+              <li>Results are revealed after the voting period ends</li>
+            </ul>
+          )}
           <details className="contest__rules-details">
             <summary className="contest__rules-details-summary">View Original Submission Guidelines</summary>
             <ul className="contest__rules-list">
@@ -933,7 +745,24 @@ function TabRules({ contest }: { contest: Contest }) {
             <div className="contest__rules-bonus">
               <h3>Bonus Challenge Category</h3>
               <p>{contest.wildcardCategory}</p>
+              {isPoints && (
+                <p className="contest__rules-bonus-note">
+                  Voters can give +1 pt to the photo that best meets it.
+                </p>
+              )}
             </div>
+          )}
+          {isPoints && (
+            <>
+              <h3>How Voting Works</h3>
+              <ul className="contest__rules-list">
+                <li>
+                  {`Members rank their top 3 photos for the theme (3 / 2 / 1 pts) and can add +1 pt for a Personal Favorite${
+                    contest.wildcardCategory ? ' and +1 pt for the bonus challenge' : ''
+                  }. The theme counts most!`}
+                </li>
+              </ul>
+            </>
           )}
         </div>
       )}
@@ -1021,6 +850,12 @@ function TabGallery({ contest }: { contest: Contest }) {
 
 /* --- Tab: Winners --- */
 
+function TabWinners({ contest }: { contest: Contest }) {
+  return isPointsContest(contest) ? <PointsWinners contest={contest} /> : <ClassicWinners contest={contest} />;
+}
+
+/* --- Classic winners: a podium per category --- */
+
 function WinnersPlaceGroup({ place, rows }: { place: 2 | 3; rows: RankedSubmission[] }) {
   if (rows.length === 0) return null;
   const color = medalColor(place);
@@ -1059,7 +894,7 @@ function WinnersPlaceGroup({ place, rows }: { place: 2 | 3; rows: RankedSubmissi
   );
 }
 
-function TabWinners({ contest }: { contest: Contest }) {
+function ClassicWinners({ contest }: { contest: Contest }) {
   const categories = useMemo<VoteCategory[]>(() => {
     const cats: VoteCategory[] = ['theme', 'favorite'];
     if (contest.wildcardCategory) cats.push('wildcard');
@@ -1198,6 +1033,12 @@ function TabWinners({ contest }: { contest: Contest }) {
 /* --- Tab: Full Results --- */
 
 function TabFullResults({ contest }: { contest: Contest }) {
+  return isPointsContest(contest) ? <PointsFullResults contest={contest} /> : <ClassicFullResults contest={contest} />;
+}
+
+/* --- Classic full results: one ranked list per category --- */
+
+function ClassicFullResults({ contest }: { contest: Contest }) {
   const categories = useMemo<VoteCategory[]>(() => {
     const cats: VoteCategory[] = ['theme', 'favorite'];
     if (contest.wildcardCategory) cats.push('wildcard');

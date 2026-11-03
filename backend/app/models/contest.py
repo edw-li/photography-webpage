@@ -1,7 +1,10 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text,
+    UniqueConstraint, text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,9 +14,25 @@ VOTE_CATEGORIES = ["theme", "favorite", "wildcard"]
 MAX_VOTES_PER_CATEGORY = 3
 MAX_SUBMISSIONS_PER_USER = 3
 
+# How a contest is voted on and scored. "classic": approve up to 3 photos in
+# each of three categories, three separate podiums (every contest completed
+# before November 2026). "points": rank the top 3 for the theme (3/2/1 pts)
+# plus one Favorite and one Bonus point, one leaderboard. Never inferred from
+# dates — completed contests keep the format they ran under.
+VOTING_FORMAT_CLASSIC = "classic"
+VOTING_FORMAT_POINTS = "points"
+VOTING_FORMATS = (VOTING_FORMAT_CLASSIC, VOTING_FORMAT_POINTS)
+THEME_RANKS = 3
+
 
 class Contest(Base):
     __tablename__ = "contests"
+    __table_args__ = (
+        CheckConstraint(
+            "voting_format IN ('" + "', '".join(VOTING_FORMATS) + "')",
+            name="ck_contests_voting_format",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -27,6 +46,9 @@ class Contest(Base):
     honorable_mentions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     is_imported: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
+    )
+    voting_format: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=VOTING_FORMAT_POINTS, server_default=VOTING_FORMAT_POINTS
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
@@ -55,6 +77,8 @@ class ContestSubmission(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    # Headline tally set when the contest completes: total votes across
+    # categories for classic contests, total points for points contests.
     vote_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     exif_camera: Mapped[str | None] = mapped_column(String(100), nullable=True)
     exif_focal_length: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -62,6 +86,9 @@ class ContestSubmission(Base):
     exif_shutter_speed: Mapped[str | None] = mapped_column(String(50), nullable=True)
     exif_iso: Mapped[int | None] = mapped_column(Integer, nullable=True)
     category_vote_tallies: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Points contests: this photo's result, frozen when the contest completes
+    # (see points_scoring.snapshot) so later ballot changes can't rewrite it.
+    points_score: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
@@ -83,6 +110,14 @@ class ContestVote(Base):
             "contest_id", "user_id", "category", "submission_id",
             name="uq_contest_votes_contest_user_category_sub",
         ),
+        CheckConstraint("rank IS NULL OR rank BETWEEN 1 AND 3", name="ck_contest_votes_rank"),
+        # A points ballot holds each theme rank (1st / 2nd / 3rd) at most once.
+        Index(
+            "uq_contest_votes_contest_user_category_rank",
+            "contest_id", "user_id", "category", "rank",
+            unique=True,
+            postgresql_where=text("rank IS NOT NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -96,6 +131,33 @@ class ContestVote(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     category: Mapped[str] = mapped_column(String(50), nullable=False)
+    # Theme rows of a points ballot: 1-3. NULL for favorite/bonus rows and for
+    # every classic vote.
+    rank: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+
+
+class ContestVoteArchive(Base):
+    """Ballots set aside when a contest's voting format changed mid-vote.
+
+    Kept so the reset is recoverable; nothing reads these for scoring.
+    """
+
+    __tablename__ = "contest_vote_archive"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    contest_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("contests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Plain values (no foreign keys): the record should outlive later edits.
+    submission_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    rank: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    voted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    archived_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    reason: Mapped[str] = mapped_column(String(100), nullable=False)

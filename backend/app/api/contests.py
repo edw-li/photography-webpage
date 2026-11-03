@@ -19,6 +19,9 @@ from ..models.contest import (
     ContestVote,
     MAX_SUBMISSIONS_PER_USER,
     MAX_VOTES_PER_CATEGORY,
+    THEME_RANKS,
+    VOTING_FORMAT_CLASSIC,
+    VOTING_FORMAT_POINTS,
 )
 from ..models.event import Event
 from ..models.notification import (
@@ -39,10 +42,16 @@ from ..schemas.contest import (
     ContestWinnerSchema,
     FinalizeContestRequest,
     LeaderboardRankingSchema,
+    LiveTalliesResponse,
+    LiveTallySchema,
     MyResultsContestSchema,
     MyResultsLeaderboardSchema,
     MyResultsResponseSchema,
     MyResultsStatsSchema,
+    OverallResultSchema,
+    PointsBallotRequest,
+    PointsScoreSchema,
+    PointsSubmissionResultSchema,
     SubmissionAssignRequest,
     SubmissionExifSchema,
     SubmissionResultSchema,
@@ -53,10 +62,28 @@ from ..models.member import Member
 from ..services.storage import extract_exif_from_bytes, make_photographer_slug, read_image_bytes, save_submission_image
 from .activity import log_activity
 from .deps import get_current_user, get_current_user_optional, get_db, require_admin
+from ..services.points_scoring import OVERALL_CATEGORY, PointsScore, points_winners, rescore, snapshot
+from ..services.points_voting import (
+    load_points_scores, points_results, points_results_by_contest, stored_points_scores,
+)
 from ..services.submission_management import lock_contest, lock_reason, mutate_submission
 from ..services.submission_storage import queue_cleanup
 
 router = APIRouter()
+
+
+def _points_score_schema(score: PointsScore) -> PointsScoreSchema:
+    return PointsScoreSchema(
+        total=score.total,
+        theme_points=score.theme_points,
+        theme_first=score.theme_first,
+        theme_second=score.theme_second,
+        theme_third=score.theme_third,
+        favorite=score.favorite,
+        bonus=score.bonus,
+        rank=score.rank,
+        tiebreak=score.tiebreak,
+    )
 
 
 def _submission_to_response(
@@ -64,6 +91,7 @@ def _submission_to_response(
     category_votes: CategoryVotesSchema | None = None,
     anonymize: bool = False,
     current_user_id: uuid.UUID | None = None,
+    score: PointsScoreSchema | None = None,
 ) -> ContestSubmissionResponse:
     exif = None
     if any([sub.exif_camera, sub.exif_focal_length, sub.exif_aperture, sub.exif_shutter_speed, sub.exif_iso]):
@@ -96,6 +124,7 @@ def _submission_to_response(
         votes=sub.vote_count if sub.vote_count else None,
         exif=exif,
         category_votes=category_votes,
+        score=score,
         created_at=created_at,
         revision=sub.revision,
         updated_at=None if anonymize else sub.updated_at,
@@ -103,15 +132,41 @@ def _submission_to_response(
     )
 
 
+async def _classic_vote_counts(db: AsyncSession, contest_id: int) -> dict[int, CategoryVotesSchema]:
+    """Per-submission category vote counts from a classic contest's ballots
+    (submissions without votes are absent)."""
+    vote_rows = await db.execute(
+        select(
+            ContestVote.submission_id,
+            ContestVote.category,
+            func.count().label("cnt"),
+        )
+        .where(ContestVote.contest_id == contest_id)
+        .group_by(ContestVote.submission_id, ContestVote.category)
+    )
+    counts: dict[int, CategoryVotesSchema] = {}
+    for row in vote_rows:
+        sid = row.submission_id
+        if sid not in counts:
+            counts[sid] = CategoryVotesSchema()
+        setattr(counts[sid], row.category, row.cnt)
+    return counts
+
+
 async def _contest_to_response(
     contest: Contest,
     db: AsyncSession,
     user: User | None = None,
 ) -> ContestResponse:
-    # For completed contests, compute per-submission category vote counts
+    # For completed contests, attach each submission's tally: per-category vote
+    # counts (classic) or the points breakdown (points).
     sub_category_votes: dict[int, CategoryVotesSchema] = {}
+    sub_scores: dict[int, PointsScoreSchema] = {}
     if contest.status == "completed":
-        if contest.is_imported:
+        if contest.voting_format == VOTING_FORMAT_POINTS:
+            for score in await points_results(db, contest):
+                sub_scores[score.submission_id] = _points_score_schema(score)
+        elif contest.is_imported:
             # Imported contests: read tallies from JSONB on each submission
             for sub in contest.submissions:
                 if sub.category_vote_tallies:
@@ -122,20 +177,7 @@ async def _contest_to_response(
                     )
         else:
             # Organic contests: aggregate from ContestVote table
-            vote_rows = await db.execute(
-                select(
-                    ContestVote.submission_id,
-                    ContestVote.category,
-                    func.count().label("cnt"),
-                )
-                .where(ContestVote.contest_id == contest.id)
-                .group_by(ContestVote.submission_id, ContestVote.category)
-            )
-            for row in vote_rows:
-                sid = row.submission_id
-                if sid not in sub_category_votes:
-                    sub_category_votes[sid] = CategoryVotesSchema()
-                setattr(sub_category_votes[sid], row.category, row.cnt)
+            sub_category_votes = await _classic_vote_counts(db, contest.id)
 
     is_admin = user is not None and user.role == "admin"
     anonymize = contest.status == "voting" and not is_admin
@@ -146,6 +188,7 @@ async def _contest_to_response(
             sub_category_votes.get(s.id),
             anonymize=anonymize,
             current_user_id=current_user_id,
+            score=sub_scores.get(s.id),
         )
         for s in contest.submissions
     ]
@@ -188,6 +231,7 @@ async def _contest_to_response(
         guidelines=contest.guidelines,
         wildcard_category=contest.wildcard_category,
         is_imported=contest.is_imported,
+        voting_format=contest.voting_format,
         submissions=submissions,
         winners=winners,
         user_submission_count=user_submission_count,
@@ -229,7 +273,42 @@ def _rank_for_category(
 
 
 async def _auto_calculate_winners(contest: Contest, db: AsyncSession) -> None:
-    """Auto-calculate winners from vote tallies when advancing to completed."""
+    """Calculate winners from the recorded ballots, under the contest's own
+    voting format (classic contests never get re-scored as points)."""
+    if contest.voting_format == VOTING_FORMAT_POINTS:
+        await _calculate_points_winners(contest, db)
+    else:
+        await _calculate_classic_winners(contest, db)
+
+
+async def _calculate_points_winners(
+    contest: Contest, db: AsyncSession, *, rescore_stored: bool = False,
+) -> None:
+    """One leaderboard: the podium is stored as category "overall"; each
+    submission keeps its total in ``vote_count`` and its whole result frozen
+    in ``points_score``, so later ballot changes (a deleted member's votes
+    cascade away) can't rewrite a finished contest.
+
+    With *rescore_stored* (Recalculate Winners), the frozen results are
+    re-ranked under the current rules instead of re-reading the ballots.
+    """
+    stored = stored_points_scores(contest) if rescore_stored else None
+    if stored is not None:
+        scores = rescore(stored, count_bonus=bool(contest.wildcard_category))
+    else:
+        scores = await load_points_scores(db, contest)
+    winners = points_winners(scores)
+    contest.winners = winners if winners else None
+    contest.honorable_mentions = None
+    by_id = {score.submission_id: score for score in scores}
+    for sub in contest.submissions:
+        score = by_id.get(sub.id)
+        sub.vote_count = score.total if score else 0
+        sub.points_score = snapshot(score) if score else None
+
+
+async def _calculate_classic_winners(contest: Contest, db: AsyncSession) -> None:
+    """Three category podiums from approval votes (dense ranking per category)."""
     vote_rows = await db.execute(
         select(
             ContestVote.category,
@@ -706,43 +785,70 @@ async def get_my_results(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return the current user's competition performance and submission history."""
+    """Return the current user's competition performance and submission history.
+
+    Medal counts build on history: classic contests contribute their category
+    placements and points contests their overall leaderboard placement. Votes
+    earned and best category come from classic contests only; points and #1
+    theme votes from points contests only.
+    """
     result = await db.execute(
         select(Contest)
         .where(Contest.status == "completed")
         .order_by(Contest.month.desc())
     )
     completed = result.scalars().unique().all()
-
-    # Build per-user stats across all completed contests
-    sub_to_user: dict[int, str] = {}
-    all_user_stats: dict[str, dict] = defaultdict(
-        lambda: {"first": 0, "second": 0, "third": 0, "podium": 0, "votes": 0, "submissions": 0, "contests": set(),
-                 "cat_wins": defaultdict(int)}
+    points_scores = await points_results_by_contest(
+        db, [c for c in completed if c.voting_format == VOTING_FORMAT_POINTS],
     )
 
-    for contest in completed:
-        for sub in contest.submissions:
-            if sub.user_id:
-                uid = str(sub.user_id)
-                sub_to_user[sub.id] = uid
-                all_user_stats[uid]["submissions"] += 1
-                all_user_stats[uid]["votes"] += sub.vote_count
-                all_user_stats[uid]["contests"].add(contest.id)
+    # Build per-user stats across all completed contests
+    all_user_stats: dict[str, dict] = defaultdict(
+        lambda: {"first": 0, "second": 0, "third": 0, "podium": 0,
+                 "overall_first": 0, "overall_second": 0, "overall_third": 0,
+                 "votes": 0, "points": 0, "first_choice": 0,
+                 "submissions": 0, "contests": set(), "cat_wins": defaultdict(int),
+                 "has_classic": False, "has_points": False}
+    )
+    place_keys = {1: "first", 2: "second", 3: "third"}
 
-        if contest.winners:
-            for w in contest.winners:
-                uid = sub_to_user.get(w["submissionId"])
-                if uid:
-                    place = w["place"]
-                    if place == 1:
-                        all_user_stats[uid]["first"] += 1
-                    elif place == 2:
-                        all_user_stats[uid]["second"] += 1
-                    elif place == 3:
-                        all_user_stats[uid]["third"] += 1
-                    all_user_stats[uid]["podium"] += 1
-                    all_user_stats[uid]["cat_wins"][w["category"]] += 1
+    for contest in completed:
+        is_points = contest.voting_format == VOTING_FORMAT_POINTS
+        scores = points_scores.get(contest.id, {})
+        sub_to_user: dict[int, str] = {}
+        for sub in contest.submissions:
+            if not sub.user_id:
+                continue
+            uid = str(sub.user_id)
+            sub_to_user[sub.id] = uid
+            entry = all_user_stats[uid]
+            entry["submissions"] += 1
+            entry["contests"].add(contest.id)
+            if is_points:
+                entry["has_points"] = True
+                score = scores.get(sub.id)
+                if score is not None:
+                    entry["points"] += score.total
+                    entry["first_choice"] += score.theme_first
+            else:
+                entry["has_classic"] = True
+                entry["votes"] += sub.vote_count
+
+        for w in contest.winners or []:
+            uid = sub_to_user.get(w["submissionId"])
+            if not uid:
+                continue
+            entry = all_user_stats[uid]
+            key = place_keys.get(w["place"])
+            if key:
+                entry[key] += 1
+            entry["podium"] += 1
+            category = w.get("category", "theme")
+            if category == OVERALL_CATEGORY:
+                if key:
+                    entry["overall_" + key] += 1
+            else:
+                entry["cat_wins"][category] += 1
 
     my_uid = str(user.id)
     my = all_user_stats.get(my_uid)
@@ -764,6 +870,13 @@ async def get_my_results(
             total_completed_contests=total_completed,
             participation_rate=round(contests_entered / total_completed, 4) if total_completed else 0.0,
             best_category=best_cat,
+            overall_first_place_finishes=my["overall_first"],
+            overall_second_place_finishes=my["overall_second"],
+            overall_third_place_finishes=my["overall_third"],
+            total_points=my["points"],
+            first_choice_votes=my["first_choice"],
+            has_classic_results=my["has_classic"],
+            has_points_results=my["has_points"],
         )
     else:
         stats = MyResultsStatsSchema(
@@ -788,6 +901,8 @@ async def get_my_results(
         third_place=_compute_rank("third"),
         total_podium=_compute_rank("podium"),
         total_votes=_compute_rank("votes"),
+        total_points=_compute_rank("points"),
+        first_choice_votes=_compute_rank("first_choice"),
     )
 
     # Per-contest results for the current user
@@ -812,12 +927,49 @@ async def get_my_results(
         if not has_submission:
             continue
 
+        if contest.voting_format == VOTING_FORMAT_POINTS:
+            # Placements come from the winners stored at completion (as for
+            # classic contests); scores supply the points breakdown.
+            scores = points_scores.get(contest.id, {})
+            placed = {
+                w["submissionId"]: w["place"] for w in contest.winners or []
+                if w.get("category") == OVERALL_CATEGORY and w["submissionId"] in user_sub_ids
+            }
+            photo_results = []
+            for sub in user_subs:
+                score = scores[sub.id]  # every submission of a scored contest has one
+                photo_results.append(PointsSubmissionResultSchema(
+                    submission_id=sub.id,
+                    url=sub.url,
+                    title=sub.title,
+                    photographer=sub.photographer,
+                    place=placed.get(sub.id),
+                    score=_points_score_schema(score),
+                    exif=_sub_exif(sub),
+                ))
+            photo_results.sort(key=lambda r: (r.score.rank, r.submission_id))
+            contests_out.append(MyResultsContestSchema(
+                contest_id=contest.id,
+                month=contest.month,
+                theme=contest.theme,
+                voting_format=VOTING_FORMAT_POINTS,
+                wildcard_category=contest.wildcard_category,
+                has_wildcard=contest.wildcard_category is not None,
+                overall_result=OverallResultSchema(
+                    best_place=min(placed.values(), default=None),
+                    best_points=max(r.score.total for r in photo_results),
+                    total_points=sum(r.score.total for r in photo_results),
+                    submissions=photo_results,
+                ),
+            ))
+            continue
+
         # Build winner lookup: category -> {submission_id -> place}
         winner_lookup: dict[str, dict[int, int]] = defaultdict(dict)
         if contest.winners:
             for w in contest.winners:
                 if w["submissionId"] in user_sub_ids:
-                    winner_lookup[w["category"]][w["submissionId"]] = w["place"]
+                    winner_lookup[w.get("category", "theme")][w["submissionId"]] = w["place"]
 
         def _cat_result(category: str) -> CategoryResultSchema:
             if category == "wildcard" and not contest.wildcard_category:
@@ -847,6 +999,7 @@ async def get_my_results(
             contest_id=contest.id,
             month=contest.month,
             theme=contest.theme,
+            voting_format=VOTING_FORMAT_CLASSIC,
             wildcard_category=contest.wildcard_category,
             has_wildcard=contest.wildcard_category is not None,
             theme_result=_cat_result("theme"),
@@ -934,6 +1087,9 @@ async def create_contest(
         guidelines=body.guidelines,
         wildcard_category=body.wildcard_category,
         is_imported=body.status == "completed",
+        # Contests created already completed are historical imports, entered
+        # with per-category tallies; every new contest is voted on with points.
+        voting_format=VOTING_FORMAT_CLASSIC if body.status == "completed" else VOTING_FORMAT_POINTS,
     )
     db.add(contest)
     await db.flush()  # populate contest.id before creating linked events
@@ -997,6 +1153,7 @@ async def update_contest(
         for sub in contest.submissions:
             sub.vote_count = 0
             sub.category_vote_tallies = None
+            sub.points_score = None
         # Remove gallery entries for this contest
         gallery_result = await db.execute(
             select(GalleryPhoto).where(GalleryPhoto.contest_id == contest.id)
@@ -1069,6 +1226,62 @@ async def delete_submission(
 
 # --- Voting ---
 
+# A ballot shaped for the other voting format means the page was loaded before
+# the contest switched formats (or the format check was bypassed).
+STALE_BALLOT_DETAIL = "Voting has changed for this contest. Please refresh the page and vote again."
+CLASSIC_BALLOT_DETAIL = "This contest uses category voting, so it can't take a points ballot."
+
+
+def _points_ballot_rows(
+    contest: Contest,
+    ballot: PointsBallotRequest,
+    user_id: uuid.UUID,
+    valid_sub_ids: set[int],
+    own_sub_ids: set[int],
+) -> list[ContestVote]:
+    """Validate a points ballot and build its vote rows.
+
+    The voter ranks their top three eligible photos (every eligible photo when
+    there are fewer), and may add one Personal Favorite and one Bonus pick;
+    those may repeat ranked photos. Theme rows carry the rank; favorite and
+    bonus ("wildcard") rows carry none.
+    """
+    eligible = valid_sub_ids - own_sub_ids
+    required = min(THEME_RANKS, len(eligible))
+    if required == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="There are no photos you can vote for in this contest")
+    theme = ballot.theme
+    if len(theme) != required:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Rank your top {required} photos for the theme")
+    if len(set(theme)) != len(theme):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Each theme pick must be a different photo")
+    if ballot.bonus is not None and not contest.wildcard_category:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="This contest has no bonus challenge")
+    for sub_id in (*theme, ballot.favorite, ballot.bonus):
+        if sub_id is None:
+            continue
+        if sub_id not in valid_sub_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Submission {sub_id} not found in this contest")
+        if sub_id in own_sub_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="You cannot vote for your own submissions")
+
+    def vote(sub_id: int, category: str, rank: int | None = None) -> ContestVote:
+        return ContestVote(contest_id=contest.id, submission_id=sub_id, user_id=user_id,
+                           category=category, rank=rank)
+
+    rows = [vote(sub_id, "theme", rank) for rank, sub_id in enumerate(theme, start=1)]
+    if ballot.favorite is not None:
+        rows.append(vote(ballot.favorite, "favorite"))
+    if ballot.bonus is not None:
+        rows.append(vote(ballot.bonus, "wildcard"))
+    return rows
+
 
 @router.post("/{contest_id}/vote", status_code=status.HTTP_201_CREATED)
 async def cast_vote(
@@ -1082,6 +1295,12 @@ async def cast_vote(
     if contest.status != "voting":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest is not in voting phase")
 
+    is_points = contest.voting_format == VOTING_FORMAT_POINTS
+    if is_points and body.ballot is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=STALE_BALLOT_DETAIL)
+    if not is_points and body.votes is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=CLASSIC_BALLOT_DETAIL)
+
     # Check if user has already voted
     existing = await db.execute(
         select(func.count()).select_from(ContestVote).where(
@@ -1091,11 +1310,6 @@ async def cast_vote(
     )
     if existing.scalar_one() > 0:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already voted in this contest")
-
-    # Determine valid categories for this contest
-    valid_categories = {"theme", "favorite"}
-    if contest.wildcard_category:
-        valid_categories.add("wildcard")
 
     # Get all submission IDs for this contest, plus the subset owned by the
     # voting user (used to reject self-votes — defense-in-depth, since the
@@ -1112,9 +1326,36 @@ async def cast_vote(
         if owner_id == user.id:
             own_sub_ids.add(sub_id)
 
-    # Validate and create votes
+    if is_points:
+        votes_to_add = _points_ballot_rows(contest, body.ballot, user.id, valid_sub_ids, own_sub_ids)
+    else:
+        votes_to_add = _classic_ballot_rows(contest, body.votes, user.id, valid_sub_ids, own_sub_ids)
+
+    try:
+        for vote in votes_to_add:
+            db.add(vote)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Vote conflict detected")
+
+    return {"detail": "Votes recorded"}
+
+
+def _classic_ballot_rows(
+    contest: Contest,
+    category_votes: list,
+    user_id: uuid.UUID,
+    valid_sub_ids: set[int],
+    own_sub_ids: set[int],
+) -> list[ContestVote]:
+    """Validate a classic ballot (up to three photos per category) and build its rows."""
+    valid_categories = {"theme", "favorite"}
+    if contest.wildcard_category:
+        valid_categories.add("wildcard")
+
     votes_to_add = []
-    for cat_vote in body.votes:
+    for cat_vote in category_votes:
         if cat_vote.category not in valid_categories:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1148,22 +1389,13 @@ async def cast_vote(
                 )
             votes_to_add.append(
                 ContestVote(
-                    contest_id=contest_id,
+                    contest_id=contest.id,
                     submission_id=sub_id,
-                    user_id=user.id,
+                    user_id=user_id,
                     category=cat_vote.category,
                 )
             )
-
-    try:
-        for vote in votes_to_add:
-            db.add(vote)
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Vote conflict detected")
-
-    return {"detail": "Votes recorded"}
+    return votes_to_add
 
 
 # --- Admin Import Endpoints ---
@@ -1233,6 +1465,8 @@ async def finalize_contest(
     contest = await lock_contest(db, contest_id)
     if not contest.is_imported:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only imported contests can be finalized this way")
+    if contest.voting_format != VOTING_FORMAT_CLASSIC:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only classic (category) contests can be finalized with vote tallies")
     if not contest.submissions:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest has no submissions to finalize")
 
@@ -1410,17 +1644,64 @@ async def refresh_gallery(
     return {"detail": "Gallery entries refreshed with current winner placements"}
 
 
+@router.get("/{contest_id}/live-tallies", response_model=LiveTalliesResponse)
+async def get_live_tallies(
+    contest_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only, for debugging: tallies from the ballots cast so far.
+
+    Members never see results before a contest completes, and this returns
+    aggregates only, never who voted for what. Always computed live from the
+    ballots, even for a completed points contest (whose published results are
+    frozen at completion).
+    """
+    result = await db.execute(select(Contest).where(Contest.id == contest_id))
+    contest = result.scalar_one_or_none()
+    if contest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
+
+    ballots = await db.scalar(
+        select(func.count(func.distinct(ContestVote.user_id))).where(ContestVote.contest_id == contest_id)
+    )
+    if contest.voting_format == VOTING_FORMAT_POINTS:
+        tallies = [
+            LiveTallySchema(submission_id=score.submission_id, score=_points_score_schema(score))
+            for score in await load_points_scores(db, contest)
+        ]
+    else:
+        counts = await _classic_vote_counts(db, contest_id)
+        tallies = [
+            LiveTallySchema(submission_id=sub.id, category_votes=counts.get(sub.id, CategoryVotesSchema()))
+            for sub in contest.submissions
+        ]
+        tallies.sort(key=lambda t: (
+            -(t.category_votes.theme + t.category_votes.favorite + t.category_votes.wildcard),
+            t.submission_id,
+        ))
+
+    return LiveTalliesResponse(
+        contest_id=contest.id,
+        voting_format=contest.voting_format,
+        status=contest.status,
+        ballots=ballots or 0,
+        submissions=tallies,
+    )
+
+
 @router.post("/recalculate-winners")
 async def recalculate_winners(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """Admin-only: recompute winners for every completed contest under the
-    current (dense) ranking rules, then refresh gallery winner badges.
+    rules it ran under, then refresh gallery winner badges.
 
-    Organic contests recompute from their recorded votes; imported contests
-    from the vote tallies stored at finalize time. Imported contests that
-    were never finalized (no stored tallies) are left untouched.
+    Classic contests keep their three dense-ranked category podiums: organic
+    ones recompute from their recorded votes, imported ones from the vote
+    tallies stored at finalize time (imported contests never finalized are
+    left untouched). Points contests recompute their single leaderboard.
     """
     result = await db.execute(select(Contest).where(Contest.status == "completed"))
     contests = result.scalars().unique().all()
@@ -1434,8 +1715,10 @@ async def recalculate_winners(
                 continue
             winners = _winners_from_tallies(contest)
             contest.winners = winners if winners else None
+        elif contest.voting_format == VOTING_FORMAT_POINTS:
+            await _calculate_points_winners(contest, db, rescore_stored=True)
         else:
-            await _auto_calculate_winners(contest, db)
+            await _calculate_classic_winners(contest, db)
         contest.honorable_mentions = None
         await _populate_gallery_from_contest(contest, db, update_winners=True)
         recalculated += 1

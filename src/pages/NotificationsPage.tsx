@@ -20,7 +20,7 @@ type Filter = 'all' | 'unread' | 'likes' | 'comments' | 'contests';
 const TYPE_FILTER: Record<Exclude<Filter, 'all' | 'unread'>, NotificationType[]> = {
   likes: ['gallery_like'],
   comments: ['gallery_comment', 'gallery_reply', 'gallery_mention'],
-  contests: ['contest_voting_open', 'contest_completed'],
+  contests: ['contest_voting_open', 'contest_completed', 'contest_revote'],
 };
 
 const PAGE_SIZE = 20;

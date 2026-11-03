@@ -10,8 +10,9 @@ import {
   getContest,
 } from '../../api/contests';
 import type { SubmissionVoteTally } from '../../api/contests';
-import type { Contest, ContestSubmission, VoteCategory } from '../../types/contest';
-import { getCategoryLabel } from '../../types/contest';
+import type { Contest, ContestSubmission, PlacementCategory } from '../../types/contest';
+import { getCategoryLabel, isPointsContest } from '../../types/contest';
+import { rankByPoints } from '../../utils/contestPlacements';
 import { getMembers } from '../../api/members';
 import type { Member } from '../../types/members';
 import { useToast } from '../../contexts/ToastContext';
@@ -275,6 +276,15 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
   };
 
   const hasWildcard = !!contest.wildcardCategory;
+  // Points contests are scored from members' ballots: a read-only leaderboard
+  // replaces the classic tallies, and there is nothing to edit or finalize.
+  const isPoints = isPointsContest(contest);
+  const pointsRows = isPoints ? rankByPoints(submissions) : [];
+  const pointsPlaces = new Map(
+    (contest.winners ?? [])
+      .filter((w) => w.category === 'overall')
+      .map((w) => [w.submissionId, w.place]),
+  );
 
   return (
     <div className="cif">
@@ -433,8 +443,64 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
         )}
       </div>}
 
-      {/* --- Section 3: Vote Tallies --- */}
-      {submissions.length > 0 && (
+      {/* --- Section 3: Vote Tallies (points contests: read-only leaderboard) --- */}
+      {submissions.length > 0 && isPoints && (
+        <div className="cif__section">
+          <h4 className="cif__section-title">Points Leaderboard</h4>
+          <div className="cif__tally-table-wrap">
+            <table className="admin__table cif__tally-table">
+              <thead>
+                <tr>
+                  <th>Photo</th>
+                  <th>Title</th>
+                  <th>Photographer</th>
+                  <th>Place</th>
+                  <th>Total</th>
+                  <th title="Theme points, then how many voters ranked the photo 1st / 2nd / 3rd">
+                    Theme (1st/2nd/3rd)
+                  </th>
+                  <th>Favorite</th>
+                  {hasWildcard && <th title={contest.wildcardCategory ?? undefined}>Bonus</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {pointsRows.map(({ sub }) => {
+                  const score = sub.score;
+                  return (
+                    <tr key={sub.id}>
+                      <td>
+                        <img src={getImageUrl(sub.url, 'thumb')} alt="" className="cif__tally-thumb" />
+                      </td>
+                      <td>{sub.title}</td>
+                      <td>{sub.photographer}</td>
+                      <td><span className="cif__tally-value">{pointsPlaces.get(sub.id) ?? '—'}</span></td>
+                      <td><span className="cif__tally-value">{score ? score.total : '—'}</span></td>
+                      <td>
+                        {score ? (
+                          <span className="cif__tally-value" style={{ width: 'auto', whiteSpace: 'nowrap' }}>
+                            {score.themePoints}{' '}
+                            <span style={{ color: 'var(--color-text-muted)' }}>
+                              ({score.themeFirst}/{score.themeSecond}/{score.themeThird})
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="cif__tally-value">—</span>
+                        )}
+                      </td>
+                      <td><span className="cif__tally-value">{score ? score.favorite : '—'}</span></td>
+                      {hasWildcard && (
+                        <td><span className="cif__tally-value">{score ? score.bonus : '—'}</span></td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {submissions.length > 0 && !isPoints && (
         <div className="cif__section">
           <h4 className="cif__section-title">Vote Tallies</h4>
           <div className="cif__tally-table-wrap">
@@ -503,7 +569,7 @@ export default function ContestImportForm({ contest, onContestUpdate, readOnly =
             <Trophy size={16} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />
             Winners
           </h4>
-          {(['theme', 'favorite', 'wildcard'] as VoteCategory[])
+          {(['overall', 'theme', 'favorite', 'wildcard'] as PlacementCategory[])
             .filter((cat) => contest.winners!.some((w) => (w.category || 'theme') === cat))
             .map((cat) => (
               <div key={cat} className="cif__winners-category">

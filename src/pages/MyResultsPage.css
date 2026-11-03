@@ -238,10 +238,39 @@
   font-weight: 500;
 }
 
+/* Where an all-time place count came from: "3 category · 2 overall".
+   Only shown to members with both classic and points history. */
+.my-results__stat-split {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.35rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-results__stat-split strong {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.my-results__stat-split-sep {
+  color: var(--color-text-muted);
+}
+
 .my-results__secondary-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+}
+
+/* Two cards (no points results yet): two equal columns rather than
+   half-filling the four-column row. */
+.my-results__secondary-row--two {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .my-results__stat-card--secondary {
@@ -258,15 +287,12 @@
   color: var(--color-accent);
 }
 
-.my-results__best-cat {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  background: var(--color-surface-alt);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-accent);
-  margin-top: 0.25rem;
+.my-results__stat-hint {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  text-wrap: balance;
 }
 
 /* =============================================
@@ -275,6 +301,81 @@
 
 .my-results__grid-wrapper {
   margin-top: 2.5rem;
+}
+
+/* Sections: the points leaderboard, then the classic archive */
+.my-results__history-section + .my-results__history-section {
+  margin-top: 2.25rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.my-results__history-header {
+  margin-bottom: 1rem;
+}
+
+.my-results__history-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+}
+
+.my-results__history-title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.my-results__history-caption {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.my-results__history-explainer {
+  max-width: 70ch;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.my-results__history-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.my-results__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+}
+
+.my-results__chip svg {
+  flex-shrink: 0;
+  color: var(--color-accent-dark);
+}
+
+.my-results__chip-value {
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-results__chip-meta {
+  color: var(--color-text-muted);
 }
 
 .my-results__grid {
@@ -300,6 +401,9 @@
 }
 
 .my-results__grid-label {
+  /* content-box: height + bottom border equals a row (cell height + the
+     row's own bottom border), so labels stay level with their rows. */
+  box-sizing: content-box;
   height: 72px;
   display: flex;
   align-items: center;
@@ -312,6 +416,15 @@
 
 .my-results__grid-label:last-child {
   border-bottom: none;
+}
+
+/* Compact text row (best score). The doubled class outranks the responsive
+   height overrides below, so the row stays compact at every breakpoint; the
+   tight line-height keeps a label that wraps in the narrow mobile column
+   inside the 32px row. */
+.my-results__grid-label.my-results__grid-label--compact {
+  height: 32px;
+  line-height: 1.15;
 }
 
 .my-results__grid-scroll {
@@ -462,6 +575,34 @@
 
 .my-results__cell-badge--bronze {
   background: linear-gradient(135deg, #CD7F32, #A0522D);
+}
+
+/* Best score row: compact text cells ("24 pts"). Width follows .my-results__cell
+   (72/64/56px); the doubled class keeps the height compact at every breakpoint. */
+.my-results__cell.my-results__cell--points {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--transition-fast);
+}
+
+.my-results__cell--points[role="button"] {
+  cursor: pointer;
+}
+
+.my-results__cell--points[role="button"]:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.my-results__cell--points[role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 /* Scroll arrows */
@@ -641,6 +782,45 @@
   color: rgba(255, 255, 255, 0.85);
   box-shadow: none;
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Points contests: score breakdown and tiebreak note under the badge */
+.my-results__lightbox-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.my-results__lightbox-breakdown {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wraps only between parts, never inside one */
+.my-results__lightbox-breakdown-part {
+  white-space: nowrap;
+}
+
+.my-results__lightbox-breakdown strong {
+  font-weight: 700;
+  color: var(--color-light-100);
+}
+
+.my-results__lightbox-breakdown-detail {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.my-results__lightbox-breakdown-sep {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.my-results__lightbox-tiebreak {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* Secondary metadata: photographer and contest, separated by a middle dot */
@@ -826,6 +1006,10 @@
   background: linear-gradient(90deg, #A06828, #7B4F1E);
 }
 
+[data-theme="dark"] .my-results__chip svg {
+  color: var(--color-accent);
+}
+
 /* =============================================
    Responsive
    ============================================= */
@@ -866,6 +1050,19 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .my-results__history-section + .my-results__history-section {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+  }
+
+  .my-results__history-title {
+    font-size: 1.1rem;
+  }
+
+  .my-results__history-explainer {
+    font-size: 0.85rem;
+  }
+
   .my-results__grid-labels {
     width: 80px;
   }
@@ -883,6 +1080,10 @@
   .my-results__cell {
     width: 56px;
     height: 56px;
+  }
+
+  .my-results__cell.my-results__cell--points {
+    font-size: 0.7rem;
   }
 
   .my-results__cell-badge {
@@ -905,8 +1106,13 @@
 }
 
 @media (max-width: 480px) {
-  .my-results__secondary-row {
+  .my-results__secondary-row,
+  .my-results__secondary-row--two {
     grid-template-columns: 1fr;
+  }
+
+  .my-results__lightbox-breakdown {
+    font-size: 0.78rem;
   }
 
   /* Stack the meta row on phones so a long photographer name + contest theme

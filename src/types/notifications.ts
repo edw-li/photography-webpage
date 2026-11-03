@@ -4,7 +4,8 @@ export type NotificationType =
   | 'gallery_reply'
   | 'gallery_mention'
   | 'contest_voting_open'
-  | 'contest_completed';
+  | 'contest_completed'
+  | 'contest_revote';
 
 export interface GalleryLikePayload {
   photoId: number;
